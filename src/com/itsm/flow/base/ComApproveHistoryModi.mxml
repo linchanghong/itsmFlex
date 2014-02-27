@@ -1,0 +1,659 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:launch="common.flow.view.launch.*"
+			   xmlns:datagrid="common.components.datagrid.*"
+			   xmlns:components="common.components.*"
+			   width="700" height="500" title="流程修改" initialize="init()"  close="{PopUpManager.removePopUp(this)}">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ArgsEvent;
+			import com.services.flow.FlowInstenceService;
+			import com.services.flow.FlowNodeInstenceService;
+			import com.services.flow.FlowOprtModuleService;
+			import com.vo.FlowNodeInstence;
+			import com.vo.FlowNodeModel;
+			
+			import common.flow.model.BeginNode;
+			import common.flow.model.EndNode;
+			import common.flow.model.Node;
+			import common.flow.model.SingleLine;
+			import common.flow.model.SpecialTaskNode;
+			import common.flow.model.TaskNode;
+			import common.utils.FAppCoreUtil;
+			import common.utils.TCopyUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			import mx.core.INavigatorContent;
+			import mx.effects.Glow;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			public var nodes:Array=new Array();
+			public var flowNodeInsteces:Array;
+
+			[Bindable]  
+			[Embed(source="../assets/icon_Form_01.jpg")]  private var gridUp:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Form_02.jpg")]  private var gridDown:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Graphics_01.jpg")]  private var graphicUp:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Graphics_02.jpg")]  private var graphicDown:Class;
+			
+			public static const EVENT_APPHIS_EDIT_OK:String = "apphis_edit_ok";
+			
+			private var FAppCore:GlobalUtil= GlobalUtil.getInstence();	
+			private var service:FlowInstenceService = new FlowInstenceService();
+			private var nodeSpace:Number=120;
+			private var thisStageWidth :Number;
+			private var thisStageHeight :Number; 
+			private var currentNodeX:Number = nodeSpace;
+			private var currentNodeY:Number = 50;
+			
+			public var allOptyModelList:ArrayCollection=new ArrayCollection();
+			
+			private var maxNumber:int=0;
+			
+			private function init():void{
+				FAppCore.showLoading();
+				new FlowOprtModuleService().GetAll("","").addResultListener(GetAllOptyModelResult);
+			}
+			
+			private function GetAllOptyModelResult(event:ResultEvent):void
+			{
+				allOptyModelList.source=Object(event.result) as Array;
+				FAppCore.closeLoading();
+			}
+			
+			//定义渲染器中用到的回调函数
+			private function cellColor(dataField:String,data:Object):uint{
+				//设置前两页显示颜色  dataField=="WarnTag" &&
+				if(  data["WarnTag"]==1){
+					return 0xFF0000;
+				}
+				//设置默认显示颜色
+				return 0x000000;
+			}
+			
+			private function initGrid(event:Event):void   //grid初始化
+			{            
+				var headerArr:Array = new Array(["审核ID","InstID",0,"",FAppCoreUtil.fcInteger,""],           									
+					["审批人","HandlerName",100,"",FAppCoreUtil.fcString,""],
+					["职务","FlowRoleName",100,"",FAppCoreUtil.fcString,""]
+				);
+				with(gridMain)
+				{
+					RemoteDest = "GenericDestination";
+					RemoteSource = "Ccspm.FlowInstenceBLL";
+					RemoteOperation = "getHistory";             
+					isPage = false;
+					AutoLoad = true;
+					isMulPage = false;
+					ShowUpGuide = false;
+					ShowDownGuide = false;
+					//PageCount = 20;            	
+					// 用户自己初次未进入流程（42:未进入流程  136:流程中 137:流程结束 138:退回；）
+					//WhereStr=" FlowState in(42,138) and BudgetSourceId=45 and  Applyer='"+FAppCore.FCusUser.UserId.toString()+"'"; // Enabled=1 and ，未进入流程、退回（ 42:未进入流程  136：流程中 137 ：流程结束 138 ：退回；）
+					UserID=FAppCore.FCusUser.UserId.toString();
+					CustomColumnsModuleName="ApproveHistory";
+					HeaderArray = headerArr;
+					cellColorFunc=cellColor;
+					
+				}		     
+			}
+			
+			/**
+			 * 获取审批历史数据 根据业务类型、业务ID
+			 * */
+			public function  setApproveHistory(arr:Array):void  
+			{			   
+				var mArr:ArrayCollection=new ArrayCollection(arr);
+				gridMain.OnlyInit();
+				gridMain.ManualProvider(mArr);
+				
+				getFlowNodeInstenceListOk(arr);
+			}
+			
+			private function getFlowNodeInstenceListOk(arr:Array):void
+			{		
+				drawCanvas.Lines.removeAll();
+				drawCanvas.removeAllChildren();
+				nodes = null;
+				nodes = new Array();
+				
+				flowNodeInsteces = arr;
+				var currentNode:Node;
+				thisStageWidth = this.stage.width;
+				thisStageHeight = this.stage.height;
+				var beginNodeModel:FlowNodeModel;
+				for each (var flowNodeInstece:FlowNodeInstence in flowNodeInsteces)
+				{
+					if(flowNodeInstece.NodeAttr == -1 || flowNodeInstece.NodeAttr == -3)
+					{
+						beginNodeModel = changeInstence2Model(flowNodeInstece);
+						currentNode=new BeginNode("开始");
+						currentNode.x= beginNodeModel.PointX = nodeSpace;
+						currentNode.y= beginNodeModel.PointY = 50;
+						currentNode.NodeModel=beginNodeModel;
+					}
+				}
+				if(currentNode != null)
+				{ 
+					getNextNodes(beginNodeModel);
+				}
+				else
+				{
+					return;
+				}
+				var singleline:SingleLine;
+				var nextids:Array;
+				for each (var firstnode:Node in nodes)
+				{
+					nextids=firstnode.NodeModel.NextID.split(",");
+					for each (var secondnode:Node in nodes)
+					{
+						for each (var nextid:String in nextids)
+						{ 
+							if (secondnode.NodeModel.NodeNumber == nextid)
+							{
+								singleline=new SingleLine("");
+								singleline.beginToEndLine(firstnode, secondnode);
+								drawCanvas.addChild(singleline);
+								drawCanvas.addLines(singleline);
+							}
+						}
+					}
+				}
+				var glow:Glow = new Glow();
+				glow.color= 0xff0000;
+				glow.repeatDelay = 100; 
+				glow.duration = 700;
+				glow.blurXTo = 20;
+				glow.blurYTo = 20; 
+				glow.repeatCount = 0;  
+				for each (var node:Node in nodes)
+				{
+					node.allowHMove = false;
+					node.allowVMove = false; 
+					if(node.NodeModel.NodeMark =='142')
+					{
+						glow.target = node;
+						glow.play(); 
+					}
+					node.contextMenu = new ContextMenu();
+					drawCanvas.addChild(node);
+				}	
+			}
+			
+			
+			private function FlowhistoryGridHandler(eventType:String):void
+			{
+				if(eventType =="flowhistoryGridBtClick")
+				{
+					gridBt.selected = true;
+					graphicBt.selected = false;
+					viewstack1.selectedChild = gridMain;
+				}
+				else if(eventType =="flowhistoryGriphicBtClick")
+				{
+					graphicBt.selected = true;
+					gridBt.selected = false;
+					viewstack1.selectedChild = drawCanvas;
+				}
+			}
+			
+			private function getNextNodes(currentNode:FlowNodeModel):void
+			{
+				
+				var tempnextids:Array = currentNode.NextID.split(",");
+				var nextids:Array = new Array();
+				for each(var entriyNextid:String in tempnextids)
+				{
+					if(entriyNextid !="")
+					{
+						nextids.push(entriyNextid);
+					}
+				}
+				if(nextids.length ==0)
+				{
+					return ;
+				}
+				var nextNode:Node;
+				var nextNodeModel:FlowNodeModel;
+				var flowNodeModels:Array = new Array();
+				var flowNodeModel:FlowNodeModel;
+				for (var i:int=0;i< flowNodeInsteces.length;i++)
+				{
+					flowNodeModel = new FlowNodeModel();
+					flowNodeModel.FlowID = FlowNodeInstence(flowNodeInsteces[i]).FlowID; 
+					flowNodeModel.ModuleCode =  FlowNodeInstence(flowNodeInsteces[i]).ModuleCode;
+					flowNodeModel.NextID =  FlowNodeInstence(flowNodeInsteces[i]).Nextids;
+					flowNodeModel.NodeAttr =  FlowNodeInstence(flowNodeInsteces[i]).NodeAttr;
+					flowNodeModel.NodeID =  FlowNodeInstence(flowNodeInsteces[i]).NodeID; 
+					flowNodeModel.NodeNumber =  FlowNodeInstence(flowNodeInsteces[i]).NodeNumber; 
+					flowNodeModel.NodeName =  FlowNodeInstence(flowNodeInsteces[i]).HandlerName+"("+ FlowNodeInstence(flowNodeInsteces[i]).FlowRoleName +")";
+					flowNodeModel.NodeMark =  FlowNodeInstence(flowNodeInsteces[i]).CheckState+""; 
+					flowNodeModels.push(flowNodeModel);
+				}
+				var stepY:int = 0;
+				for each (var flowNode:FlowNodeModel in flowNodeModels)
+				{
+					var labelLength:int = (currentNode.NodeName?currentNode.NodeName.length*12:0);
+					labelLength = (labelLength>nodeSpace?labelLength:nodeSpace);
+					
+					currentNodeX = currentNode.PointX;
+					currentNodeY = currentNode.PointY;
+					currentNodeX+= labelLength;
+					if(currentNodeX+2*labelLength+24>=thisStageWidth)
+					{
+						currentNodeY+=labelLength/2;
+						currentNodeX = nodeSpace;
+					}
+					
+					for each(var nextid:String in nextids )
+					{ 
+						if(nextid == flowNode.NodeNumber)
+						{		 					
+							switch(flowNode.NodeAttr)
+							{
+								case -1:
+									nextNode=new BeginNode(flowNode.NodeName);
+									nextNode.x = nodeSpace;
+									nextNode.y = 50;
+									break;
+								case 0:
+								case 5:
+									nextNode=new TaskNode(flowNode.NodeName);
+									break;
+								case 1:
+									nextNode=new SpecialTaskNode(flowNode.NodeName);
+									break; // 高级节点
+								case -2:
+									nextNode=new EndNode(flowNode.NodeName);
+									break; // 
+								case -3:
+									nextNode=new BeginNode(flowNode.NodeName);
+									nextNode.x = nodeSpace;
+									nextNode.y = 50;
+									break; // 
+							} 
+							nextNode.NodeModel = flowNode;
+							nextNode.x=flowNode.PointX = currentNodeX;
+							nextNode.y=flowNode.PointY = currentNodeY+nodeSpace*stepY/2;
+							var hasAdded:Boolean = false;
+							for each(var reNode:Node in nodes)
+							{
+								if(reNode.NodeModel.NodeNumber == nextNode.NodeModel.NodeNumber)
+								{
+									hasAdded = true;
+									if(nextNode.NodeModel.NodeMark == "142")
+									{
+										var newarr:ArrayCollection = new ArrayCollection(nodes);
+										var renodeint:int = new ArrayCollection(nodes).getItemIndex(reNode);
+										newarr.removeItemAt(renodeint)
+										nodes = newarr.source;
+										hasAdded = false;
+									}
+								}
+							}
+							if(!hasAdded)
+							{
+								nodes.push(nextNode);
+								getNextNodes(nextNode.NodeModel);
+							}
+							if(currentNode.NodeAttr == -1 || currentNode.NodeAttr == -3   )
+							{
+								nextNode=new BeginNode(currentNode.NodeName);
+								nextNode.NodeModel = currentNode;
+								nextNode.x = nodeSpace;
+								nextNode.y = 50;
+								nodes.push(nextNode);
+							}
+							stepY++;
+						}
+					}
+				}
+			}
+			
+			private function changeInstence2Model(flownodeInstence:FlowNodeInstence):FlowNodeModel
+			{
+				var flowNodeModel:FlowNodeModel = new FlowNodeModel();
+				flowNodeModel.FlowID = flownodeInstence.FlowID; 
+				flowNodeModel.ModuleCode = flownodeInstence.ModuleCode;
+				flowNodeModel.NextID = flownodeInstence.Nextids;
+				flowNodeModel.NodeAttr = flownodeInstence.NodeAttr;
+				flowNodeModel.NodeID = flownodeInstence.NodeID; 
+				flowNodeModel.NodeNumber = flownodeInstence.NodeNumber; 
+				flowNodeModel.NodeName = flownodeInstence.HandlerName;// 把处理人名字 存储在 nodename里面
+				flowNodeModel.NodeMark = flownodeInstence.CheckState+""; // 这里把 流程节点的状态  存储在nodemark里
+				return flowNodeModel;
+			}	 	
+			
+			
+			private function add():void{
+				if (!checkSel()) return;
+				loadForm(true);
+			}
+			
+			private function update():void{
+				if (!checkSel()) return;
+				loadForm(false);
+			}
+			
+			
+			private function loadForm(isAdd:Boolean):void{
+				var prenode:FlowNodeInstence = FlowNodeInstence(gridMain.SelectedItem);
+				if (prenode.NodeAttr==-2){
+					FAppCore.sendSysInfo("结束节点不能修改和在其添加，请选择其他节点");
+					return;
+				}
+				if (!isAdd  && (prenode.NodeAttr==-1 || prenode.NodeAttr==-3)  ){
+					FAppCore.sendSysInfo("开始节点不能修改，请选择其他节点");
+					return;
+				}
+				if (prenode.NodeNumber.substr(0,2)=="P-" || prenode.NodeNumber.substr(0,2)=="L-"){
+					FAppCore.sendSysInfo("系统强制添加的节点，不允许修改");
+					return;
+				}
+				var aParent:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var nodeForm:ComApproveHistoryModiForm=ComApproveHistoryModiForm(PopUpManager.createPopUp(aParent, ComApproveHistoryModiForm, true));
+				nodeForm.loadData(prenode,isAdd,allOptyModelList);				
+				PopUpManager.centerPopUp(nodeForm);
+				nodeForm.addEventListener(ComApproveHistoryModiForm.OK_CLICK,onAddNode);
+			}
+			
+			private function onAddNode(event:ArgsEvent):void{
+				FAppCore.showLoading();
+				var arr:Array = event.args as Array;
+				var isAdd:Boolean = arr[0];
+				var preNode:FlowNodeInstence = arr[1];
+				var addNode:FlowNodeInstence = arr[2];
+				var isAndNode:Boolean = !arr[3];
+				var isOnePass:Boolean = arr[4];
+				var isCompetition:Boolean = arr[5];
+				var gridArr:Array = TCopyUtil.clone(gridMain.GridData.source) as Array;
+				var index:int = gridMain.SelectedIndex;
+				if (maxNumber==0){
+					maxNumber = getNewMaxNumber(gridArr);
+				}
+				maxNumber = maxNumber+5;
+				
+				var nodeNumberName:String = getStringFromRight(addNode.NodeNumber);
+				if (nodeNumberName==""){
+					FAppCore.closeLoading();
+					FAppCore.sendSysInfo("Srroy,节点生成出错,请重新添加!");
+					return;
+				}
+				addNode.NodeNumber = nodeNumberName+maxNumber;
+				if(isAdd){
+					//得到选中节点的前置节点
+					var prevBeforeNode:FlowNodeInstence = null;
+					if (preNode.NodeAttr!=-1){ 
+						prevBeforeNode= getPrvNode(preNode,gridArr); 
+						if (prevBeforeNode==null){
+							FAppCore.closeLoading();
+							FAppCore.sendSysInfo("Srroy,节点生成出错,找不到前置节点,请重新添加!");
+							return;
+						}
+					}
+					//添加并节点
+					if(isAndNode){
+						if (prevBeforeNode==null){
+							FAppCore.closeLoading();
+							FAppCore.sendSysInfo("Srroy,节点添加错误,请不要选择开始节点添加并节点。开始节点不能成为并节点");
+							return;
+						}
+						//修改并节点参数并返回所有并节点字符串
+						var preNextids:String = getNextidsFromAndNodeAndUpdateAndNodeOther(prevBeforeNode,addNode,isOnePass,isCompetition,gridArr);
+						//判断前轩节点是否为并节点。如果是则所有节点的后续节点进行改变
+						if(prevBeforeNode.Other1==null || prevBeforeNode.Other1==""){
+							prevBeforeNode.Nextids = preNextids;
+						}else{
+							//获取前置节点的前置节点使得到所有并节点改变后续节点
+							var prevBeBeNode:FlowNodeInstence = getPrvNode(prevBeBeNode,gridArr);
+							var preBeBeNextids:Array = prevBeBeNode.Nextids.split(",");
+							for each(var beNode:String in preBeBeNextids){
+								if (beNode=="") continue;
+								for each(var beAndnode:FlowNodeInstence in gridArr){
+									if (beAndnode.NodeNumber==beNode){
+										beAndnode.Nextids = preNextids;
+									}
+								}
+							}
+						}
+					}else{ 
+						//直拉在节点后添加一个节点
+						//判断前置节点是否并节点，如果是则并节点的后续节点都是此节点
+						//非并节点，直接改变后置节点
+						addNode.Nextids = preNode.Nextids;
+						preNode.Nextids = ","+addNode.NodeNumber;
+						var andNodeMark:String = preNode.Other1;
+						if (andNodeMark!=null && andNodeMark!="" && andNodeMark.indexOf("&")!=-1 && andNodeMark.indexOf("｜")!=-1)
+						{
+							//为并节点找到所有兄弟节点,将兄弟节点的后续节点改变
+							var currNextids:Array = prevBeforeNode.Nextids.split(",");
+							for each(var andNodeNumber:String in currNextids){
+								if (andNodeNumber=="") continue;
+								for each(var currAndnode:FlowNodeInstence in gridArr){
+									if (currAndnode.NodeNumber == andNodeNumber)
+										currAndnode.Nextids = preNode.Nextids;
+								}
+							}
+						}
+					}
+					gridArr[index] = preNode;
+					var gridData:ArrayCollection = new ArrayCollection(gridArr);
+					gridData.addItemAt(addNode,index+1);
+					setApproveHistory(gridData.source);	
+					
+				}else{//修改节点。主要判断是否是并节点。如果是则修改并节点参数
+					var andNodemark:String = preNode.Other1;
+					if (andNodemark!=null || andNodemark!=""){
+						getNextidsFromAndNodeAndUpdateAndNodeOther(preNode,null,isOnePass,isCompetition,gridArr);
+					}
+					gridArr[index] = preNode;
+					setApproveHistory(gridArr);
+				}
+				FAppCore.closeLoading();
+			}
+			
+			//得到前置节点
+			private function getPrvNode(currentnode:FlowNodeInstence,nodes:Array):FlowNodeInstence{
+				var prvBeforeNode:FlowNodeInstence=null;
+				for each(var node:FlowNodeInstence in nodes){
+					var nextids:Array = node.Nextids.split(",");
+					for each(var nextnumber:String in nextids){
+						if (nextnumber==currentnode.NodeNumber){
+							prvBeforeNode = node;
+							return prvBeforeNode;
+						}
+					}
+				}
+				return null;
+			}
+			
+			//修改并节点参数并返回所有并节点字符串
+			private function getNextidsFromAndNodeAndUpdateAndNodeOther(preNode:FlowNodeInstence,addNode:FlowNodeInstence,isOnePass:Boolean,isCompetition:Boolean,nodes:Array):String{
+				var andNodeMarkOther:String="";
+				var andnextids:Array = preNode.Nextids.split(",");
+				var preNextids:String="";
+				//第一次循环生成并字符串
+				for each(var nodeNumber:String in andnextids){
+					if (nodeNumber=="") continue;
+					for each(var currnode:FlowNodeInstence in nodes){
+						if (currnode.NodeNumber==nodeNumber){
+							andNodeMarkOther += nodeNumber+"|"+(!isOnePass)+"&"
+							preNextids += ","+nodeNumber;
+						}
+					}
+				}
+				if (addNode){
+					andNodeMarkOther += addNode.NodeNumber+"|"+(!isOnePass)+"&";
+					preNextids += "," + addNode.NodeNumber;
+					andnextids.push(addNode.NodeNumber);
+				}
+				andNodeMarkOther += "$"+ isCompetition;
+				//第=次循环设置各节点的并字符串
+				for each(var andnodeNumber:String in andnextids){
+					if (andnodeNumber=="") continue;
+					for each(var currAndnode:FlowNodeInstence in nodes){
+						if (currAndnode.NodeNumber==andnodeNumber){
+							currAndnode.Other1 = andNodeMarkOther;
+						}
+					}
+				}
+				return preNextids;
+			}
+			
+			//得到当前节点的兄弟结点
+			private function getBrotherNodeList(currentNode:FlowNodeInstence,nodes:Array):Array{
+				var prevNode:FlowNodeInstence = getPrvNode(currentNode,nodes);
+				if (prevNode==null) return [];
+				var nodeList:Array = [];
+				var nextids:Array = prevNode.Nextids.split(",");
+				for each(var node:FlowNodeInstence in nodes){
+					for each(var nextnumber:String in nextids){
+						if (nextnumber=="") continue;
+						if (node.NodeNumber == nextnumber)
+							nodeList.push(node);
+					}
+				}
+				return nodeList;
+			}
+			
+			private function del():void{
+				if (!checkSel()) return;
+				var prenode:FlowNodeInstence = FlowNodeInstence(gridMain.SelectedItem);
+				if (prenode.NodeAttr==-2 || prenode.NodeAttr==-1 || prenode.NodeAttr==-3){
+					FAppCore.sendSysInfo("开始与结束节点不能删除，请选择其他节点");
+					return;
+				}
+				if (prenode.NodeNumber.substr(0,2)=="P-" || prenode.NodeNumber.substr(0,2)=="L-"){
+					FAppCore.sendSysInfo("系统强制添加的节点，不允许删除");
+					return;
+				}
+				var gridArr:ArrayCollection = TCopyUtil.clone(gridMain.GridData) as ArrayCollection;
+				var index:int = gridMain.SelectedIndex;
+				FlowNodeInstence(gridArr[index-1]).Nextids = FlowNodeInstence(gridArr[index]).Nextids;
+				gridArr.removeItemAt(index);
+				setApproveHistory(gridArr.source);
+			}
+			
+			private function save():void{
+				var arr:ArrayCollection = gridMain.GridData;
+				if (arr.length==0){
+					FAppCore.sendSysInfo("节点为空不能保存");
+					return;
+				}
+				new FlowNodeInstenceService().saveSubmitCustomFloNode(arr.source).addResultListener(onResult);
+			}
+			
+			private function onResult(event:ResultEvent):void{
+				FAppCore.showInfotoLeftLowerCorner("呈报成功");	
+				PopUpManager.removePopUp(this);
+				this.dispatchEvent(new Event(EVENT_APPHIS_EDIT_OK));
+			}
+			
+			private function checkSel():Boolean{
+				if (gridMain==null || gridMain.SelectedItem==null){
+					FAppCore.sendSysInfo("请选中一条数据");
+					return false;
+				}
+				else 
+					return true;
+					
+			}
+			
+			private function getNewMaxNumber(arr:Array):int{
+				var num:int=0;
+				for each(var node:FlowNodeInstence in arr){
+					var nodeNumber:String = node.NodeNumber;
+					var nodeIt:int = getNumberFromRight(nodeNumber);
+					if (num<nodeIt)
+						num = nodeIt;
+				}
+				return num;
+			}
+			
+			private function getNumberFromRight(str:String):int{
+				var index:int= getNumberLastIndex(str);
+				if (index==-1)
+					return 0;
+				else
+					return int(str.substr(index,str.length-index));
+			}
+			
+			private function getStringFromRight(str:String):String{
+				var index:int= getNumberLastIndex(str);
+				if (index==-1)
+					return "";
+				else
+					return str.substr(0,index);
+			}
+			
+			private function getNumberLastIndex(str:String):int{
+				var len:int = str.length-1;
+				var myPattern:RegExp = /\d/ ;
+				var index:int= -1;
+				for (var i:int=len;i>=0;i--){
+					var s:String =  str.substr(i,1);
+					var result:Object = myPattern.exec(s);
+					if(result == null) {
+						if (i==len)
+							index = -1;
+						else
+							index = i+1;
+						break;
+					}
+				}
+				return index;
+			}
+				
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5" cornerRadius="3">
+			<s:layout>
+				<s:VerticalLayout gap="1"/>
+			</s:layout>
+			<s:HGroup width="100%" height="25" gap="1">
+				<components:IconButton  width="80" height="23" label="新增"
+									   click="add()" styleName="btnAdd" toolTip="新增"/>
+				<components:IconButton  width="80" height="23" label="修改"
+										click="update()" styleName="btnUpdate" toolTip="修改"/>
+				<components:IconButton  width="80" height="23" label="删除"
+										click="del()" styleName="btnDel" toolTip="删除"/>
+				<components:IconButton  width="80" height="23" label="保存"
+										click="save()" styleName="btnSave" toolTip="保存"/>
+			</s:HGroup>
+			<s:HGroup id="hbMain" width="100%" height="100%" gap="0">
+				<s:VGroup id="btnBox" width="35" gap="0">
+					<components:ToggleButtonItemRenderer id="gridBt"
+														 click="FlowhistoryGridHandler('flowhistoryGridBtClick');"
+														 icon="{gridUp}" iconDown="{gridDown}"
+														 iconUp="{gridUp}" selected="true"
+														 skinClass="common.components.skins.ToggleButtonItemRendererSkin"/>
+					<components:ToggleButtonItemRenderer id="graphicBt"
+														 click="FlowhistoryGridHandler('flowhistoryGriphicBtClick');"
+														 icon="{graphicUp}" iconDown="{graphicDown}"
+														 iconUp="{graphicUp}"
+														 skinClass="common.components.skins.ToggleButtonItemRendererSkin"/>
+				</s:VGroup>
+				<mx:ViewStack id="viewstack1" y="0" width="100%" height="100%" creationPolicy="all"
+							  horizontalScrollPolicy="off" verticalScrollPolicy="off">
+					<datagrid:CustomdataGrid id="gridMain" x="0" y="0" width="100%" height="100%"
+											 AutoDataBind="false" AutoLoad="false"
+											 initGrid="{ initGrid(event) }" ShowDownGuide="false"
+											 ShowUpGuide="false">
+					</datagrid:CustomdataGrid>
+					<launch:LaunchDrawCanvas id="drawCanvas" label="图标展示"/>		
+				</mx:ViewStack>
+			</s:HGroup>
+		</s:BorderContainer>
+	</s:Group>
+</s:TitleWindow>

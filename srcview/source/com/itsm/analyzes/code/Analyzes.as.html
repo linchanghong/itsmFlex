@@ -1,0 +1,110 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Analyzes.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="ActionScriptComment">// ActionScript file
+</span><span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">common</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">utils</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">TAlert</span>;
+
+<span class="ActionScriptComment">//工作量统计表格数据集
+</span><span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">workloadsGridArray</span>:<span class="ActionScriptDefault_Text">Array</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptReserved">null</span>;
+
+<span class="ActionScriptComment">//问题处理量统计表格数据集
+</span><span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">problemsGridArray</span>:<span class="ActionScriptDefault_Text">Array</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptReserved">null</span>;
+
+<span class="ActionScriptComment">//当年
+</span><span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">year</span>:<span class="ActionScriptDefault_Text">uint</span>;
+<span class="ActionScriptComment">//工作量统计当前月
+</span><span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">workloadMonth</span>:<span class="ActionScriptDefault_Text">uint</span>;
+<span class="ActionScriptComment">//问题处理当前月
+</span><span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">problemMonth</span>:<span class="ActionScriptDefault_Text">uint</span>;
+
+<span class="ActionScriptASDoc">/**表格初始化*/</span>
+<span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">init</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span><span class="ActionScriptBracket/Brace">{</span>
+    
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">now</span>:<span class="ActionScriptDefault_Text">Date</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptReserved">new</span> <span class="ActionScriptDefault_Text">Date</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">year</span>:<span class="ActionScriptDefault_Text">uint</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">now</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fullYear</span>;
+    <span class="ActionScriptReserved">this</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">year</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">year</span>;<span class="ActionScriptComment">//为当年变量赋值
+</span>    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">month</span>:<span class="ActionScriptDefault_Text">uint</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">now</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">month</span><span class="ActionScriptOperator">+</span>1;<span class="ActionScriptComment">//查询参数:当前月--默认初始化当前月数据
+</span>    <span class="ActionScriptDefault_Text">workloadMonth</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">problemMonth</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">month</span>;<span class="ActionScriptComment">//为当月变量赋值,用于"上一月","下一月"按钮
+</span>    
+    <span class="ActionScriptDefault_Text">workloadLab</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">text</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">spitViewMonthFromYearMonth</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptDefault_Text">problemLab</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">text</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">spitViewMonthFromYearMonth</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptBracket/Brace">)</span>;
+    
+    <span class="ActionScriptDefault_Text">initByMonthFlag</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptOperator">,</span>0<span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptDefault_Text">initByMonthFlag</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptOperator">,</span>1<span class="ActionScriptBracket/Brace">)</span>;
+    
+<span class="ActionScriptBracket/Brace">}</span>
+
+<span class="ActionScriptASDoc">/**根据传入的月份和标志值初始化表格*/</span>
+<span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">initByMonthFlag</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">month</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">flag</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span><span class="ActionScriptBracket/Brace">{</span>
+    <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">flag</span> <span class="ActionScriptOperator">==</span> 0<span class="ActionScriptBracket/Brace">)</span>
+        <span class="ActionScriptDefault_Text">workloadsGridArray</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptString">'analyzesAPI'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">'AnalyzesAPI'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">'initWorkloadDatas'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">workloadMonth,</span> <span class="ActionScriptString">'bugCount'</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptBracket/Brace">]</span>;
+    <span class="ActionScriptReserved">else</span>
+        <span class="ActionScriptDefault_Text">problemsGridArray</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptString">'analyzesAPI'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">'AnalyzesAPI'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">'initProblemDatas'</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">problemMonth,</span> <span class="ActionScriptString">'sysName'</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptBracket/Brace">]</span>;
+<span class="ActionScriptBracket/Brace">}</span>
+
+<span class="ActionScriptASDoc">/**通过年,月返回一个字符串,如:"2013/06/01--2013/06/30"*/</span>
+<span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">spitViewMonthFromYearMonth</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">month</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptDefault_Text">String</span><span class="ActionScriptBracket/Brace">{</span>
+    
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">viewStr</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">""</span>;
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">monthStr</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">month</span><span class="ActionScriptOperator">&lt;</span>10<span class="ActionScriptOperator">?</span><span class="ActionScriptString">"0"</span><span class="ActionScriptOperator">+</span><span class="ActionScriptDefault_Text">month</span>:<span class="ActionScriptDefault_Text">month</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">toString</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+    
+    <span class="ActionScriptDefault_Text">viewStr</span> <span class="ActionScriptOperator">+=</span> <span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">+</span><span class="ActionScriptString">"/"</span><span class="ActionScriptOperator">+</span><span class="ActionScriptDefault_Text">monthStr</span><span class="ActionScriptOperator">+</span><span class="ActionScriptString">"/01--"</span>;
+    <span class="ActionScriptDefault_Text">viewStr</span> <span class="ActionScriptOperator">+=</span> <span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">+</span><span class="ActionScriptString">"/"</span><span class="ActionScriptOperator">+</span><span class="ActionScriptDefault_Text">monthStr</span><span class="ActionScriptOperator">+</span><span class="ActionScriptString">"/"</span><span class="ActionScriptOperator">+</span><span class="ActionScriptDefault_Text">getLastDay</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">month</span><span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptReserved">return</span> <span class="ActionScriptDefault_Text">viewStr</span>;
+<span class="ActionScriptBracket/Brace">}</span>
+
+<span class="ActionScriptASDoc">/**获取某年某月的最后一天*/</span>
+<span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">getLastDay</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">month</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptDefault_Text">uint</span><span class="ActionScriptBracket/Brace">{</span>         
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">new_year</span>:<span class="ActionScriptDefault_Text">uint</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">year</span>;    <span class="ActionScriptComment">//取当前的年份          
+</span>    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">new_month</span>:<span class="ActionScriptDefault_Text">uint</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">month</span><span class="ActionScriptOperator">++</span>;<span class="ActionScriptComment">//取下一个月的第一天，方便计算（最后一天不固定）          
+</span>    <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">month</span><span class="ActionScriptOperator">&gt;</span>12<span class="ActionScriptBracket/Brace">)</span> <span class="ActionScriptBracket/Brace">{</span>         
+        <span class="ActionScriptDefault_Text">new_month</span> <span class="ActionScriptOperator">-=</span>12;        <span class="ActionScriptComment">//月份减          
+</span>        <span class="ActionScriptDefault_Text">new_year</span><span class="ActionScriptOperator">++</span>;            <span class="ActionScriptComment">//年份增          
+</span>    <span class="ActionScriptBracket/Brace">}</span>         
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">new_date</span>:<span class="ActionScriptDefault_Text">Date</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptReserved">new</span> <span class="ActionScriptDefault_Text">Date</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">new_year</span><span class="ActionScriptOperator">,</span><span class="ActionScriptDefault_Text">new_month</span><span class="ActionScriptOperator">,</span>1<span class="ActionScriptBracket/Brace">)</span>;                <span class="ActionScriptComment">//取当年下月中的第一天          
+</span>    <span class="ActionScriptReserved">return</span> <span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptReserved">new</span> <span class="ActionScriptDefault_Text">Date</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">new_date</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getTime</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">-</span>1000<span class="ActionScriptOperator">*</span>60<span class="ActionScriptOperator">*</span>60<span class="ActionScriptOperator">*</span>24<span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">date</span>;<span class="ActionScriptComment">//获取当月最后一天日期         
+</span><span class="ActionScriptBracket/Brace">}</span>
+
+<span class="ActionScriptASDoc">/**页面按钮的统一点击事件：‘上一月’，‘下一月’*/</span>
+<span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">buttonClick</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">event</span>:<span class="ActionScriptDefault_Text">MouseEvent</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span><span class="ActionScriptBracket/Brace">{</span>
+    
+    <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">isWorkload</span>:<span class="ActionScriptDefault_Text">uint</span> <span class="ActionScriptOperator">=</span> 0;
+    
+    <span class="ActionScriptReserved">switch</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">currentTarget</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">name</span><span class="ActionScriptBracket/Brace">)</span>
+    <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptReserved">case</span> <span class="ActionScriptString">"workloadPreviousClick"</span>:<span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptOperator">--</span>;
+            <span class="ActionScriptReserved">break</span>;
+        <span class="ActionScriptBracket/Brace">}</span>
+        <span class="ActionScriptReserved">case</span> <span class="ActionScriptString">"workloadNextClick"</span>:<span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptOperator">++</span>;
+            <span class="ActionScriptReserved">break</span>;     
+        <span class="ActionScriptBracket/Brace">}</span>
+        <span class="ActionScriptReserved">case</span> <span class="ActionScriptString">"problemPreviousClick"</span>:<span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptOperator">--</span>;
+            <span class="ActionScriptDefault_Text">isWorkload</span> <span class="ActionScriptOperator">=</span> 1;
+            <span class="ActionScriptReserved">break</span>;
+        <span class="ActionScriptBracket/Brace">}</span>
+        <span class="ActionScriptReserved">case</span> <span class="ActionScriptString">"problemNextClick"</span>:<span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptOperator">++</span>;
+            <span class="ActionScriptDefault_Text">isWorkload</span> <span class="ActionScriptOperator">=</span> 1;
+            <span class="ActionScriptReserved">break</span>;     
+        <span class="ActionScriptBracket/Brace">}</span>
+    <span class="ActionScriptBracket/Brace">}</span>
+    
+    <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">isWorkload</span> <span class="ActionScriptOperator">==</span> 0<span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptDefault_Text">workloadLab</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">text</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">spitViewMonthFromYearMonth</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptBracket/Brace">)</span>;
+        <span class="ActionScriptDefault_Text">initByMonthFlag</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">workloadMonth</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">isWorkload</span><span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptBracket/Brace">}</span>
+    <span class="ActionScriptReserved">else</span><span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptDefault_Text">problemLab</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">text</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">spitViewMonthFromYearMonth</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">year</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptBracket/Brace">)</span>;
+        <span class="ActionScriptDefault_Text">initByMonthFlag</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">problemMonth</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">isWorkload</span><span class="ActionScriptBracket/Brace">)</span>;
+    <span class="ActionScriptBracket/Brace">}</span>
+<span class="ActionScriptBracket/Brace">}</span></pre></body>
+</html>

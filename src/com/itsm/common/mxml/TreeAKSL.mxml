@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Tree xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 itemOpen="agencyTree_itemOpenHandler(event)"
+		 creationComplete="init(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			
+			import flash.events.MouseEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.TreeEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.collections.Sort;
+			import spark.collections.SortField;
+			
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			//根节点的上级ID
+			private var minParentId:Number = -1;
+			//当前ID
+			private var _idFiled:String = "id";
+			//上级ID
+			private var _parentIdFiled:String = "parentId";
+			//是否加载部门
+			private var _isLoadDept:String = "true";
+			//后台获取的数据集合
+			private var assembleArray:ArrayCollection = new ArrayCollection();
+			//当前节点对象
+			public var currentXmlObj:XML;
+			//当前用户登录的公司ID
+			public var companyId:String;
+			[Bindable]
+			public var xml:XML=new XML();//最终树数据结构（xml）
+			
+			public function get parentIdFiled():String
+			{
+				return _parentIdFiled;
+			}
+
+			public function set parentIdFiled(value:String):void
+			{
+				_parentIdFiled = value;
+			}
+
+			public function get idFiled():String
+			{
+				return _idFiled;
+			}
+
+			public function set idFiled(value:String):void
+			{
+				_idFiled = value;
+			}
+			
+			public function get isLoadDept():String
+			{
+				return _isLoadDept;
+			}
+			
+			public function set isLoadDept(value:String):void
+			{
+				_isLoadDept = value;
+			}
+
+			
+			/**
+			 * 设置数据格式为XML
+			 */
+			override public function set dataProvider(value:Object):void
+			{
+				assembleArray = value as ArrayCollection;
+				
+				if(assembleArray != null && assembleArray.length > 0) {
+					minParentId = getMinParentId(assembleArray);
+					//拼装树数据
+					xml = assembleTree();
+				}
+				
+				super.dataProvider = xml;
+			}
+			
+			
+			
+			/**
+			 * 点击节点图标时
+			 */
+			protected function agencyTree_itemOpenHandler(event:TreeEvent):void{
+				if(_isLoadDept == "true"){
+					currentXmlObj = XML(TreeEvent(event).item);
+					loadDept(currentXmlObj);
+				}
+			}
+
+			
+//			/**
+//			 * 点击节点文本时
+//			 */
+//			override protected function mouseClickHandler(event:MouseEvent):void
+//			{
+//				super.mouseClickHandler(event);
+//				if(_isLoadDept == "true"){
+//					currentXmlObj = event.currentTarget.selectedItem as XML;
+//					loadDept(currentXmlObj);
+//				}
+//			}
+			
+			protected function init(event:FlexEvent):void
+			{
+				var loginUser:Object=appCore.loginUser;
+				var isAdmin:int=appCore.loginUser.isAdmin;
+				companyId = loginUser.companyId;
+				
+				appCore.dataDeal.dataRemote("treeAPI", "TreeAPI", "initUnitAndDeptTree", [companyId,isAdmin]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, loadData);
+			}
+			
+			private function loadData(event:ResultEvent):void{
+				var deptTree:String=event.result as String;
+				this.dataProvider = new JSONDecoder().decode(deptTree);
+			}
+			
+			
+			/**
+			 * 加载部门
+			 */
+			public function loadDept(currentXmlObj:XML):void {
+				var currentNodeId:String = currentXmlObj.@id;
+				if(currentXmlObj.@isLoad == "false"){
+					appCore.dataDeal.dataRemote("treeAPI", "TreeAPI", "initAddDeptTree", ['0',currentNodeId]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,function initTreeHandler(event:ResultEvent):void{
+						var deptTree:String=event.result as String;
+						var dataDeptTreeList:ArrayCollection = new JSONDecoder().decode(deptTree);
+						if(dataDeptTreeList.length > 0){
+							for each (var deptObj:Object in dataDeptTreeList) {
+								var newNode:XML = <node orgCode="" parentId="" id="" orgType="" remark="" orgName=""/>;
+								//新节点id及其父级id
+								newNode.@orgCode = deptObj.orgCode;
+								newNode.@parentId = deptObj.parentId;
+								newNode.@id = deptObj.id;
+								newNode.@orgType = deptObj.orgType;
+								newNode.@remark = deptObj.remark;
+								newNode.@orgName = deptObj.orgName;
+								newNode.@isLoad = "false";//是否已加载过
+								newNode.@isBranch = "true";//文件夹图标打开
+								newNode.@dateType = "1";//数据类型  0:单位 ， 1：部门  ，2岗位
+								//在树上增加节点
+								currentXmlObj.appendChild(newNode);
+								currentXmlObj.@isLoad = "true";
+							}
+						}else{
+							currentXmlObj.@isBranch = "false";
+							currentXmlObj.@isLoad = "true";
+						}
+					});
+				}
+			}
+			
+			/**
+			 * 递归拼装Flex树需要的数据类型
+			 */
+			public function assembleTree(nodeObject:Object=null):XML {
+				
+				//查找根节点
+				if (nodeObject == null) {
+					for each (var tmplNodeObject:Object in assembleArray) {
+						if (tmplNodeObject[_parentIdFiled].toString() == minParentId) {
+							nodeObject=tmplNodeObject;
+							break;
+						}
+					}
+				}
+				
+				//创建xml对象
+				var treeXml:XML=new XML("<node></node>");
+				for(var objectKey:String in nodeObject){
+					treeXml["@"+objectKey] = nodeObject[objectKey];
+					treeXml["@dateType"] = "0"; //数据类型  0:单位 ， 1：部门  ，2岗位
+					if(_isLoadDept == "true"){
+						treeXml["@isLoad"] = "false";
+						treeXml["@isBranch"] = "true";
+					}
+				}
+				
+				//查找子节点
+				if (hasChild(nodeObject)) {
+					for each (var childObject:Object in getChildList(nodeObject)) {
+						treeXml.appendChild(assembleTree(childObject));
+					}
+				}
+				return treeXml;
+			}
+			
+			/**
+			 * 判断是否有子节点
+			 */
+			private function hasChild(nodeObject:Object):Boolean {
+				return getChildList(nodeObject).length > 0 ? true : false;
+			}
+			
+			/**
+			 * 得到子节点列表
+			 */
+			private function getChildList(nodeObject:Object):ArrayCollection {
+				var childArray:ArrayCollection=new ArrayCollection();
+				for each (var childObject:Object in assembleArray) {
+					if (childObject[_parentIdFiled].toString() == nodeObject[_idFiled].toString()) {
+						childArray.addItem(childObject);
+					}
+				}
+				return childArray;
+			}
+			
+			
+			/**
+			 * 获取数据根节点的上级ID
+			 */
+			private function getMinParentId(valueArr:ArrayCollection):Number
+			{
+				var obj:Object = valueArr.getItemAt(0);
+				var minPId:Number = obj[_parentIdFiled] as Number;
+				for each(var item:Object in valueArr) {
+					var newMinPId:Number = item[_parentIdFiled] as Number;
+					if(newMinPId < minPId) {
+						minPId = newMinPId;
+					}
+				}
+				return minPId;
+			}
+			
+		]]>
+	</fx:Script>
+	
+</mx:Tree>

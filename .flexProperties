@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flexProperties enableServiceManager="false" flexServerFeatures="4" flexServerType="2" fmlDataModelLocation=".model/hrFlex.fml" serverContextRoot="/itsm" serverRoot="C:/Program Files/Apache Software Foundation/Tomcat 6.0/webapps/itsm" serverRootURL="http://localhost:8080/itsm" toolCompile="true" useServerFlexSDK="false" version="2"/>

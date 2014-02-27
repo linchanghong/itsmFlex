@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		   xmlns:s="library://ns.adobe.com/flex/spark"
+		   xmlns:mx="library://ns.adobe.com/flex/mx" 
+		   xmlns:launch="common.flow.view.launch.*"
+		   xmlns:datagrid="common.components.datagrid.*"
+		   width="100%" height="100%" xmlns:components="common.components.*" >
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.services.flow.FlowInstenceService;
+			import com.vo.FlowNodeInstence;
+			import com.vo.FlowNodeModel;
+			
+			import common.flow.model.BeginNode;
+			import common.flow.model.EndNode;
+			import common.flow.model.Node;
+			import common.flow.model.SingleLine;
+			import common.flow.model.SpecialTaskNode;
+			import common.flow.model.TaskNode;
+			import common.utils.FAppCoreUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.effects.Glow;
+			import mx.rpc.events.ResultEvent;
+			
+			public static const DATALOADOK:String = "AppHisDataLoadOK";
+			
+			public var nodes:Array=new Array();
+			public var flowNodeInsteces:Array;
+			public var BillId:String;
+			[Bindable]  
+			[Embed(source="../assets/icon_Form_01.jpg")]  private var gridUp:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Form_02.jpg")]  private var gridDown:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Graphics_01.jpg")]  private var graphicUp:Class;
+			[Bindable]  
+			[Embed(source="../assets/icon_Graphics_02.jpg")]  private var graphicDown:Class;
+			
+			private var FAppCore:GlobalUtil= GlobalUtil.getInstence();	
+			private var service:FlowInstenceService = new FlowInstenceService("flowGlobal", "FlowGlobal");
+			private var nodeSpace:Number=120;
+			private var thisStageWidth :Number;
+			private var thisStageHeight :Number; 
+			private var currentNodeX:Number = nodeSpace;
+			private var currentNodeY:Number = 50;
+			
+			//定义渲染器中用到的回调函数
+			private function cellColor(dataField:String,data:Object):uint{
+				//设置前两页显示颜色  dataField=="WarnTag" &&
+				if(  data["WarnTag"]==1){
+					return 0xFF0000;
+				}
+				//设置默认显示颜色
+				return 0x000000;
+			}
+			
+			private function initGrid(event:Event):void   //grid初始化
+			{            
+				var headerArr:Array = new Array(["审核ID","instID",0,"",FAppCoreUtil.fcInteger,""],           									
+					["审批人","handlerName",100,"",FAppCoreUtil.fcString,""],
+					["职务","flowRoleName",100,"",FAppCoreUtil.fcString,""],
+					["审批决定","checkStateName",100,"",FAppCoreUtil.fcString,""],
+					["审批意见","dealWithIdea",300,"",FAppCoreUtil.fcString,""],            									
+					["审批日期","handleDate",80,"",FAppCoreUtil.fcString,""],
+					["提醒","warnTag",0,"",FAppCoreUtil.fcInteger,""]
+				);
+				with(gridMain)
+				{
+					RemoteDest = "GenericDestination";
+					RemoteSource = "Ccspm.FlowInstenceBLL";
+					RemoteOperation = "getHistory";             
+					isPage = false;
+					AutoLoad = true;
+					isMulPage = false;
+					ShowUpGuide = false;
+					ShowDownGuide = false;
+					//PageCount = 20;            	
+					// 用户自己初次未进入流程（42:未进入流程  136:流程中 137:流程结束 138:退回；）
+					//WhereStr=" FlowState in(42,138) and BudgetSourceId=45 and  Applyer='"+FAppCore.FCusUser.UserId.toString()+"'"; // Enabled=1 and ，未进入流程、退回（ 42:未进入流程  136：流程中 137 ：流程结束 138 ：退回；）
+					UserID=FAppCore.FCusUser.UserId.toString();
+					CustomColumnsModuleName="ApproveHistory";
+					HeaderArray = headerArr;
+					cellColorFunc=cellColor;
+					
+				}		     
+			}
+			
+			/**
+			 * 获取审批历史数据 根据业务类型、业务ID
+			 * */
+			public function  getApproveHistory(aFlowtypeId:String,aBillId:String):void  
+			{			   
+				//FDataService.DataDeal_QueryToData("GenericDestination","Ccspm.FlowInstenceBLL","getHistory",[aFlowtypeId,aBillId]);
+				//FDataService.RemoteMethods.addEventListener(ResultEvent.RESULT,onGetApproveHistory); 	
+				//FDataService.DataDeal_QueryToData("GenericDestination", "Ccspm.FlowInstenceBLL", "getFlowNodeInstenceList", [aFlowtypeId,aBillId,FAppCore.FCusUser.CompId]);
+				//FDataService.RemoteMethods.addEventListener(ResultEvent.RESULT, getFlowNodeInstenceListOk);
+				BillId = aBillId;
+				service.getHistory(aFlowtypeId,aBillId).addResultListener(onGetApproveHistory);
+				service.getFlowNodeInstenceList(aFlowtypeId,aBillId,FAppCore.FCusUser.CompId).addResultListener(getFlowNodeInstenceListOk);				
+			}
+			
+			/**
+			 * 获取审批历史数据 根据业务类型、业务ID
+			 * showViewStackSelectedIndex 初始显示视图
+			 * */
+			public function getHistoryByFlowInsteceId(flowId:int,showViewStackSelectedIndex:int=1):void{
+				//if (showViewStackSelectedIndex<viewstack1.numChildren)
+					viewstack1.selectedIndex=showViewStackSelectedIndex;
+				service.getHistoryByFlowInsteceId(flowId).addResultListener(onGetApproveHistory)
+														.addResultListener(getFlowNodeInstenceListOk);
+			}
+			
+			private function getFlowNodeInstenceListOk(event:ResultEvent):void
+			{		
+				drawCanvas.Lines.removeAll();
+				drawCanvas.removeAllChildren();
+				nodes = null;
+				nodes = new Array();
+				
+				//flowNodeInsteces = event.result as Array;
+				var ac:ArrayCollection= event.result as ArrayCollection;
+				flowNodeInsteces = ac.source;
+				var currentNode:Node;
+				thisStageWidth = this.stage.width;
+				thisStageHeight = this.stage.height;
+				var beginNodeModel:FlowNodeModel;
+				for each (var flowNodeInstece:Object in flowNodeInsteces)
+				{
+					if(flowNodeInstece.nodeAttr == -1 || flowNodeInstece.nodeAttr == -3)
+					{
+						beginNodeModel = changeInstence2Model(flowNodeInstece);
+						currentNode=new BeginNode("开始");
+						currentNode.x= beginNodeModel.PointX = nodeSpace;
+						currentNode.y= beginNodeModel.PointY = 50;
+						currentNode.NodeModel=beginNodeModel;
+					}
+				}
+				if(currentNode != null)
+				{ 
+					getNextNodes(beginNodeModel);
+				}
+				else
+				{
+					return;
+				}
+				var singleline:SingleLine;
+				var nextids:Array;
+				for each (var firstnode:Node in nodes)
+				{
+					nextids=firstnode.NodeModel.NextID.split(",");
+					for each (var secondnode:Node in nodes)
+					{
+						for each (var nextid:String in nextids)
+						{ 
+							if (secondnode.NodeModel.NodeNumber == nextid)
+							{
+								singleline=new SingleLine("");
+								singleline.beginToEndLine(firstnode, secondnode);
+								drawCanvas.addChild(singleline);
+								drawCanvas.addLines(singleline);
+							}
+						}
+					}
+				}
+				var glow:Glow = new Glow();
+				glow.color= 0xff0000;
+				glow.repeatDelay = 100; 
+				glow.duration = 700;
+				glow.blurXTo = 20;
+				glow.blurYTo = 20; 
+				glow.repeatCount = 0;  
+				for each (var node:Node in nodes)
+				{
+					node.allowHMove = false;
+					node.allowVMove = false; 
+					if(node.NodeModel.NodeMark =='142')
+					{
+						glow.target = node;
+						glow.play(); 
+					}
+					node.contextMenu = new ContextMenu();
+					drawCanvas.addChild(node);
+				}	
+			}
+			
+			private function onGetApproveHistory(aEvent:ResultEvent):void
+			{
+				var mArr:ArrayCollection=aEvent.result as ArrayCollection;
+				gridMain.OnlyInit();
+				gridMain.ManualProvider(mArr);
+				this.dispatchEvent(new Event(DATALOADOK));
+			}
+			
+			private function flowNodeInstecesArrFilter(item:Object):Boolean
+			{
+				if (item.MakeRubbish == 0)
+					return true;
+				else
+					return false;
+			}
+			
+			private function FlowhistoryGridHandler(eventType:String):void
+			{
+				if(eventType =="flowhistoryGridBtClick")
+				{
+					gridBt.selected = true;
+					graphicBt.selected = false;
+					viewstack1.selectedChild = gridMain;
+				}
+				else if(eventType =="flowhistoryGriphicBtClick")
+				{
+					graphicBt.selected = true;
+					gridBt.selected = false;
+					viewstack1.selectedChild = drawCanvas;
+				}
+			}
+			
+			private function getNextNodes(currentNode:FlowNodeModel):void
+			{
+				
+				var tempnextids:Array = currentNode.NextID.split(",");
+				var nextids:Array = new Array();
+				for each(var entriyNextid:String in tempnextids)
+				{
+					if(entriyNextid !="")
+					{
+						nextids.push(entriyNextid);
+					}
+				}
+				if(nextids.length ==0)
+				{
+					return ;
+				}
+				var nextNode:Node;
+				var nextNodeModel:FlowNodeModel;
+				var flowNodeModels:Array = new Array();
+				var flowNodeModel:FlowNodeModel;
+				for (var i:int=0;i< flowNodeInsteces.length;i++)
+				{
+					var obj:Object=flowNodeInsteces[i];
+					flowNodeModel = new FlowNodeModel();
+					flowNodeModel.FlowID = obj.flowId; 
+					flowNodeModel.ModuleCode =  obj.moduleCode;
+					flowNodeModel.NextID =  obj.nextids==null?"":obj.nextids;
+					flowNodeModel.NodeAttr =  obj.nodeAttr;
+					flowNodeModel.NodeID =  obj.nodeId; 
+					flowNodeModel.NodeNumber =  obj.nodeNumber; 
+					flowNodeModel.NodeName =  obj.handlerLabel;
+					flowNodeModel.NodeMark =  obj.checkState+""; 
+					flowNodeModels.push(flowNodeModel);
+				}
+				var stepY:int = 0;
+				for each (var flowNode:FlowNodeModel in flowNodeModels)
+				{
+					var labelLength:int = (currentNode.NodeName?currentNode.NodeName.length*12:0);
+					labelLength = (labelLength>nodeSpace?labelLength:nodeSpace);
+					
+					currentNodeX = currentNode.PointX;
+					currentNodeY = currentNode.PointY;
+					currentNodeX+= labelLength;
+					if(currentNodeX+2*labelLength+24>=thisStageWidth)
+					{
+						currentNodeY+=labelLength/2;
+						currentNodeX = nodeSpace;
+					}
+					
+					/* if(currentNodeY+nodeSpace >=thisStageHeight)
+					{
+						this.height = this.height +nodeSpace;
+					} */
+					for each(var nextid:String in nextids )
+					{ 
+						if(nextid == flowNode.NodeNumber)
+						{		 					
+							switch(flowNode.NodeAttr)
+							{
+								case -1:
+									nextNode=new BeginNode(flowNode.NodeName);
+									nextNode.x = nodeSpace;
+									nextNode.y = 50;
+									break;
+								case 0:
+								case 5:
+									nextNode=new TaskNode(flowNode.NodeName);
+									break;
+								case 1:
+									nextNode=new SpecialTaskNode(flowNode.NodeName);
+									break; // 高级节点
+								case -2:
+									nextNode=new EndNode(flowNode.NodeName);
+									break; // 
+								case -3:
+									nextNode=new BeginNode(flowNode.NodeName);
+									nextNode.x = nodeSpace;
+									nextNode.y = 50;
+									break; // 
+							} 
+							nextNode.NodeModel = flowNode;
+							nextNode.x=flowNode.PointX = currentNodeX;
+							nextNode.y=flowNode.PointY = currentNodeY+nodeSpace*stepY/2;
+							var hasAdded:Boolean = false;
+							for each(var reNode:Node in nodes)
+							{
+								if(reNode.NodeModel.NodeNumber == nextNode.NodeModel.NodeNumber)
+								{
+									hasAdded = true;
+									if(nextNode.NodeModel.NodeMark == "142")
+									{
+										var newarr:ArrayCollection = new ArrayCollection(nodes);
+										var renodeint:int = new ArrayCollection(nodes).getItemIndex(reNode);
+										newarr.removeItemAt(renodeint)
+										nodes = newarr.source;
+										hasAdded = false;
+									}
+								}
+							}
+							if(!hasAdded)
+							{
+								nodes.push(nextNode);
+								getNextNodes(nextNode.NodeModel);
+							}
+							if(currentNode.NodeAttr == -1 || currentNode.NodeAttr == -3   )
+							{
+								nextNode=new BeginNode(currentNode.NodeName);
+								nextNode.NodeModel = currentNode;
+								nextNode.x = nodeSpace;
+								nextNode.y = 50;
+								nodes.push(nextNode);
+							}
+							stepY++;
+						}
+					}
+				}
+			}
+			
+			private function changeInstence2Model(flownodeInstence:Object):FlowNodeModel
+			{
+				var flowNodeModel:FlowNodeModel = new FlowNodeModel();
+				flowNodeModel.FlowID = flownodeInstence.flowId; 
+				flowNodeModel.ModuleCode = flownodeInstence.moduleCode;
+				flowNodeModel.NextID = (flownodeInstence.nextids==null?"":flownodeInstence.nextids);
+				flowNodeModel.NodeAttr = flownodeInstence.nodeAttr;
+				flowNodeModel.NodeID = flownodeInstence.nodeId; 
+				flowNodeModel.NodeNumber = flownodeInstence.nodeNumber; 
+				flowNodeModel.NodeName = flownodeInstence.handlerName;// 把处理人名字 存储在 nodename里面
+				flowNodeModel.NodeMark = flownodeInstence.checkState+""; // 这里把 流程节点的状态  存储在nodemark里
+				return flowNodeModel;
+			}	 			
+		]]>
+	</fx:Script>
+	<s:HGroup id="hbMain" width="100%" height="100%" gap="0" >
+		<s:VGroup id="btnBox" gap="0" width="35">
+			<components:ToggleButtonItemRenderer skinClass="common.components.skins.ToggleButtonItemRendererSkin"  id="gridBt" click="FlowhistoryGridHandler('flowhistoryGridBtClick');"
+												 selected="true" icon="{gridUp}" iconUp="{gridUp}" iconDown="{gridDown}"/>
+			<components:ToggleButtonItemRenderer skinClass="common.components.skins.ToggleButtonItemRendererSkin"  id="graphicBt" click="FlowhistoryGridHandler('flowhistoryGriphicBtClick');"
+												 icon="{graphicUp}" iconUp="{graphicUp}" iconDown="{graphicDown}"/>
+			<!--<mx:Button id="gridBt" click="FlowhistoryGridHandler('flowhistoryGridBtClick');"
+					   downSkin="{gridDown}" overSkin="{gridDown}" selected="true"
+					   selectedDownSkin="{gridDown}" selectedOverSkin="{gridDown}"
+					   selectedUpSkin="{gridDown}" upSkin="{gridUp}"/>
+			<mx:Button id="graphicBt" click="FlowhistoryGridHandler('flowhistoryGriphicBtClick');"
+					   downSkin="{graphicDown}" overSkin="{graphicDown}"
+					   selectedDownSkin="{graphicDown}" selectedOverSkin="{graphicDown}"
+					   selectedUpSkin="{graphicDown}" upSkin="{graphicUp}"/>-->
+		</s:VGroup>
+		<mx:ViewStack id="viewstack1" y="0" width="100%" height="100%" creationPolicy="all"
+					  horizontalScrollPolicy="off" verticalScrollPolicy="off">
+			<datagrid:CustomdataGrid id="gridMain" x="0" y="0" width="100%" height="100%"
+									 AutoDataBind="false" AutoLoad="false"
+									 initGrid="{ initGrid(event) }" ShowDownGuide="false"
+									 ShowUpGuide="false">
+			</datagrid:CustomdataGrid>
+			<launch:LaunchDrawCanvas  label="图标展示" id="drawCanvas"/>		
+		</mx:ViewStack>
+	</s:HGroup>
+</s:Group>

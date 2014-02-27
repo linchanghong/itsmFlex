@@ -1,0 +1,63 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>BugShowVo.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="ActionScriptpackage">package</span> <span class="ActionScriptDefault_Text">com</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">itsm</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">serviceManager</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">module</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">bugManager</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">vo</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">backup</span>
+<span class="ActionScriptBracket/Brace">{</span>
+    <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptMetadata">RemoteClass</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"com.sccl.serviceManager.bugManager.dto.BugShowDto"</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptBracket/Brace">]</span>
+    <span class="ActionScriptReserved">public</span> <span class="ActionScriptclass">class</span> <span class="ActionScriptDefault_Text">BugShowVo</span>
+    <span class="ActionScriptBracket/Brace">{</span>
+        
+        <span class="ActionScriptComment">//报告人
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">speaker</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//联系电话
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">phoneNumber</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//bug来源
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">bugSource</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//所属系统
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">systemName</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//责任人
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">responsible</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//主题摘要
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">item</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//所属单位
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">unitName</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//报告时间
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">putTime</span>:<span class="ActionScriptDefault_Text">Date</span>;
+        <span class="ActionScriptComment">//重要程度
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">importance</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//所属业务
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">business</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//计划解决时间
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">planTime</span>:<span class="ActionScriptDefault_Text">Date</span>;
+        <span class="ActionScriptComment">//所属部门
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">department</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//期望解决时间
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">hopeTime</span>:<span class="ActionScriptDefault_Text">Date</span>;
+        <span class="ActionScriptComment">//影响范围
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">influence</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//bug受理时间
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">bugAcceptedTime</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//完成时间
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">achieveTime</span>:<span class="ActionScriptDefault_Text">Date</span>;
+        <span class="ActionScriptComment">//bug描述
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">bugDescription</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//bug时间影响范围
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">realAffect</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//bug原因分析
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">bugCauseAnalysis</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//bug解决方案
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">bugHandle</span>:<span class="ActionScriptDefault_Text">String</span>;
+        
+        
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">BugShowVo</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptBracket/Brace">}</span>
+    <span class="ActionScriptBracket/Brace">}</span>
+<span class="ActionScriptBracket/Brace">}</span></pre></body>
+</html>

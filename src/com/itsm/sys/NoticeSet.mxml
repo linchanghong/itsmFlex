@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  width="100%" height="100%"
+		  initialize="initializeHandler(event)">
+	<s:layout>
+		<s:VerticalLayout gap="0"/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.event.PopEvent;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.sys.base.NoticeSetWindow;
+			import com.framelib.utils.StaticMethods;
+			
+			import common.utils.TAlert;
+			
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			[Bindable]
+			private var gdData:Array = null;
+			
+			protected function initializeHandler(event:FlexEvent):void{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+			}
+			
+			/**
+			 *新增修改操作 
+			 */
+			private function dataHandler(item:Object):void{
+				var displayObject:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var noticeSetWindow:NoticeSetWindow = NoticeSetWindow(PopUpManager.createPopUp(displayObject, NoticeSetWindow, true));
+				PopUpManager.centerPopUp(noticeSetWindow); 
+				if(item!=null) {
+					noticeSetWindow.data=item;
+					noticeSetWindow.currentState="modify";
+				}else
+					noticeSetWindow.currentState="add";
+				
+				noticeSetWindow.addEventListener(PopEvent.EVENT_NAME, function(evt:PopEvent):void{
+					var obj:Object = evt.data;
+					var making:String = "addNotice";
+					if(item!=null) {
+						obj.id=item.id;
+						obj.infoDate=item.infoDate;
+						obj.dr=item.dr;
+						making="updateNotice";
+					}
+					
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI", making,[appCore.jsonEncoder.encode(obj)]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,popResult);
+				});
+				
+				function popResult(evt:ResultEvent):void{
+					var json:String = evt.result as String;
+					var obj:Object = appCore.jsonDecoder.decode(json) as Object;
+					if(obj.success){
+						PopUpManager.removePopUp(noticeSetWindow);
+						appCore.sendSysInfo("操作成功！");
+						btnQuery_clickHandler(null);
+					}else{
+						TAlert.show("操作失败！");
+					}
+				}
+			}
+			
+			
+			
+			/**
+			 * 新增按钮绑定操作
+			 * */
+			public function btnAdd_clickHandler(event:MouseEvent):void{
+				dataHandler(null);
+			}
+			
+			/**
+			 * 修改按钮绑定操作
+			 * */
+			public function btnModify_clickHandler(event:MouseEvent):void{
+				var item:Object = cdg.selectedItem;
+				if(item!=null){
+					dataHandler(item);
+				}else{
+					TAlert.show("请选择一条公告！");
+				}
+			}
+			
+			/**
+			 * 删除按钮绑定操作
+			 * */
+			public function btnDelete_clickHandler(event:MouseEvent):void{
+				var item:Object = cdg.selectedItem;
+				if(item!=null){
+					TAlert.show("确定要删除?","提示", TAlert.YES | TAlert.NO, null, function(ent:CloseEvent):void{
+						if (ent.detail == TAlert.YES){
+							appCore.dataDeal.dataRemote("frameAPI","FrameAPI", "deleteNotice", [appCore.jsonEncoder.encode(item)]);
+							appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+								var json:String = evt.result as String;
+								var obj:Object = appCore.jsonDecoder.decode(json) as Object;
+								if(obj.success){
+									appCore.sendSysInfo("删除公告成功！");
+									btnQuery_clickHandler(null);
+								}else{
+									TAlert.show("删除公告失败！");
+								}
+							});
+						}
+					});
+				}else{
+					TAlert.show("请选择一条公告！");
+				}
+			}
+			
+			/**
+			 * 查询按钮绑定操作
+			 * */
+			public function btnQuery_clickHandler(event:MouseEvent):void{
+				gdData = ["frameAPI","FrameAPI", "findAllNotice", []];
+			}
+		]]>
+	</fx:Script>
+	
+	<s:HGroup id="btnGroup" width="100%" height="30" verticalAlign="middle"/>
+	<custom:CustomDataGrid id="cdg" width="100%" height="100%" isCheckBox="false"
+						   isRowNum="true" isControlColumns="true" isPaging="true"
+						   dataProvider="{gdData}">
+		<custom:columns>
+			<mx:DataGridColumn dataField="title" headerText="公告标题" width="300"/>
+			<mx:DataGridColumn dataField="content" headerText="公告内容"/>
+			<mx:DataGridColumn dataField="infoDate" headerText="发表时间" width="150"/>
+		</custom:columns>
+	</custom:CustomDataGrid>
+</s:Module>

@@ -1,0 +1,281 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>FlowTools.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="ActionScriptpackage">package</span> <span class="ActionScriptDefault_Text">com</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">itsm</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">common</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">utils</span>
+<span class="ActionScriptBracket/Brace">{</span>
+    <span class="ActionScriptReserved">public</span> <span class="ActionScriptclass">class</span> <span class="ActionScriptDefault_Text">FlowTools</span>
+    <span class="ActionScriptBracket/Brace">{</span>
+        
+        <span class="ActionScriptASDoc">/**
+         * 单位编制
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">UNIT_PREPARATION</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"1"</span>;                <span class="ActionScriptComment">//单位编制
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 部门变更
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">DEPARTMENT_CHANGE</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"2"</span>;            <span class="ActionScriptComment">//部门变更
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 培训预算
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">TRAINING_BUDGET</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"4"</span>;   <span class="ActionScriptComment">//培训预算
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 培训计划
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">TRAINING_PLAN</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"13"</span>;   <span class="ActionScriptComment">//培训预算
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 退休返聘
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">RETIRE_RECALL</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"15"</span>;   <span class="ActionScriptComment">//退休返聘
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员死亡
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span>  <span class="ActionScriptDefault_Text">PSN_DIED</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"18"</span>;            <span class="ActionScriptComment">//人员死亡
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 黑名单状态
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span>  <span class="ActionScriptDefault_Text">PSN_BLACKLIST</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 913;            <span class="ActionScriptComment">//黑名单状态
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 性别
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span>  <span class="ActionScriptDefault_Text">PSN_GENDER</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 908;            <span class="ActionScriptComment">//性别
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 人员退休
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span>  <span class="ActionScriptDefault_Text">PSN_RETIRE</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"19"</span>;            <span class="ActionScriptComment">//人员退休
+</span>        <span class="ActionScriptASDoc">/**
+         * 计划外申请
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PX_UnscheduledReq</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"3"</span>;   <span class="ActionScriptComment">//计划外申请
+</span>        <span class="ActionScriptASDoc">/**
+         * 借调管理
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Psn_Chg_Main_jdgl</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"14"</span>;   <span class="ActionScriptComment">//借调管理
+</span>        <span class="ActionScriptASDoc">/**
+         * 人事转正
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Psn_Chg_Main_rszz</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"16"</span>;   <span class="ActionScriptComment">//人事转正
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员调配管理
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Psn_Chg_Main_rydpgl</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"17"</span>;   <span class="ActionScriptComment">//人员调配管理
+</span>        <span class="ActionScriptASDoc">/**
+         * 离职管理
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span>  <span class="ActionScriptDefault_Text">PSN_PERSONAL_lzgl</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"20"</span>;  <span class="ActionScriptComment">//离职管理
+</span>        <span class="ActionScriptASDoc">/**
+         * 岗位晋级
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Psn_Job_Promotion_Type</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"21"</span>;  <span class="ActionScriptComment">//岗位晋级
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员调动
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Psn_Transfer_Type</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"22"</span>;  <span class="ActionScriptComment">//岗位晋级
+</span>        <span class="ActionScriptASDoc">/**
+         * 计划外申请
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSNDEPTCHG</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"5"</span>;   <span class="ActionScriptComment">//入职管理
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 模版类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">CONTRACT_TEMPLATE_TYPE</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span><span class="ActionScriptString">"1598"</span>;   <span class="ActionScriptComment">//模版管理
+</span>        <span class="ActionScriptASDoc">/**
+         * 培训报账
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">TRAINING_REIM</span>:<span class="ActionScriptDefault_Text">String</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptString">"23"</span>;<span class="ActionScriptComment">//培训报账
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 培训需求___培训预算 ___预算类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Px_Pxxq_Pxys</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 1005; <span class="ActionScriptComment">//培训需求___培训预算 ___培训类型
+</span>        <span class="ActionScriptASDoc">/**
+         * 培训需求___培训预算 ___预算期间
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Px_Pxxq_Pxqj</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 1012; <span class="ActionScriptComment">//培训需求___培训预算 ___预算期间
+</span>        <span class="ActionScriptASDoc">/**
+         * 培训资源___机构管理____机构类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Px_Pxzy_jggl</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 939; <span class="ActionScriptComment">//培训资源___机构管理____机构类型
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 培训资源___计划外培训___培训类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Pxzy_jhwpx_pxlx</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 1044; <span class="ActionScriptComment">//培训资源___计划外培训___培训类型 
+</span>        <span class="ActionScriptASDoc">/**
+         * 问卷调查___问卷类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">Wjdc_wjlx</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1081;  <span class="ActionScriptComment">//问卷调查___问卷类型
+</span>        <span class="ActionScriptASDoc">/**
+         * 流程类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_TYPE_ID</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>44;    <span class="ActionScriptComment">//流程类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员类别ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_PERSON_TYPE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>6;    <span class="ActionScriptComment">//人员类别ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员状态ID 
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_PERSON_STATUS</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>3;    <span class="ActionScriptComment">//人员状态ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 岗位等级ID 
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_JOB_RANK</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>46;    <span class="ActionScriptComment">// 岗位等级ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 岗位序列ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_JOB_CODE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>47;    <span class="ActionScriptComment">// 岗位序列ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 职种ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_JOB_range</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>48;    <span class="ActionScriptComment">// 职种ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 流程类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_TYPE_42</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>42;    <span class="ActionScriptComment">// 流程类型ID
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 未进入流程
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_NONE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>42;    <span class="ActionScriptComment">// 未进入流程
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 流程类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_TYPE_136</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>136;    <span class="ActionScriptComment">// 流程类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 流程类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_TYPE_137</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>137;    <span class="ActionScriptComment">// 流程类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 流程类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_TYPE_138</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>138;    <span class="ActionScriptComment">// 流程类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员事件业务类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_CHANGE_TYPE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1271;    <span class="ActionScriptComment">// 人员事件业务类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 人员调配类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_DEOLPY_TYPE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1391;    <span class="ActionScriptComment">// 人员调配类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 离职类型ID
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PSN_LEAVEL_TYPE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1405;    <span class="ActionScriptComment">// 离职类型ID
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 最高学历
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">HIGHEST_EDUCATION</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1073;    <span class="ActionScriptComment">// 最高学历
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 专业类别
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">MAJOR_TYPE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1069;    <span class="ActionScriptComment">// 专业类别
+</span><span class="ActionScriptComment">//        
+</span>        <span class="ActionScriptASDoc">/**
+         * 学历
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">EDUCATION</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1057;    <span class="ActionScriptComment">// 学历
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 学位
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">DEGREE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1057;    <span class="ActionScriptComment">//学位
+</span>        
+        
+        <span class="ActionScriptASDoc">/**
+         * 学习方式
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">STUDY_MODE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1065;    <span class="ActionScriptComment">//学习方式
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 政治面貌
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">POLITICS_STATUS</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>919;    <span class="ActionScriptComment">//政治面貌
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 职称等级
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">TITLE_DEGREE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1194;    <span class="ActionScriptComment">//职称等级
+</span>        
+<span class="ActionScriptComment">//        hightitle
+</span>        <span class="ActionScriptASDoc">/**
+         * 最高职称
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">HIGH_TITLE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1194;    <span class="ActionScriptComment">//最高职称
+</span><span class="ActionScriptComment">//        getway
+</span>        <span class="ActionScriptASDoc">/**
+         * 取得途径
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">GET_WAY</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1189;    <span class="ActionScriptComment">//取得途径
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 资格等级
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">WORK_DEGREE</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1183;<span class="ActionScriptComment">//资格等级
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 人员调动类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">CHANGE_TYPE_ID</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1415;<span class="ActionScriptComment">//调动类型
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 人员状态
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PERSON_STATE</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span>1146;   <span class="ActionScriptComment">//人员状态
+</span>        
+        <span class="ActionScriptASDoc">/**
+         * 合同状态
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">CONTRACT_STATUS_ID</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1546;<span class="ActionScriptComment">//合同状态
+</span>        
+        <span class="ActionScriptASDoc">/**
+        * 合同业务类型
+        */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">COMPACT_BUSINESS_TYPE</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span>1477;   <span class="ActionScriptComment">//合同业务类型
+</span>        <span class="ActionScriptASDoc">/**
+         * 计划类别
+         */</span> 
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PX_PLAN_TYPE</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 1177; 
+        <span class="ActionScriptASDoc">/**
+         * 计划状态
+         */</span> 
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">PX_PLAN_STAUTS</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 1400;
+        <span class="ActionScriptASDoc">/**
+         * 流程状态
+         */</span> 
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">FLOW_STATE</span>:<span class="ActionScriptDefault_Text">int</span> <span class="ActionScriptOperator">=</span> 44;
+        <span class="ActionScriptASDoc">/**
+         * 合同类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">CONTRACT_TYPE_ID</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1507;<span class="ActionScriptComment">//合同类型
+</span>        <span class="ActionScriptASDoc">/**
+         * 合同期限类型
+         */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">CONTRACT_TIME_TYPE_ID</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1511;<span class="ActionScriptComment">//合同期限类型
+</span>        <span class="ActionScriptASDoc">/**
+         * 问卷类型
+         */</span> 
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">QUESTIONNAIRE_TYPE_ASSESS</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1083;<span class="ActionScriptComment">//评估类型ID
+</span>        <span class="ActionScriptASDoc">/**
+         * 培训形式
+         */</span> 
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptReserved">static</span> <span class="ActionScriptReserved">const</span> <span class="ActionScriptDefault_Text">px_TRINING_FROM</span>:<span class="ActionScriptDefault_Text">int</span><span class="ActionScriptOperator">=</span>1785;<span class="ActionScriptComment">//培训形式
+</span>    <span class="ActionScriptBracket/Brace">}</span> 
+<span class="ActionScriptBracket/Brace">}</span></pre></body>
+</html>

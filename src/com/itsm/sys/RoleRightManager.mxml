@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  initialize="module1_initializeHandler(event)"
+		  xmlns:ns="http://www.c.sccl.com">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.mxml.AddMenuButtonLeaf;
+			import com.itsm.common.mxml.AddMsRoleLeaf;
+			import com.itsm.common.utils.AppCore;
+			import com.framelib.utils.StaticMethods;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Tree;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			import spark.components.NavigatorContent;
+			import spark.events.IndexChangeEvent;
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			[Bindable]
+			private var menuDataTree:ArrayCollection = StaticMethods.cloneArrayCollection(appCore.menuData);
+			[Bindable]
+			private var allRole:ArrayCollection = new ArrayCollection();
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_initializeHandler(event:FlexEvent):void
+			{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				roleTree.addEventListener("AddLeafEvent", addLeafEventHandler);
+				roleTree.addEventListener("EditLeafEvent", editLeafEventHandler);
+				roleTree.addEventListener("DeleteLeafEvent", deleteLeafEventHandler);
+				
+				reSet();
+			}	
+			
+			/**
+			 * 删除菜单
+			 * */
+			protected function deleteLeafEventHandler(event:MouseEvent):void
+			{
+				if(roleTree.selectedItem.children != null) {
+					TAlert.show("删除角色 "+ roleTree.selectedItem.roleName +" ？对应的子角色也将一并删除！", "提示", TAlert.NO|TAlert.YES, this, deleteParentRole);
+				} else {
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteRoleById",[roleTree.selectedItem.id.toString()]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, deleteRoleByIdHandler);
+				}
+			}
+			
+			private function deleteParentRole(event:CloseEvent):void
+			{
+				if (event.detail == TAlert.YES) {
+					var ids:Array = getSeleteItemIds(roleTree.selectedItem);
+					
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteRoleByIds",[new JSONEncoder().encode(ids)]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, deleteRoleByIdHandler);
+				}
+			}
+			
+			private function getSeleteItemIds(item:Object):Array
+			{
+				var ids:Array = new Array();
+				ids.push(item.id);
+				if(item.children != null) {
+					var childArr:ArrayCollection = item.children;
+					for each(var menu:Object in childArr) {
+						ids = ids.concat(getSeleteItemIds(menu));
+					}
+				}
+				return ids;
+			}
+			
+			private function deleteRoleByIdHandler(event:ResultEvent):void
+			{
+				if(event.result != null && event.result.toString() != "0") {
+					var parentObj:Object = (roleTree.getParentItem(roleTree.selectedItem) as Object);
+					var children1:ArrayCollection = parentObj.children as ArrayCollection;
+					for(var i:Number=0; i < children1.length; i++) {
+						if( children1[i].id == roleTree.selectedItem.id ) {
+							children1.removeItemAt(i);
+							break; 
+						}
+					}
+					
+					roleTree.selectedItem = parentObj;
+					reSelectMenuTree();
+				} else {
+					TAlert.show("删除角色失败","提示");
+					return;
+				}
+			}
+			
+			/**
+			* 修改菜单
+			* */
+			protected function editLeafEventHandler(event:MouseEvent):void
+			{
+				var popwindow:AddMsRoleLeaf = AddMsRoleLeaf(PopUpManager.createPopUp(this, AddMsRoleLeaf, true));
+				popwindow.owner = this;
+				popwindow.parentRole = roleTree.getParentItem(roleTree.selectedItem);
+				popwindow.meRole = roleTree.selectedItem;
+				PopUpManager.centerPopUp(popwindow);
+				popwindow.addEventListener("UpdateConfirmEvent", updateConfirmHandler);
+			}
+			
+			protected function updateConfirmHandler(event:MouseEvent):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateRole",[new JSONEncoder().encode(windowObj)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, updateRoleHandler);
+			}
+			
+			private function updateRoleHandler(event:ResultEvent):void
+			{
+				if(event.result != null && event.result.toString() != "0") {
+					roleTree.selectedItem.roleName = windowObj.roleName;
+				} else {
+					TAlert.show("修改角色失败","提示");
+					return;
+				}
+			}
+			
+			/**
+			 * 添加
+			 * */
+			protected function addLeafEventHandler(event:MouseEvent):void
+			{
+				var popwindow:AddMsRoleLeaf = AddMsRoleLeaf(PopUpManager.createPopUp(this, AddMsRoleLeaf, true));
+				popwindow.owner = this;
+				popwindow.parentRole = roleTree.selectedItem;
+				PopUpManager.centerPopUp(popwindow);
+				popwindow.addEventListener("AddConfirmEvent",addConfirmHandler);
+			}
+			
+			protected function addConfirmHandler(event:MouseEvent):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","addRole",[new JSONEncoder().encode(windowObj)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, addRoleHandler);
+			}
+			
+			private function addRoleHandler(event:ResultEvent):void
+			{
+				//新加的子结点
+				var leaf:Object = new Object();
+				if(event.result != null && event.result.toString() != "0") {
+					leaf = new JSONDecoder().decode(event.result.toString());
+				} else {
+					TAlert.show("新建角色失败","提示");
+					return;
+				}
+				
+				//父结点
+				var parent:Object = roleTree.selectedItem as Object; 
+				if(parent.children != null) {
+					parent.children.addItem(leaf);
+				} else {
+					parent.children = new ArrayCollection();
+					parent.children.addItem(leaf);
+				}
+				
+				//打开父节点，并选中新加的子节点
+				roleTree.validateNow();
+				roleTree.expandChildrenOf(parent, true);
+				roleTree.selectedItem = leaf;
+				
+				reSelectMenuTree();
+			}
+			
+			private function findAllRole(id:int):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","findAllRoleTree",[id]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, findAllRoleHandler);
+			}
+			
+			private function findAllRoleHandler(event:ResultEvent):void
+			{
+				if(event.result != null) {
+					allRole = new JSONDecoder().decode(event.result as String) as ArrayCollection;
+					appCore.allRoleData.put(roleDDL.selectedItem.id, allRole);
+				} else {
+					TAlert.show("查找数据失败","提示");
+				}
+			}
+			
+			private function initRightsTree():void
+			{
+				if(tb_rights.length) {
+					tb_rights.removeAllChildren();
+				}
+				
+				for each (var menuButtonTree:Object in menuDataTree)
+				{
+					if(menuButtonTree.parentId == 0)
+					{
+						var nv:NavigatorContent = new NavigatorContent();
+						nv.label = menuButtonTree.label;
+						nv.percentHeight = 100;
+						nv.percentWidth = 100;
+						
+						var rrt:RoleRightTree = new RoleRightTree();
+						rrt.id = "rrt" + menuButtonTree.id.toString();
+						var tmp_arr:ArrayCollection = new ArrayCollection();
+						tmp_arr.addItem(menuButtonTree);
+						rrt.rightTree.dataProvider = tmp_arr;
+						
+						//展开所有节点
+						rrt.rightTree.validateNow();
+						rrt.rightTree.expandChildrenOf(rrt.rightTree.dataProvider[0],true);
+						
+						nv.addElement(rrt);
+						tb_rights.addChild(nv);
+					}
+				}
+			}
+			
+			public function saveRightsBtn_clickHandler(event:MouseEvent):void
+			{
+				if(roleTree.selectedItem == null) {
+					TAlert.show("请先选择角色","提示");
+					return;
+				}
+				var role:Object = roleTree.selectedItem;
+				
+				saveRole(role);
+			}
+			
+			private function saveRole(role:Object):void
+			{
+				var menuButtonArr:Array = new Array();
+				var tbLen:int = tb_rights.length;
+				for(var i:int; i<tbLen; i++)
+				{
+					var nv:NavigatorContent = tb_rights.getChildAt(i) as NavigatorContent;
+					var rrt:RoleRightTree = nv.getElementAt(0) as RoleRightTree;
+					var tmp_arr:Array = rrt.getMenuButton();
+					menuButtonArr = menuButtonArr.concat(tmp_arr);
+				}
+				
+				role.menuButton = new ArrayCollection(menuButtonArr);
+				
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateRole",[new JSONEncoder().encode(role)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, oparateRoleHandler);
+			}
+			
+			private function oparateRoleHandler(event:ResultEvent):void
+			{
+				reSet();
+				
+				if(event.result == "1") {
+					TAlert.show("操作成功！", "提示");
+				} else {
+					TAlert.show("操作失败！", "提示");
+				}
+			}
+			
+			private function reSet():void
+			{
+				//更新role数据
+				findAllRole(roleDDL.selectedItem.id);
+			}
+			
+			protected function roleDDL_changeHandler(event:IndexChangeEvent):void
+			{
+				if(appCore.allRoleData.containsKey(roleDDL.selectedItem.id)) {
+					allRole = appCore.allRoleData.getKey(roleDDL.selectedItem.id);
+				} else { 
+					findAllRole(roleDDL.selectedItem.id);
+				}
+			}
+			
+			protected function roleTree_changeHandler(event:ListEvent):void
+			{
+				if(roleTree.selectedIndex == 0) {
+//					roleTree.selectedItem = null;
+				} else {
+					reSelectMenuTree();
+				}
+			}
+			
+			private function reSelectMenuTree():void
+			{
+				//根据角色，重新设置权限树的选中项
+				var tbLen:int = tb_rights.length;
+				for(var i:int; i<tbLen; i++)
+				{
+					var nv:NavigatorContent = tb_rights.getChildAt(i) as NavigatorContent;
+					var rrt:RoleRightTree = nv.getElementAt(0) as RoleRightTree;
+					
+					rrt.reSelectRights(roleTree.selectedItem as Object);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" 
+			  paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6">
+		
+		<s:HGroup width="100%" verticalAlign="middle">
+			<s:Label text="当前角色：" id="currentRole" />
+			<s:DropDownList id="roleDDL" dataProvider="{appCore.roleData}" selectedIndex="0"
+							change="roleDDL_changeHandler(event)" labelField="roleName"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="100%">
+			<mx:Tree id="roleTree" width="300" height="100%" dataProvider="{allRole}"
+					 itemRenderer="com.itsm.common.renders.MenusTreeItemRender" labelField="roleName" 
+					 change="roleTree_changeHandler(event)"/>
+			
+			<s:VGroup paddingLeft="15" height="100%" width="100%">
+				
+				<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" />
+			
+				<mx:TabNavigator id="tb_rights" paddingTop="10" width="100%" height="100%">
+					<mx:addedToStage>
+						<![CDATA[
+						initRightsTree();
+						]]>
+					</mx:addedToStage>
+				</mx:TabNavigator>
+			</s:VGroup>
+		</s:HGroup>
+	</s:VGroup>
+</s:Module>

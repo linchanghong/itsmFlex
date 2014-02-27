@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"  
+		  xmlns:base="com.wfm.flex.common.base.*"
+		  width="100%" height="100%" 
+		  paddingBottom="8" paddingLeft="8" paddingRight="8" paddingTop="8"
+		  initialize="onInit()" 
+		  creationComplete="onCreationComplete()">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.formatters.DateFormatter;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			[Event(name="refreshed")]
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			private var dataDeal:DataDeal = new DataDeal();                //远程数据调用     
+			private var allowFileType:Array = new Array;  //允许上传的文件类型
+			private var fComUpLoad:ComUpLoadDocs; //上传 弹出窗口   
+			[Bindable]
+			public var attachMentsArr:ArrayCollection = new  ArrayCollection();//the result of data   
+			private var ctFormatter:DateFormatter = new DateFormatter();  //日期格式化 
+			
+			/**
+			 * 是否允许删除为空, 默认为允许
+			 * */
+			public var allowNull:Boolean = true; 
+			
+			private var dgIdLen:Number = 0; //dg中有已经在数据库中的项数
+			
+			private var _uploadBtnEnable:Boolean = true;
+			private var _deleteBtnEnable:Boolean = true;
+			
+			/**
+			 * 应该上传什么文件的说明
+			 * */
+			[Bindable]
+			public var introduce:String = "";
+			
+			/**
+			 * 业务数据所在表的表名
+			 * */
+			public var busTableName:String = "";
+			
+			/**
+			 * 指定与此文档对象相关联的数据的id
+			 * */
+			public var busDataId:String = "";
+			
+			/**
+			 * 是否允许双击下载
+			 * */
+			public var isDoubleClickDownloadTag:Boolean=false;  //是否允许 双击载文件
+			
+			public function get deleteBtnEnable():Boolean
+			{
+				return _deleteBtnEnable;
+			}
+
+			public function set deleteBtnEnable(value:Boolean):void
+			{
+				_deleteBtnEnable = value;
+				deleteBtn.enabled = _deleteBtnEnable;
+			}
+
+			public function get uploadBtnEnable():Boolean
+			{
+				return _uploadBtnEnable;
+			}
+
+			public function set uploadBtnEnable(value:Boolean):void
+			{
+				_uploadBtnEnable = value;
+				uploadBtn.enabled = _uploadBtnEnable;
+			}
+
+			private function onInit():void
+			{
+				allowFileType.push({label:"文档文件",data:{SQL:"documentsType='1'"}});
+				allowFileType.push({label:"压缩文件",data:{SQL:"documentsType='2'"}});
+				allowFileType.push({label:"图片文件",data:{SQL:"documentsType='3'"}});
+				allowFileType.push({label:"其它文件",data:{SQL:"documentsType='4'"}}); 
+			} 
+			
+			private function onCreationComplete():void
+			{
+				if(isDoubleClickDownloadTag) {
+					fileDg.doubleClickEnabled = true;
+					fileDg.addEventListener(MouseEvent.DOUBLE_CLICK,onDoubleClick);
+				}
+				
+				ctFormatter.formatString = "YYYY-MM-DD,JJ:NN";
+			}
+			
+			private function onDoubleClick(event:MouseEvent):void
+			{
+				downloadFiles();
+			}
+			
+			private function onUpload(event:Event):void
+			{ 
+				//文件上传，显示上传窗口
+				showUpLoadDocsWin();
+			}
+			
+			public function showUpLoadDocsWin():void
+			{
+				var displayObject:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				//显示上传窗口
+				fComUpLoad = ComUpLoadDocs(PopUpManager.createPopUp(displayObject, ComUpLoadDocs, true));
+				fComUpLoad.upLoadFile.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, addDataToDg);
+				PopUpManager.centerPopUp(fComUpLoad);    
+			}
+			
+			
+			/**
+			 * 把datagrid的数据保存到数据库  -------需要被调用------
+			 * 同时指定与此文档对象相关联的数据的id, 和表名
+			 * 如果datagrid为空，则从刷新，相当于初始化。
+			 * @param aBusDataId 相关联的数据的id,String类型
+			 * @param aBusTableName 相关联的数据库表名,String类型
+			 * */
+			public function saveDgToDb(aBusDataId:String, aBusTableName:String):void
+			{ 
+				var i:int = 0;
+				var iLen:int = attachMentsArr.length;
+				busDataId = aBusDataId;
+				busTableName = aBusTableName;
+				//如果没有附件 就直接刷新
+				if(iLen>0) {
+					var isRefresh:Boolean = true;
+					for(i; i<iLen; i++) {
+						var tmp_doc_obj:Object = attachMentsArr.getItemAt(i);
+						//只保存新添加的
+						if(!tmp_doc_obj.hasOwnProperty("id")) {
+							isRefresh = false;
+							tmp_doc_obj.busDataId = aBusDataId;
+							tmp_doc_obj.busTableName = aBusTableName;
+							
+							if(i != iLen-1) {
+								appCore.dealData("frameAPI", "FrameAPI","addAttachment",[appCore.jsonEncoder.encode(tmp_doc_obj)],doNothing,false); //向数据库 加入一条新的记录
+							} else {
+								appCore.dealData("frameAPI", "FrameAPI","addAttachment",[appCore.jsonEncoder.encode(tmp_doc_obj)],OnWriteDataResult,false); //向数据库 加入一条新的记录
+							}
+						}
+					}
+					
+					if(isRefresh) {
+						refreshData();
+					}
+				} else {
+					refreshData();
+				}
+			} 
+			
+			
+			/**
+			 * 上传完成时，获得将返回的路径，添加文档对象到dagagrid中
+			 * */
+			private function addDataToDg(event:DataEvent):void
+			{
+				//把上传的文件信息 加到datagrid中去。暂时不保存到数据库
+				var mDate:String = ctFormatter.format(new Date); //上传时间 
+				var attachMent:Object = new Object();
+				//sevlet同时返回绝对路径和相对路径,保存绝对路径
+				var eventDataArr:Array = (event.data as String).split(",");  
+				
+				attachMent.attachName = fComUpLoad.txtDocumentsName.text;//附件名
+				attachMent.attachContent = fComUpLoad.txtDocumentsContent.text;//附件说明
+				attachMent.attachUrl = eventDataArr[1];//附件下载地址
+				attachMent.attachType = fComUpLoad.fileType;//附件类型 如doc
+				attachMent.userName = appCore.loginUser.userName; //上传用户
+				attachMent.userId = appCore.loginUser.id;//上传用户id
+				attachMent.uploadDate = mDate;//上传时间	
+				attachMent.busDataId = busDataId;//业务数据id
+				attachMent.busTableName = busTableName;//业务数据所在表名
+				
+				attachMentsArr.addItem(attachMent);  
+				fileDg.dataProvider = attachMentsArr;	
+				
+				if(busDataId != "" && busTableName != "") {
+					saveDgToDb(busDataId, busTableName);
+				}
+				
+				appCore.sendSysInfo("第" + attachMentsArr.length + "个附件已上传。");
+			}
+			
+			
+			/**  
+			 * 如果已保存，则根据id从数据库中删除相关记录
+			 * 或则 从datagrid中删除
+			 * @param none,自动根据datagrid的选中项删除
+			 * @return void
+			 * */
+			private function delDataByID():void
+			{    //删除文件	从DB中删除
+				if(fileDg.selectedItems.length > 0) {
+					//允许删除为空
+					if(allowNull) {
+						deleteFile();
+						//不允许删除为空
+					} else {
+						if(dgIdLen > 1 || !fileDg.selectedItem.hasOwnProperty("id")) {
+							deleteFile();
+						} else {
+							appCore.sendSysInfo("删除此项会清空上传列表，暂不允许删除!");
+						}
+					}
+				} else {
+					appCore.sendSysInfo("请选择要删除的文件!");
+				}
+			}  
+			
+			private function deleteFile():void
+			{
+				TAlert.show("确定要删除选择的文件?","提示",TAlert.YES|TAlert.NO,null,
+					function (event:CloseEvent):void {       
+						if(event.detail == TAlert.YES) { 
+							if(fileDg.selectedItem.userId.toString() == appCore.loginUser.id.toString()) {
+								if(!fileDg.selectedItem.hasOwnProperty("id")) {
+									fileDg.dataProvider.removeItemAt(fileDg.selectedIndex);
+									appCore.sendSysInfo("操作成功!");
+								} else {
+									appCore.dealData("frameAPI", "FrameAPI","deleteAttachmentById",[fileDg.selectedItem.id.toString()], OnWriteDataResult);
+								}
+							} else { 
+								appCore.sendSysInfo("您没有删除该文件的权限!");
+							}          
+						}
+					} 
+				);
+			}
+			
+			private function doNothing(event:ResultEvent):void
+			{ 	
+				
+			}
+			
+			private function OnWriteDataResult(aEvent:ResultEvent):void
+			{ 	//删除文件，共享文件，上传文件 
+				refreshData();
+			}
+			
+			public function refreshData():void
+			{
+				appCore.dealData("frameAPI", "FrameAPI", "findRelateAttachments",[busTableName, busDataId], bindDateToDataGrid);
+			}
+			
+			private function bindDateToDataGrid(event:ResultEvent):void
+			{ 	//绑定数据到datagrid
+				if(event.result != null) {
+					attachMentsArr = appCore.jsonDecoder.decode(event.result as String) as ArrayCollection;
+					dgIdLen = attachMentsArr.length;
+				}
+				
+				var e:Event = new Event("refreshed");
+				dispatchEvent(e);
+			}
+			
+			private function downloadFiles():void
+			{  
+				if(fileDg.selectedItems.length > 0) {
+					var i:int = 0;
+					var iLen:int = fileDg.selectedItems.length;
+					for(i; i<iLen; i++) {
+						appCore.exportExcel(fileDg.selectedItems[i].attachUrl);
+					}
+				} else {
+					appCore.sendSysInfo("请选择要下载的文件");
+				}
+			}
+			
+			/**
+			 * 置空附件列表
+			 * */
+			public function reSetData():void
+			{
+				attachMentsArr.removeAll();
+				busDataId = "";
+			}
+			
+			//datagrid显示行号
+			private function rowNumFun(item:Object, column:DataGridColumn):String
+			{
+				var iIndex:int = attachMentsArr.getItemIndex(item) + 1;
+				return String(iIndex);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%" verticalAlign="middle">
+		<mx:Button id="uploadBtn" toolTip="上传"  width="23" height="23" click="onUpload(event)"  icon="@Embed(source='assets/img/icon/upload.png')"/>
+		<mx:Button id="downloadBtn" toolTip="下载"  width="23" height="23" click="downloadFiles()" icon="@Embed(source='assets/img/icon/download.png')"/>
+		<mx:Button id="deleteBtn" toolTip="删除" width="23" height="23" click="delDataByID()" icon="@Embed(source='assets/img/icon/del.png')"/>
+		
+		<s:Label id="introduce_lb" text="{introduce}" maxWidth="200" verticalAlign="middle"
+				 visible="{introduce == '' ? false : true}"
+				 includeInLayout="{introduce == '' ? false : true}"/>
+	</s:HGroup>
+	
+	<mx:DataGrid id="fileDg" width="100%" height="100%" minHeight="100" itemRenderer="mx.controls.Label"  dataProvider="{attachMentsArr}" >
+		<mx:columns>
+			<mx:DataGridColumn headerText="" labelFunction="rowNumFun" 
+							   width="40" sortable="false" /> 
+			<mx:DataGridColumn headerText="文件ID" dataField="id" visible="false"/> 
+			<mx:DataGridColumn headerText="文件名称" dataField="attachName" /> 
+			<mx:DataGridColumn headerText="上传人员" dataField="userName"/> 
+			<mx:DataGridColumn headerText="上传日期" dataField="uploadDate"/> 
+			<mx:DataGridColumn headerText="文件说明" dataField="attachContent"/> 
+			
+			<mx:DataGridColumn headerText="业务数据id" dataField="busDataId" visible="false"/> 
+			<mx:DataGridColumn headerText="业务数据所在表名" dataField="busTableName" visible="false"/> 
+			<mx:DataGridColumn headerText="附件类型" dataField="attachType" visible="false"/> 
+			<mx:DataGridColumn headerText="上传人id" dataField="userId" visible="false"/> 
+			<mx:DataGridColumn headerText="附件下载地址" dataField="attachUrl" visible="false"/> 
+		</mx:columns> 
+	</mx:DataGrid>
+</s:VGroup>

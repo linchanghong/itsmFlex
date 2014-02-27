@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" initialize="initForm()" width="480" height="280" layout="absolute" headerHeight="10" showCloseButton="false" xmlns:ns1="common.com.base.*">
+
+<mx:Metadata>
+    [Event(name="FieldSelFormInit",type="mx.events.Event")]
+    [Event(name="FieldSelClick",type="mx.events.ListEvent")]
+    [Event(name="FieldSelDoubleClick",type="flash.events.Event")]
+    [Event(name="FieldFormOK",type="flash.events.Event")]
+    [Event(name="FieldFormCancel",type="flash.events.Event")]
+</mx:Metadata>
+
+<mx:Script>
+<![CDATA[
+	import mx.events.ListEvent;
+	import mx.managers.PopUpManager;
+	
+	public var GridheaderArr:Array;
+	public var GridRemoteDest:String;
+	public var GridRemoteSource:String;
+	public var GridRemoteOperation:String;
+	public var GridCustomColumnsModuleName:String;
+	public var GridUserID:String;
+	public var GridShowUpGuide:Boolean = false;
+	public var GridShowDownGuide:Boolean = true;
+	public var GridisPage:Boolean=false;
+	public var GridRemoteGetAllCount:String;
+	public var GridisMulPage:Boolean = true;
+	public var GridPageCount:int = 20;
+	public var GridMuliSel:Boolean = false;
+	public var GridShowHeader:Boolean = true;
+	public var GridShowNumber:Boolean = true;
+	public var GridWhereStr:String;
+	public var GridSortAD:String;
+	public var GridShowWait:Boolean=false;
+	
+	public var GridSelData:Array;
+	
+	//private var Grid:CustomdataGrid;
+	
+	private function initForm():void
+	{
+		//(this.parent as FieldSelect).addEventListener("FieldSelFormInit",(this.parent as FieldSelect).Fieldforminit);
+		var e:Event = new Event("FieldSelFormInit");
+	    dispatchEvent(e);
+	    //
+	    
+		//initGrid="initGridForm()"
+/* 		Grid = new CustomdataGrid();
+		Grid.addEventListener("initGrid",initGridForm);
+		Grid.addEventListener("ItemClick",GridItemclick);
+		Grid.addEventListener("GridDoubleClick",Griddoubleclick);
+ */	}
+	
+	
+	private function initGridForm():void
+	{
+		Grid.HeaderArray = GridheaderArr;
+		Grid.RemoteDest = GridRemoteDest;
+		Grid.RemoteSource = GridRemoteSource;
+		Grid.RemoteOperation = GridRemoteOperation;
+		Grid.CustomColumnsModuleName = GridCustomColumnsModuleName;
+		Grid.UserID = GridUserID;
+		Grid.ShowUpGuide = GridShowUpGuide;
+		Grid.ShowDownGuide = GridShowDownGuide;
+		Grid.isPage = GridisPage;
+		Grid.RemoteGetAllCount = GridRemoteGetAllCount;
+		Grid.isMulPage = GridisMulPage;
+		Grid.PageCount = GridPageCount;
+		Grid.MuliSel = GridMuliSel;
+		Grid.ShowHeader = GridShowHeader;
+		Grid.ShowNumber = GridShowNumber;
+		Grid.AutoDataBind = true;
+		Grid.WhereStr = GridWhereStr;
+		Grid.SortAD = GridSortAD;
+		Grid.ShowWait = GridShowWait;
+	}
+	
+	private function GridItemclick(event:ListEvent):void
+	{
+		GridSelData = Grid.SelectedItems;
+	    var e:Event = new Event("FieldSelClick");
+	    dispatchEvent(e);
+	}
+	
+	private function Griddoubleclick(event:Event):void
+	{
+		GridSelData = Grid.SelectedItems;
+	    var e:Event = new Event("FieldSelDoubleClick");
+	    dispatchEvent(e);
+	}
+	
+	private function okclick(event:Event):void
+	{
+		PopUpManager.removePopUp(this);
+	    var e:Event = new Event("FieldFormOK");
+	    dispatchEvent(e);
+	}
+
+	private function cancelclick(event:Event):void
+	{
+	    var e:Event = new Event("FieldFormCancel");
+	    dispatchEvent(e);
+	}
+	
+
+	
+
+]]>
+</mx:Script>
+	<mx:VBox id="selForm" verticalGap="0" left="0" right="0" top="0" bottom="0">
+		<mx:HBox width="100%" height="25" horizontalGap="2" verticalAlign="middle">
+			<mx:Button id="OKButton" click="okclick(event)" icon="@Embed(source='assets/img/png/Determine.png')" width="18" height="18" toolTip="确定"/>
+			<mx:Button id="CancelButton" click="cancelclick(event)" icon="@Embed(source='assets/img/png/cancel.png')" width="18" height="18" toolTip="取消"/>
+		</mx:HBox>
+	    <ns1:CustomdataGrid id="Grid" AutoLoad="false" initGrid="initGridForm()" GridDoubleClick="Griddoubleclick(event)" ItemClick="GridItemclick(event)" width="100%" height="100%">
+	    </ns1:CustomdataGrid>
+	</mx:VBox>
+</mx:TitleWindow>

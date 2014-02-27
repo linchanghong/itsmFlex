@@ -1,0 +1,130 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>DataDeal.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="ActionScriptpackage">package</span> <span class="ActionScriptDefault_Text">com</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">itsm</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">common</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">utils</span>
+<span class="ActionScriptBracket/Brace">{</span>
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">com</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">framelib</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">utils</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">UserBehave</span>;
+    
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">common</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">utils</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">TAlert</span>;
+    
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">core</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">FlexGlobals</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">messaging</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">ChannelSet</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">messaging</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">channels</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">AMFChannel</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rpc</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">AbstractOperation</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rpc</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">AsyncToken</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rpc</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">events</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">FaultEvent</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rpc</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">events</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">ResultEvent</span>;
+    <span class="ActionScriptReserved">import</span> <span class="ActionScriptDefault_Text">mx</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rpc</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">remoting</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">RemoteObject</span>;
+    
+    <span class="ActionScriptASDoc">/**
+     * 远程数据处理类，调用后台方法
+     * */</span>
+    <span class="ActionScriptReserved">public</span> <span class="ActionScriptclass">class</span> <span class="ActionScriptDefault_Text">DataDeal</span>
+    <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptComment">//业务方法用
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteMethods</span>:<span class="ActionScriptDefault_Text">AbstractOperation</span>;       <span class="ActionScriptComment">//得到数据源的方法
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteObject</span>:<span class="ActionScriptDefault_Text">RemoteObject</span>;            <span class="ActionScriptComment">//远程对象
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">asyncT</span>:<span class="ActionScriptDefault_Text">AsyncToken</span>;
+        
+        <span class="ActionScriptComment">//验证登录方法用
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteMethods_</span>:<span class="ActionScriptDefault_Text">AbstractOperation</span>;       <span class="ActionScriptComment">//得到数据源的方法
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteObject_</span>:<span class="ActionScriptDefault_Text">RemoteObject</span>;            <span class="ActionScriptComment">//远程对象
+</span>        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">asyncT_</span>:<span class="ActionScriptDefault_Text">AsyncToken</span>;
+        
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteDest</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteSource</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">remoteOperation</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">arguments</span>:<span class="ActionScriptDefault_Text">Object</span>;
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">showWait</span>:<span class="ActionScriptDefault_Text">Boolean</span>;
+        
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">DataDeal</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptBracket/Brace">}</span>
+        
+        <span class="ActionScriptASDoc">/**
+         * 
+         * 远程调用获取数据，并验证登录是否有效
+         * @param RemoteDest: 远程数据源，要调用的后台bean名
+         * @param RemoteSource: 远程命名空间及类，要调用的后台service类名
+         * @param RemoteOperation: 要调用的后台方法名
+         * @param Agt: 后台方法需要的参数，一个对象数组，如[1,2,"A","B"]
+         * */</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">dataRemote</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">remoteDest</span>:<span class="ActionScriptDefault_Text">String</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">remoteSource</span>:<span class="ActionScriptDefault_Text">String</span><span class="ActionScriptOperator">,</span> 
+                                            <span class="ActionScriptDefault_Text">remoteOperation</span>:<span class="ActionScriptDefault_Text">String</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptDefault_Text">agt</span>:<span class="ActionScriptDefault_Text">Object</span><span class="ActionScriptOperator">,</span> 
+                                            <span class="ActionScriptDefault_Text">showWait</span>:<span class="ActionScriptDefault_Text">Boolean</span><span class="ActionScriptOperator">=</span><span class="ActionScriptReserved">true</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptComment">//访问业务方法
+</span>            <span class="ActionScriptDefault_Text">remoteObject</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptReserved">new</span> <span class="ActionScriptDefault_Text">RemoteObject</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+            <span class="ActionScriptDefault_Text">remoteObject</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">endpoint</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">AppCore</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getInstance</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">appConfig</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">configs</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fWebChannelSet</span>;
+            <span class="ActionScriptDefault_Text">remoteObject</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">source</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteSource</span>;
+            <span class="ActionScriptDefault_Text">remoteObject</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">destination</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteDest</span>;
+            <span class="ActionScriptDefault_Text">remoteObject</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">showBusyCursor</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">showWait</span>;
+            <span class="ActionScriptDefault_Text">remoteMethods</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteObject</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getOperation</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">remoteOperation</span><span class="ActionScriptBracket/Brace">)</span>;
+            <span class="ActionScriptDefault_Text">remoteMethods</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">addEventListener</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">FaultEvent</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">FAULT</span><span class="ActionScriptOperator">,</span><span class="ActionScriptDefault_Text">getErrorHandle</span><span class="ActionScriptBracket/Brace">)</span>;
+            <span class="ActionScriptDefault_Text">remoteMethods</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">arguments</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">agt</span>;
+            
+<span class="ActionScriptComment">//            if(AppCore.getInstance().loginUser.userCode != null) {
+</span><span class="ActionScriptComment">//                trace(AppCore.getInstance().loginUser.userCode);
+</span><span class="ActionScriptComment">//                //先验证是否登录
+</span><span class="ActionScriptComment">//                remoteObject_ = new RemoteObject();
+</span><span class="ActionScriptComment">//                remoteObject_.endpoint = AppCore.getInstance().appConfig.configs.fWebChannelSet;
+</span><span class="ActionScriptComment">//                remoteObject_.source = AppCore.getInstance().appConfig.configs.remoteSource;
+</span><span class="ActionScriptComment">//                remoteObject_.destination = AppCore.getInstance().appConfig.configs.remoteDest;
+</span><span class="ActionScriptComment">//                
+</span><span class="ActionScriptComment">//                remoteObject_.showBusyCursor = showWait;
+</span><span class="ActionScriptComment">//                
+</span><span class="ActionScriptComment">//                remoteMethods_ = remoteObject.getOperation(AppCore.getInstance().appConfig.configs.remoteOperation);
+</span><span class="ActionScriptComment">//                remoteMethods_.addEventListener(FaultEvent.FAULT,getErrorHandle);
+</span><span class="ActionScriptComment">//                remoteMethods_.addEventListener(ResultEvent.RESULT,isLoginHandler);
+</span><span class="ActionScriptComment">//                remoteMethods_.arguments = [AppCore.getInstance().loginUser.userCode, UserBehave.getBehave(), agt.toString()];
+</span><span class="ActionScriptComment">//                
+</span><span class="ActionScriptComment">//                asyncT_ = remoteMethods_.send();
+</span><span class="ActionScriptComment">//            } else {
+</span>                <span class="ActionScriptComment">//不验证登录
+</span>                <span class="ActionScriptDefault_Text">asyncT</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteMethods</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">send</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+<span class="ActionScriptComment">//            }
+</span>        <span class="ActionScriptBracket/Brace">}</span>
+        
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">isLoginHandler</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">event</span>:<span class="ActionScriptDefault_Text">ResultEvent</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">msUser</span>:<span class="ActionScriptDefault_Text">Object</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">result</span> <span class="ActionScriptReserved">as</span> <span class="ActionScriptDefault_Text">Object</span>;
+            <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">msUser</span> <span class="ActionScriptOperator">==</span> <span class="ActionScriptReserved">null</span><span class="ActionScriptBracket/Brace">)</span> <span class="ActionScriptBracket/Brace">{</span>
+                <span class="ActionScriptDefault_Text">TAlert</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">show</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"您的帐号需要重新登录"</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">"提示"</span><span class="ActionScriptBracket/Brace">)</span>;
+            <span class="ActionScriptBracket/Brace">}</span> <span class="ActionScriptReserved">else</span> <span class="ActionScriptBracket/Brace">{</span>
+                
+                <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">AppCore</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getInstance</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getSetDetail</span><span class="ActionScriptBracket/Brace">(</span>1<span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getItemAt</span><span class="ActionScriptBracket/Brace">(</span>0<span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">setValue</span> <span class="ActionScriptOperator">==</span> <span class="ActionScriptString">"1"</span><span class="ActionScriptBracket/Brace">)</span> <span class="ActionScriptBracket/Brace">{</span>
+                    <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">msUser</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUid</span> <span class="ActionScriptOperator">!=</span> <span class="ActionScriptDefault_Text">AppCore</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getInstance</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUser</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUid</span><span class="ActionScriptBracket/Brace">)</span> <span class="ActionScriptBracket/Brace">{</span>
+                        <span class="ActionScriptDefault_Text">TAlert</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">show</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"您的帐号已在其它地方登录，你需要注销后重新登录。"</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">"提示"</span><span class="ActionScriptBracket/Brace">)</span>;
+                    <span class="ActionScriptBracket/Brace">}</span> <span class="ActionScriptReserved">else</span> <span class="ActionScriptBracket/Brace">{</span>
+                        <span class="ActionScriptDefault_Text">asyncT</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteMethods</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">send</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+                    <span class="ActionScriptBracket/Brace">}</span>
+                <span class="ActionScriptBracket/Brace">}</span> <span class="ActionScriptReserved">else</span> <span class="ActionScriptBracket/Brace">{</span>
+                    <span class="ActionScriptReserved">if</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">msUser</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">isSingleLogin</span> <span class="ActionScriptOperator">==</span> 1 <span class="ActionScriptOperator">&amp;&amp;</span> <span class="ActionScriptDefault_Text">msUser</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUid</span> <span class="ActionScriptOperator">!=</span> <span class="ActionScriptDefault_Text">AppCore</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">getInstance</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUser</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">loginUid</span><span class="ActionScriptBracket/Brace">)</span> <span class="ActionScriptBracket/Brace">{</span>
+                        <span class="ActionScriptDefault_Text">TAlert</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">show</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"您的帐号已在其它地方登录，你需要注销后重新登录。"</span><span class="ActionScriptOperator">,</span> <span class="ActionScriptString">"提示"</span><span class="ActionScriptBracket/Brace">)</span>;
+                    <span class="ActionScriptBracket/Brace">}</span> <span class="ActionScriptReserved">else</span> <span class="ActionScriptBracket/Brace">{</span>
+                        <span class="ActionScriptDefault_Text">asyncT</span> <span class="ActionScriptOperator">=</span> <span class="ActionScriptDefault_Text">remoteMethods</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">send</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>;
+                    <span class="ActionScriptBracket/Brace">}</span>
+                <span class="ActionScriptBracket/Brace">}</span>
+            <span class="ActionScriptBracket/Brace">}</span>
+        <span class="ActionScriptBracket/Brace">}</span>
+        
+        <span class="ActionScriptASDoc">/**
+         * 调用的方法发生错误
+         * */</span>
+        <span class="ActionScriptReserved">private</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">getErrorHandle</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptDefault_Text">event</span>:<span class="ActionScriptDefault_Text">FaultEvent</span><span class="ActionScriptBracket/Brace">)</span>:<span class="ActionScriptReserved">void</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+            <span class="ActionScriptDefault_Text">TAlert</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">show</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"对不起，本次操作失败。请重试或联系系统管理员。"</span><span class="ActionScriptOperator">,</span><span class="ActionScriptString">"服务器提示"</span><span class="ActionScriptBracket/Brace">)</span>;
+            <span class="ActionScripttrace">trace</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"服务器报错"</span><span class="ActionScriptOperator">+</span><span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fault</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">faultString</span> <span class="ActionScriptOperator">+</span>
+                <span class="ActionScriptString">" ，错误详情： "</span> <span class="ActionScriptOperator">+</span> <span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fault</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">faultDetail</span> 
+                <span class="ActionScriptOperator">+</span> <span class="ActionScriptString">" ，错误信息："</span> <span class="ActionScriptOperator">+</span> <span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fault</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">message</span> <span class="ActionScriptOperator">+</span> <span class="ActionScriptString">" ，错误原因："</span> <span class="ActionScriptOperator">+</span> 
+                <span class="ActionScriptDefault_Text">event</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">fault</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">rootCause</span><span class="ActionScriptBracket/Brace">)</span>;
+        <span class="ActionScriptBracket/Brace">}</span>
+    <span class="ActionScriptBracket/Brace">}</span>
+<span class="ActionScriptBracket/Brace">}</span></pre></body>
+</html>

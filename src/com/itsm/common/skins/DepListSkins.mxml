@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.AddDepartmentWindow;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.sys.OrganizeManager;
+			
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.components.List;
+			protected function updateDep_clickHandler(event:MouseEvent):void
+			{
+				var popwindow:AddDepartmentWindow = AddDepartmentWindow(PopUpManager.createPopUp(this, AddDepartmentWindow, true));
+				popwindow.allDepData = ((this.owner as List).dataProvider as ArrayCollection);
+				popwindow.selCompany = OrganizeManager.allCompany.getItemIndex(OrganizeManager.SelectCompanyIndex) as Object;
+				popwindow.owner = this;
+				popwindow.selectObject=this.data as Object;
+				PopUpManager.centerPopUp(popwindow);
+			}
+			
+			protected function deleteDep_clickHandler(event:MouseEvent):void
+			{
+				AppCore.getInstance().dataDeal.dataRemote("common","Common","deleteDepartmentById",[this.data.departmentId.toString()]);
+				AppCore.getInstance().dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, deleteHanle);
+			}
+			private function deleteHanle(event:ResultEvent):void
+			{
+				if(event.result as Boolean){
+					((this.owner as List).dataProvider as ArrayCollection).removeItemAt(((this.owner as List).dataProvider as ArrayCollection).getItemIndex(data));
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	
+	<s:states>
+		<s:State name="normal" />            
+		<s:State name="hovered" />
+		<s:State name="selected" />
+	</s:states>
+	
+	<s:HGroup width="100%" height="25" verticalAlign="middle">
+		<s:Label text="{data.departmentName}" fontWeight="bold"/>
+		<s:HGroup width="100%" verticalAlign="middle" horizontalAlign="right" visible.normal="false" visible.hovered="true" visible.selected="true">
+			<s:Button id="updateDep" label="修改" width="45" height="18" fontSize="11" click="updateDep_clickHandler(event)"/>
+			<s:Button id="deleteDep" label="删除"  width="45" height="18" fontSize="11" click="deleteDep_clickHandler(event)"/>
+		</s:HGroup>
+	</s:HGroup>
+	
+</s:ItemRenderer>

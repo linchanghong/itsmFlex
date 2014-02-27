@@ -1,0 +1,18 @@
+1. as3xlsUTF8.swc
+	前台生成excel文件，导出excel的库；
+	
+2. cLibs.swc
+	常用控件库
+	
+3. flex-iframe-1.5.1.swc
+	用于在flex中嵌入网页
+	
+4. jsonFlex.swc
+	json与as的交互
+	
+5. frameLib.swc
+	基础框架打包的控件
+	还checkbox的combobox和dropdownlist( type="combolist")
+	
+6. appleMenu.swc
+	苹果菜单

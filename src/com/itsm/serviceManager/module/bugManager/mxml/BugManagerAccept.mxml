@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:control="com.framelib.control.*"
+		  width="100%" height="100%"
+		  creationComplete="init(event)">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<mx:StringValidator   
+			id="reasonAreaV"  
+			source="{reasonArea}"   
+			property="text"  
+			minLength="2"
+			requiredFieldError="原因分析不少于两字！"
+			/>
+		<mx:StringValidator   
+			id="solutionsAreaV"  
+			source="{solutionsArea}"   
+			property="text"  
+			minLength="2" 
+			requiredFieldError="解决方案不少于两字！"
+			/>
+		<mx:DateFormatter id="df" error="时间创建有误！" formatString="YYYY-MM-DD" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.base.launch.FlowTodoWindow;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			import com.itsm.serviceManager.module.bugManager.vo.ConstDetailVO;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.effects.Fade;
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			import mx.validators.Validator;
+			
+			import spark.filters.GlowFilter;
+			
+			[Bindable]
+			public var billId:String;
+			public var oprtTypeId:String;
+			
+			private var appCore:AppCore=AppCore.getInstance();
+			
+			//当前时间
+			[Bindable]
+			private var now:Date = new Date();
+			
+			[Bindable]
+			public var userApply:Object;
+			
+			//请求单类型
+			[Bindable]
+			private var flowType:String = "2";
+			
+			//请求单所在数据库表名
+			[Bindable]
+			public var applyTableName:String = "T_USER_APPLY";
+			
+			//默认情况下选择不同意(发布事件)
+			[Bindable]
+			private var FlowBillModi:Event;
+			
+			//实际作用范围
+			[Bindable]
+			public var realBugScops:ArrayCollection;
+			
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject; 
+			
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = false;
+			
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+			
+			//闪烁使用的filter
+			[Bindable]
+			private var filter:GlowFilter = new spark.filters.GlowFilter();
+			
+			
+			
+			public function init(event:FlexEvent):void{
+				
+				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","showUserApllyByID",[billId]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,loadBugUserApplyInfoInfo);
+				
+				FlowBillModi = new Event("FlowBillModi");
+				this.dispatchEvent(FlowBillModi);
+				
+				bugRealRange_clickHandler(null);
+				
+				//闪烁提示
+				showAndHideLabel(!formIsValid);
+			}
+			
+			public function loadBugUserApplyInfoInfo(event:ResultEvent):void{
+				userApply = getResultObj(event);
+				
+				flowType = BugUtil.myTrim(userApply.applyType+"");
+					
+				AppHistoryGrid.gridMain.OnlyInit();
+				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+			
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+				BugUtil.handle_server_method("bugManagerAPI","BugManagerAPI","updateUerApplyStatusNoDataBack",
+					[billId, 3],flowHanelResult);
+			}
+			
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+			
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{
+//				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","updateUerApplyStatusNoDataBack",[billId, 2]);
+//				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, disagreeResult);
+			}
+			
+			private function disagreeResult(event:ResultEvent):void {
+				//TAlert.show("数据生效");
+			}
+			
+			/**取消按钮调用，用于用户所输入的值*/
+			private function cancelBtn_click_handle(event:MouseEvent):void{
+				clearFormHandler();
+				bugRealRange.selectedIndex = 0;
+				
+			}
+			
+			//将远程服务器返回的数据进行处理
+			private function getResultObj(event:ResultEvent):Object{
+				var resultStr:String = event.result.toString();	
+				
+				trace("流程:远程服务器返回的数据为："+resultStr);
+				
+				return new JSONDecoder().decode(resultStr);
+			}
+			
+			//这里主要是因为dropDownList的dataProvider需要的是IList接口对象
+			private function getArrayListFromObject(obj:Object):ArrayCollection{
+				return new ArrayCollection(new Array(obj));
+			}
+			
+			//点击修改界面的实际影响范围下拉列表时调用==========实际影响范围
+			protected function bugRealRange_clickHandler(event:MouseEvent):void
+			{
+				//先查看realBugScops是否为null，为null再向服务器请求数据
+				if(realBugScops == null){
+					handle_server_method("bugManagerAPI","BugManagerAPI","initBugScope",
+						[], bugRealRange_clickHandle);
+				}else{
+					bugRealRange.dataProvider = realBugScops;
+				}
+			}
+			
+			//点击修改界面的实际影响范围下拉列表后从后台传入的数据的处理
+			private function bugRealRange_clickHandle(event:ResultEvent):void{
+				realBugScops = getResultObj(event) as ArrayCollection;
+				
+				bugRealRange.dataProvider = realBugScops;
+			}
+			
+			//向数据库存入数据,并且设置流程"可通过"
+			protected function saveBtn_click_handle(event:MouseEvent):void{
+				
+				if(userApply != "0"){
+					if(formIsValid && !formIsEmpty){
+						userApply.realFinishTime = df.format(new Date());
+						userApply.reason = myTrim(reasonArea.text);
+						userApply.solutions = myTrim(solutionsArea.text);
+						var realRange:ConstDetailVO = new ConstDetailVO();
+						if(bugRealRange.selectedItem != null)
+							realRange.id = bugRealRange.selectedItem.id;
+						userApply.realRange = realRange;
+						
+						handle_server_method("bugManagerAPI","BugManagerAPI","updateBugUerApply",
+							[appCore.jsonEncoder.encode(userApply)], saveBtn_clickHandle_result);
+					}else
+						TAlert.show("输入有误,请查看页面提示！","温馨提示");
+				}else
+					TAlert.show("系统繁忙，请稍后再试！","温馨提示");
+				
+			}
+			
+			private function saveBtn_clickHandle_result(event:ResultEvent):void{
+				if(getResultObj(event) == 1){
+					var FlowBillSave:Event = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillSave);
+				}else
+					TAlert.show("系统繁忙，请稍后再试！","温馨提示");
+				
+			}
+			
+			
+			/**
+			 * 字符串的首尾空格截取
+			 */
+			private function myTrim(str:String):String{
+				if(str != null)
+					return StringUtil.trim(str);
+				return "";
+			}
+			
+			/**保存按钮的回调函数*/
+			private function setReplyerHandle(event:ResultEvent):void{
+				var flag:Object = getResultObj(event);
+				if(flag == 1){
+					var FlowBillSave:Event = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillSave);
+				}else{
+					TAlert.show("系统繁忙,稍后再试!","温馨提示");
+				}
+			}
+			
+			/**关闭当前页面*/
+			private function refreshMyFlowtodo():void{
+				var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this);
+				FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+			}
+			
+			/**用于调用服务器端相应的方法处理*/
+			private function handle_server_method(
+				componentName:String, className:String, methodName:String, arguments:Array, handleName:Function):void{
+				
+				appCore = AppCore.getInstance();
+				
+				appCore.dataDeal.dataRemote(componentName,className,methodName,arguments);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, handleName);
+			}
+			
+			/**验证方法*/
+			private function validateForm(event:Event):void  
+			{                     
+				//检查验证传递和返回一个布尔值相应。 
+				//保存引用当前集中表单控件 
+				//这样isValid()辅助方法可以只通知 
+				//当前集中形式控制和不影响 
+				//任何其他的表单控件。 
+				focussedFormControl = event.target as DisplayObject;   
+				
+				// 标记表单有效的开始 
+				formIsValid = true;
+				
+				// 检查表单是否为空 
+				formIsEmpty = false; 
+				
+				//运行每个验证器反过来,使用isValid() 
+				//辅助方法和更新formIsValid的价值 
+				//因此。 
+				validate(reasonAreaV); 
+				validate(solutionsAreaV); 
+				
+				//闪烁提示
+				showAndHideLabel(!formIsValid);
+			} 
+			
+			/** 
+			 * 验证方法 
+			 * */ 
+			private function validate(validator:Validator):Boolean 
+			{                 
+				//得到验证对象 
+				var validatorSource:DisplayObject = validator.source as DisplayObject; 
+				
+				//镇压事件如果当前控制被验证的不是 
+				//当前集中控制的形式。这阻止了用户 
+				//从接收视觉验证提示在其他表单控件。 
+				var suppressEvents:Boolean = (validatorSource != focussedFormControl); 
+				
+				//执行验证。返回一个ValidationResultEvent。 
+				//传递null作为第一个参数使验证器 
+				//使用属性中定义的属性的标记 
+				// < mx:Validator >标记。 
+				var event:ValidationResultEvent = validator.validate(null, suppressEvents);  
+				
+				//检查验证传递和返回一个布尔值。 
+				var currentControlIsValid:Boolean = (event.type == ValidationResultEvent.VALID); 
+				
+				// 修改验证标记 
+				formIsValid = formIsValid && currentControlIsValid; 
+				
+				return currentControlIsValid; 
+			} 
+			
+			/** 
+			 *  清除验证信息 重置功能 
+			 * */ 
+			private function clearFormHandler():void 
+			{ 
+				// 清除所有的值 
+				reasonArea.text = "";
+				solutionsArea.text = "";
+				// 清除错误信息 
+				reasonArea.errorString = "";
+				solutionsArea.errorString = "";
+				// 标记为清空 
+				formIsEmpty = true; 
+				
+				//				// 获取到焦点 
+				//				resetFocus();                
+			} 
+			
+			/**闪烁提示方法*/
+//			private var fade:Fade;
+			private function showAndHideLabel(isshow:Boolean):void{
+				
+				lbBeforeSave.includeInLayout = isshow;
+				lbBeforeSave.visible = isshow;
+				
+				
+				
+				
+//				if (isshow){
+//					lbBeforeSave.width=220;
+//					lbBeforeSave.visible = true;
+//					if (!fade){
+//						fade = new Fade();
+//						fade.target = lbBeforeSave;
+//						fade.repeatCount=0;
+//						fade.repeatDelay=100;
+//						fade.alphaTo=0;
+//					}
+//					fade.play();
+//				}else{
+//					lbBeforeSave.width=0;
+//					lbBeforeSave.visible = false;
+//					if (fade){
+//						fade.end();
+//						fade.stop();
+//					}
+//				}
+			}
+			
+		]]>
+	</fx:Script>
+	<s:VGroup width="100%" height="100%">
+		
+	
+	<s:Scroller width="100%" height="100%">
+		<s:VGroup width="100%" height="100%">
+			
+			<mx:VDividedBox width="100%" height="100%" minHeight="750">	
+				<s:VGroup width="100%" height="16%">
+					
+					<s:HGroup width="100%" height="25">
+						<s:Button id="saveBtn" 
+								  icon="@Embed(source='assets/img/icon/save.png')"
+								  width="75" height="100%"
+								  label="保存"
+								  enabled="{formIsValid}"
+								  click="saveBtn_click_handle(event)"/>
+						<!--<s:Label id="lbBeforeSave" visible="false"  width="0" height="100%"
+								 filters="{filter}" text="↙原因分析与解决方案应各不少于两字！"
+								 verticalAlign="top"/>-->
+						
+						<s:Button id="cancelBtn" 
+								  icon="@Embed(source='assets/img/icon/cancel.png')"
+								  width="75" height="100%" 
+								  label="取消"
+								  click="cancelBtn_click_handle(event)"/>
+						
+						<s:Label id="lbBeforeSave" 
+								 visible="{!formIsValid}"
+								 includeInLayout="{!formIsValid}"
+								 width="22%" height="100%"
+								 color="red"
+								 fontWeight="bold"
+								 text="↙原因分析与解决方案应各不少于两字！"
+								 verticalAlign="top"/>
+					</s:HGroup>
+					
+					<s:HGroup width="100%"  gap="20" height="25">
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="报告人:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="sponsorInput"  
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.sponsor.userName : ''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="所属单位:" 
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="companyInput" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.company : ''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="所在部门:" 
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="departmentInput" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.department : ''}"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25" gap="20"  >
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="联系电话："
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="telephoneInput" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.telephone : ''}"/>
+						
+						<control:FormLabel width="16%" height="100%" 
+										   text="报告时间:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="applyStartDate" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.applyStartDate : ''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="期望解决时间:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="applyEndDate"  
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.applyEndDate : ''}"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25" gap="20" >
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="{flowType == '1' ? '问题来源：' : 'Bug来源：'}"
+										   textAlign="right" verticalAlign="middle" />
+						<control:TextInputFl  width="16%" height="100%" 
+											  id="bugSource" 
+											  enabled="false"
+											  text="{userApply != null 
+											  ? userApply.applyOrigin != null 
+											  ? userApply.applyOrigin.constDetailName : '':''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="重要程度:" 
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="bugUrgent" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null 
+											 ? userApply.urgent != null 
+											 ? userApply.urgent.levelNameString : '':''}"/>
+						
+						<control:FormLabel width="16%" height="100%"   
+										   text="影响范围:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="bugRange" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null 
+											 ? userApply.range != null 
+											 ? userApply.range.constDetailName : '':''}"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25" gap="20" >
+						<control:FormLabel width="16%" height="100%"  
+										   text="所属系统:" 
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="bugSystem" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null 
+											 ? userApply.applyOrigin != null 
+											 ? userApply.applyOrigin.constDetailName : '':''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="所属业务:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="bugModule" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null 
+											 ? userApply.applyOrigin != null 
+											 ? userApply.applyOrigin.constDetailName : '':''}"/>
+						
+						<s:Label width="16%" height="100%" 
+								 text="{flowType == '1' ? '问题受理时间:' : 'Bug受理时间：'}"
+								 textAlign="right"
+								 verticalAlign="middle"/>
+						<s:TextInput text="{userApply != null ? userApply.replyTime : ''}"
+									 width="16%" height="100%"
+									 textAlign="left"
+									 editable="false"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25" gap="20" >
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="责任人："
+										   textAlign="right" verticalAlign="middle" />
+						<control:TextInputFl  width="16%" height="100%" 
+											  id="replyerInput" enabled="false"
+											  text="{userApply != null ? userApply.replyer.userName : ''}"/>
+						
+						<control:FormLabel width="16%" height="100%"  
+										   text="计划解决时间：" 
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="planFinishDate" 
+											 width="16%" height="100%" 
+											 enabled="false"
+											 text="{userApply != null ? userApply.planFinishTime : ''}"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25" gap="20" >
+						<control:FormLabel width="16%" height="100%"  
+										   text="主题摘要:"
+										   textAlign="right" verticalAlign="middle"/>
+						<control:TextInputFl id="applyTitleInput" 
+											 width="84%" enabled="false"
+											 text="{userApply != null ? userApply.applyTitle : ''}" />
+					</s:HGroup>
+					
+				</s:VGroup>
+				
+				<s:VGroup id="bottomInfoP" width="100%" height="25%"
+						  gap="0" minHeight="220">
+					
+					<mx:TabNavigator id="infoList" 
+									 width="100%" height="100%" 
+									 focusColor="#58F0C0"
+									 selectedIndex="2">
+						
+						<s:NavigatorContent id="bugDirBtn" 
+											width="100%" height="100%" 
+											label="{flowType == '1' ? '问题描述' : 'bug描述'}">
+							<s:TextArea id="directionsArea" left="10" right="10" top="0" bottom="10"
+										text="{userApply != null ? userApply.directions : ''}" 
+										textAlign="left"
+										verticalAlign="middle"
+										editable="false"/>
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="docBtn" width="100%" height="100%" label="文档附件">
+							
+							<s:VGroup left="10" right="10" bottom="10" height="100%">
+								
+								<container:GroupBox width="100%" height="100%" title="附件">
+									<mxml:UploadDocumentsInfo id="fileGrid" 
+															  height="100%" width="100%"
+															  attachMentsArr="{userApply.attachments}"
+															  deleteBtnEnable="false"
+															  uploadBtnEnable="true"
+															  busDataId="{billId}"
+															  busTableName="{applyTableName}"/>
+								</container:GroupBox>
+								
+							</s:VGroup>
+							
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="bugTypeBtn" 
+											width="100%" height="100%" 
+											label="{flowType == '1' ? '问题类型' : 'bug类型'}">
+							<s:VGroup left="10" right="10" bottom="10" height="100%">
+								<s:HGroup width="100%" height="25">
+									
+									<control:FormLabel required="true" 
+													   width="10%" height="100%" 
+													   fontSize="12" 
+													   label="实际影响范围："
+													   verticalAlign="middle"/>
+									<s:ComboBox id="bugRealRange"
+												width="10%" height="100%"
+												labelField="constDetailName" 
+												textAlign="left"
+												enabled="true"
+												initialize="bugRealRange.textInput.editable=false"
+												dataProvider="{realBugScops}"
+												requireSelection="true"
+												selectedIndex="0"/>
+									
+								</s:HGroup>
+								<s:HGroup width="100%" height="45%">
+									
+									<control:FormLabel required="true" 
+													   width="10%" height="25" 
+													   label="{flowType == '1' ? '问题原因分析：' : 'bug原因分析：'}"
+													   verticalAlign="middle"/>
+									<s:TextArea id="reasonArea" width="90%" height="100%"
+												textAlign="left"
+												verticalAlign="middle"
+												editable="true"
+												change="validateForm(event);"/>
+									
+								</s:HGroup>
+								<s:HGroup width="100%" height="45%">
+									
+									<control:FormLabel required="true" 
+													   width="10%" height="25" 
+													   label="{flowType == '1' ? '问题解决方案：' : 'bug解决方案：'}"
+													   verticalAlign="middle"/>
+									<s:TextArea id="solutionsArea" 
+												width="90%" height="100%"
+												editable="true"
+												change="validateForm(event);"/>
+								</s:HGroup>
+							</s:VGroup>
+						</s:NavigatorContent>
+						
+					</mx:TabNavigator>
+					
+				</s:VGroup>
+				
+				<s:VGroup width="100%" height="10%" minHeight="200">
+					<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="100%"/>
+				</s:VGroup>
+				
+			</mx:VDividedBox>
+			
+		</s:VGroup>
+		
+	</s:Scroller>
+	</s:VGroup>
+</s:Module>

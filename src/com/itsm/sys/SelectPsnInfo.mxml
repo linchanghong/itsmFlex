@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300"
+			   close="doClick()" title="人员信息" xmlns:custom="com.itsm.common.custom.*" >
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			private var selectComponent:FieldSelect;//主程序的引用
+			
+			[Bindable]
+			private var orgId:String = AppCore.getInstance().loginUser.companyId;
+			
+			[Bindable]
+			public var per:ArrayCollection;
+			
+			private function doClick():void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			
+			protected function quryBtn_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(quryTxt.text) == "") {//查询所有
+					per_wfpDataGrid.dataProvider = ['frameAPI', 'FrameAPI', 'findAllpersonByOrgIdPage', [orgId]];
+				} else {//根据条件查询
+					per_wfpDataGrid.dataProvider = ['frameAPI', 'FrameAPI', 'findAllpersonByOrgIdPageCondition', [orgId, StringUtil.trim(quryTxt.text)]];
+				}
+			}
+
+			
+			private function findPerInfoHandle(event:ResultEvent):void
+			{
+				if(event.result != null) {
+					per = event.result as ArrayCollection;
+				}
+			}
+			
+			
+			protected function confirmBtn_clickHandler(event:Event):void
+			{
+				selectComponent = this.owner as FieldSelect; //FieldSelect的引用
+				
+				if(per_wfpDataGrid.selectedItem != null) {
+					//给FieldSelect中的控件赋值
+					selectComponent.selectObj = per_wfpDataGrid.selectedItem;
+					selectComponent.selText.text = per_wfpDataGrid.selectedItem.personName;
+				}
+				PopUpManager.removePopUp(this);
+			}
+
+		]]>
+	</fx:Script>
+	
+	
+	<s:VGroup width="100%" height="100%"
+		paddingBottom="10" paddingLeft="10" paddingRight="10" paddingTop="10">
+		
+		<s:HGroup width="100%">
+			<s:Label text="请输入人员编号或姓名查找:" paddingTop="5"/>
+			<s:TextInput id="quryTxt" textAlign="right" />
+			<s:Button id="quryBtn" label="查询" click="quryBtn_clickHandler(event)"/>
+		</s:HGroup>
+		
+		<custom:CustomDataGrid id="per_wfpDataGrid" width="100%" height="100%" 
+							   dataProvider="{['frameAPI', 'FrameAPI', 'findAllpersonByOrgIdPage', [orgId]]}" 
+							   textAlign="center" isPaging="true" isCheckBox="true" isRowNum="true" >
+			<custom:columns>
+				<mx:DataGridColumn id="personCode_col"  dataField="personCode" headerText="人员编号" width="85"/>
+				<mx:DataGridColumn id="personName_col" dataField="personName" headerText="姓名"/>
+			</custom:columns>
+		</custom:CustomDataGrid>
+	</s:VGroup>
+	
+	<s:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<s:Button id="confirmBtn" label="确定" styleName="submit"
+					   click="confirmBtn_clickHandler(event)"/>
+			<s:Button id="cancelBtn" label="取消"  styleName="cancel"
+					   click="doClick()"/>
+		</s:HGroup>
+	</s:controlBarContent>
+</s:TitleWindow>

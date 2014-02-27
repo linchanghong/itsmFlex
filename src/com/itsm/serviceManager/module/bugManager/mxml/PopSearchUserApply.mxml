@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:mx="library://ns.adobe.com/flex/mx" 
+						 xmlns:container="com.framelib.container.*" 
+						 xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+						 title="请求单查询"
+						 creationComplete="creationCompleteHandler()" 
+						 width="100%" height="100%">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.vo.ConstDetailVO;
+			import com.itsm.serviceManager.module.bugManager.vo.ReplyLevelVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SearchInfoVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SupportSystemVO;
+			import com.itsm.serviceManager.module.demandManager.mxml.DemandManager;
+			import com.itsm.serviceManager.module.problemManager.mxml.ProblemManager;
+			import com.itsm.serviceManager.module.userInfo.mxml.UserInfo;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.utils.StringUtil;
+			
+			import org.alivepdf.encoding.IntList;
+			
+			[Bindable]public var mainApp:Object = null;
+			[Bindable]public var callbackFunction:Function;  //回调函数
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			//系统
+			public var systems:ArrayCollection = null;
+			//重要程度
+			public var degrees:ArrayCollection = null;
+			//影响范围
+			public var ranges:ArrayCollection = null;
+			//状态
+			public var statusLst:ArrayCollection = null;
+			//种类
+			[Bindable]
+			public var flag:int = 2;
+			//当前用户id
+			[Bindable]
+			public var userID:int = -1;
+				
+			private static const ERROR_NUM:int = -1;
+			
+			/**
+			 * 初始化弹出窗体
+			 */
+			public function creationCompleteHandler():void
+			{
+				this.degree.dataProvider = degrees;
+				this.range.dataProvider = ranges;
+				this.status.dataProvider = statusLst;
+			}
+			
+			/**确定按钮*/
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				if(judgeInputInfo() < 8){
+					//将查询条件传递到父窗体
+//					callbackFunction.call(mainApp,buildSearchInfo()); 
+					if(userID <= 0){
+						if(flag == 2){
+							BugManager(mainApp).mainGrid.curPage = 1;
+							BugManager(mainApp).mainGridArray = 
+								['bugManagerAPI', 'BugManagerAPI', 'findUserAppliesByQueryWindow', 
+									[appCore.jsonEncoder.encode(buildSearchInfo())],"search"];
+						}else if( flag == 1){
+							ProblemManager(mainApp).mainGrid.curPage = 1;
+							ProblemManager(mainApp).mainGridArray = 
+								['bugManagerAPI', 'BugManagerAPI', 'findUserAppliesByQueryWindow', 
+									[appCore.jsonEncoder.encode(buildSearchInfo())],"search"];
+						}else{
+							DemandManager(mainApp).mainGrid.curPage = 1;
+							DemandManager(mainApp).mainGridArray = 
+								['bugManagerAPI', 'BugManagerAPI', 'findUserAppliesByQueryWindow', 
+									[appCore.jsonEncoder.encode(buildSearchInfo())],"search"];
+						}
+					}else{
+						UserInfo(mainApp).mainGrid.curPage = 1;
+						UserInfo(mainApp).mainGridArray = 
+							['bugManagerAPI', 'BugManagerAPI', 'findUserAppliesByQueryWindow', 
+								[appCore.jsonEncoder.encode(buildSearchInfo())],"search"];
+					}
+					
+					button2_clickHandler(null);
+				}else{
+					TAlert.show("请至少输入一个查询条件!","温馨提示");
+				}
+			}
+			/**取消按钮事件*/
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**判断用户有没有输入数据,只要flag大于0就说明用户有输入数据,可以进行下一步*/
+			private function judgeInputInfo():int{
+				var flag:int = 0;
+				
+				if(this.code.text == null || myTrim(this.code.text) == "")
+					flag++;
+				if(this.degree.selectedIndex < 0)
+					flag++;
+				if(this.type.selectedIndex < 0)
+					flag++;
+				if(this.range.selectedIndex < 0)
+					flag++;
+				if(this.sponsor.text == null || myTrim(this.sponsor.text) =="")
+					flag++;
+				if(this.status.selectedIndex < 0)
+					flag++;
+				if(!this.system.selectObj.hasOwnProperty("systemID"))
+					flag++;
+				if(this.theme.text == null || myTrim(this.theme.text) == "")
+					flag++;
+				
+				return flag;
+			}
+			
+			
+			/**得到用户输入的查询信息*/
+			public function buildSearchInfo():Object{
+				var searchObj:SearchInfoVO = new SearchInfoVO();
+				
+				searchObj.code = myTrim(this.code.text);
+				searchObj.degree = 
+					this.degree.selectedItem != undefined ? this.degree.selectedItem.replyLevelId : ERROR_NUM;
+				this.flag = 
+					this.type.selectedItem != undefined ? this.type.selectedItem.id : ERROR_NUM;
+				searchObj.range = 
+					this.range.selectedItem != undefined ? this.range.selectedItem.id : ERROR_NUM;
+				searchObj.sponsor = myTrim(this.sponsor.text);
+				searchObj.status = this.status.selectedItem != null ? this.status.selectedItem.id : ERROR_NUM;
+				searchObj.system = 
+					this.system.selectObj.hasOwnProperty("systemID") ? this.system.selectObj.systemID : ERROR_NUM;
+				searchObj.theme = myTrim(this.theme.text);
+				searchObj.flag = this.flag;
+				searchObj.userID = this.userID;
+				
+				return searchObj;
+			}
+			
+			/**字符串截首尾空格*/
+			private function myTrim(str:String):String{
+				return StringUtil.trim(str);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer width="100%" >
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingBottom="5" paddingTop="5" paddingLeft="5" paddingRight="5"/>
+		</s:layout>
+		
+		<s:HGroup width="100%" height="25" verticalAlign="middle">
+			<control:FormLabel label="编号："  width="80" height="100%"/>
+			<control:TextInputFl id="code" width="160" height="100%"/>
+			
+			<control:FormLabel label="所属系统："  width="80" height="100%"/>
+			<bugmxml:BugFieldSelect id="system" 
+									width="160" height="100%" 
+									armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+									isMultipleSelected="false"
+									textAlign="left"
+									selectObj="" sText=""/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="25" verticalAlign="middle">
+			<control:FormLabel label="主题摘要："  width="80" height="100%"/>
+			<control:TextInputFl id="theme" width="160" height="100%"/>
+			
+			<control:FormLabel label="重要程度："  width="80" height="100%"/>
+			<s:DropDownList id="degree" width="160" height="100%" labelField="levelNameString"
+							selectedIndex="-1">
+			</s:DropDownList>	
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="25" verticalAlign="middle">
+			<control:FormLabel label="影响范围："  width="80" height="100%"/>
+			<s:DropDownList id="range" width="160" height="100%" labelField="constDetailName"
+							selectedIndex="-1"/>
+			
+			<control:FormLabel label="请求单类型："  width="80" height="100%"/>
+			<s:DropDownList id="type" width="160" height="100%" labelField="name"
+							dataProvider="{new ArrayCollection([{'id':0,'name':'全部'},
+							{'id':1,'name':'问题'},
+							{'id':2,'name':'BUG'},
+							{'id':3,'name':'需求'}])}" 
+						    requireSelection="true"
+							selectedIndex="{this.userID>0?0:this.flag}"
+						    enabled="{this.userID>0}"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="25" verticalAlign="middle">
+			<control:FormLabel label="状态："  width="80" height="100%"/>
+			<s:DropDownList id="status" width="160" height="100%" labelField="describe"
+							selectedIndex="-1"/>
+			
+			<control:FormLabel label="报告人："  width="80" height="100%"
+							   visible="{this.userID==-1}"/>
+			<control:TextInputFl id="sponsor" width="160" height="100%"
+								 visible="{this.userID==-1}"/>
+		</s:HGroup>
+		
+	</s:BorderContainer>
+	<container:controlBarContent>
+		<s:HGroup width="100%" height="30" horizontalAlign="right" verticalAlign="middle">
+			<s:Button label="确定" styleName="submit" click="button1_clickHandler(event)"/>
+			<s:Button label="取消" styleName="cancel" click="button2_clickHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+	
+</container:TitleWindowFl>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  width="100%" height="100%" 
+		  currentState="normal"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="knowledgeModule_creationCompleteHandler(event)">
+		
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="modify"/>
+		<s:State name="query"/>
+	</s:states>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:RadioButtonGroup id="examineGroup"/>
+	</fx:Declarations>
+	
+	<fx:Script source="../code/KnowledgeManager.as"/>
+	
+	<s:VGroup width="100%" height="100%">
+		<s:HGroup id="btn_hg"  width="100%" height="25" horizontalAlign="left" includeIn="normal" verticalAlign="middle">
+		</s:HGroup>
+			
+		<s:VGroup width="100%" height="100%" includeIn="normal">
+			<custom:CustomDataGrid id="knowledge_Grid" width="100%" height="100%" dataProvider="{['knowledgeManagerAPI', 'KnowledgeManagerAPI', 'findAllKnowledgeInfoPage', [sqlWhere]]}"
+									textAlign="center" isPaging="true" isCheckBox="false"
+									isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on">
+				<custom:columns>
+					<mx:DataGridColumn dataField="id" headerText="主键" width="0" visible="false"/>
+					<mx:DataGridColumn dataField="knowledgeTitle" headerText="标题" />
+					<mx:DataGridColumn dataField="knowledgeType.systemName" headerText="所属系统" />
+					<mx:DataGridColumn dataField="belongsBusiness.moduleName" headerText="关联业务" />
+					<mx:DataGridColumn dataField="publishStaff.userName" headerText="发布人" />
+					<mx:DataGridColumn dataField="publishDate" headerText="创建时间"/>
+					<mx:DataGridColumn dataField="modifyDate" headerText="最近更新时间" />
+					<mx:DataGridColumn dataField="isExamine" headerText="状态" width="0" visible="false"/>
+					<mx:DataGridColumn dataField="examineName" headerText="状态" />
+				</custom:columns>
+			</custom:CustomDataGrid>
+		</s:VGroup>
+		
+		<s:VGroup width="100%" height="100%" includeIn="add,modify,query">
+			<s:HGroup id="add_btn_hg"  width="100%" height="25" horizontalAlign="left" verticalAlign="middle">
+				<s:Button id="addSureBtn" label="保存" width="75" height="100%" styleName="save" click="addSureBtn_clickHandler(event)" includeIn="add,modify"/>
+				<s:Button id="addCancelBtn" label="取消" width="75" height="100%" styleName="cancel" click="addCancelBtn_clickHandler(event)" includeIn="add,modify,query"/>
+			</s:HGroup>
+			<ns:GroupBox width="100%" height="100%" title="基本信息">
+				<ns:layout>
+					<s:VerticalLayout/>
+				</ns:layout>
+				
+				<s:HGroup width="100%" height="25" verticalAlign="middle">
+					<control:FormLabel label="所属系统：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+					<bugmxml:BugFieldSelect id="dList_System" 
+											width="16%" height="100%"
+											armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+											isMultipleSelected="false"
+											selectChange="dList_System_selectChangeHandler(event)"
+											textAlign="left"/>
+					<!--<s:DropDownList id="dList_System" width="50%" height="25"
+					labelField="systemName" 
+					textAlign="left" creationComplete="dList_System_creationCompleteHandler(event)"
+					click="dList_System_clickHandler(event)"
+					change="dList_System_changeHandler(event)"/>-->
+					<control:FormLabel label="关联业务：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+					<bugmxml:BugFieldSelect id="dList_Module" 
+											width="16%" height="100%"
+											armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectModule"
+											isMultipleSelected="false"
+											textAlign="left"
+											parame="{systemID}"/>
+					<!--<s:DropDownList id="dList_Module" width="50%" height="25" dataProvider="{modules}"
+					labelField="moduleName" textAlign="left"
+					enabled="true"/>-->
+				</s:HGroup>
+				
+				<s:HGroup width="100%" height="25" verticalAlign="middle">
+					<control:FormLabel label="知识标题：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+					<control:TextInputFl id="konwledgeTitle" width="84%" height="100%" />
+				</s:HGroup>
+				
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel label="审核状态：" verticalAlign="middle"/>
+					<s:RadioButton groupName="examineGroup" id="rbtn_isExa" label="已审核" selected="{IsExamine}" enabled="false"/>
+					<s:RadioButton groupName="examineGroup" id="rbtn_enExa" label="未审核" selected="{!IsExamine}" enabled="false"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="100%" verticalAlign="middle">
+					<mx:TabNavigator id="tab_info" width="100%" height="100%">
+						<s:NavigatorContent id="nav_content" width="100%" height="100%" label="知识内容">
+							<s:TextArea id="text_content" width="100%" height="100%"/>
+						</s:NavigatorContent>
+						<s:NavigatorContent id="nav_att" width="100%" height="100%" label="文档附件">
+							<container:GroupBox width="100%" height="100%" title="附件">
+								<mxml:UploadDocumentsInfo id="fileGrid" height="100%" width="100%" 
+														  deleteBtnEnable.query="false"
+														  uploadBtnEnable.query="false"
+														  attachMentsArr="{attachMentsArray}"
+														  busDataId="{attBussId}"
+														  busTableName="{attTableName}"/>
+							</container:GroupBox>
+						</s:NavigatorContent>
+					</mx:TabNavigator>
+				</s:HGroup>
+			</ns:GroupBox>
+		</s:VGroup>
+	</s:VGroup>
+</s:Module>

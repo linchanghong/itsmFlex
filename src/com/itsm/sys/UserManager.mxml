@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  initialize="module1_initializeHandler(event)"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:custom="com.itsm.common.custom.*" 
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:container="com.framelib.container.*" xmlns:mxml="com.itsm.common.mxml.*" >
+	
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:RadioButtonGroup id="isAdmin_rbg" />
+		<s:RadioButtonGroup id="isSingleLogin_rbg" />
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="modify" />
+		<s:State name="query"/>
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			import com.itsm.common.utils.JavaMethod;
+			import com.framelib.assist.ComboCheckEvent;
+			import com.framelib.utils.StaticMethods;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			private var file:FileReference;
+			private var urlRequest:URLRequest;
+			[Bindable]
+			private var orgId:String;
+			private var headerArr:Array = new Array(
+				["用户名","userName"],
+				["帐号","userCode"],
+				["密码","password"],
+				["是否管理员","isAdmin"],
+				["姓名","msPerson.personName"],
+				["性别","gender"]);
+			
+			private var windowObj:Object = new Object();
+			private var userId:String = "";
+			
+			[Bindable]
+			private var roleData:ArrayCollection = appCore.roleData;
+			
+			[Bindable]
+			private var orgData:ArrayCollection;
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+				this.roleData = appCore.roleData;
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+				orgId = appCore.loginUser.companyId;
+				
+				urlRequest = new URLRequest(appCore.appConfig.configs.fWebServerURL+"SendFileServlet?userName=" + appCore.loginUser.userCode);
+				
+			}
+			
+			public function btn_query_clickHandler(event:MouseEvent):void
+			{
+				var queryUserManager:QueryUserManager = QueryUserManager(PopUpManager.createPopUp(this, QueryUserManager, true));
+				queryUserManager.parWindow = this;
+				PopUpManager.centerPopUp(queryUserManager);
+			}
+			
+			public function btn_add_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "add";
+				reSelectOrgNode();
+				this.comtA.text="";
+				this.deptA.text="";
+			}
+			
+			public function btn_edit_clickHandler(event:MouseEvent):void
+			{
+				var arr:Array = userManager_wfpDataGrid.selectedItems;
+				if(arr==null || arr.length<1) {
+					TAlert.show("请选择一个用户进行修改！");
+				}else if(arr.length>1){
+					TAlert.show("每次只能一个用户进行修改！");
+				}else{
+					this.currentState = "modify";
+					var item:Object = arr[0];
+					userId = item.id;
+					setFormData(item);
+					reSelectOrgNode(",510101,510102,51000022,1003107,1005609,51000023,51000024,51000025,");
+					orgTreeClick();
+				}
+			}
+			
+			private function setFormData(userObj:Object):void
+			{
+				userName_ti.text = userObj.userName;
+				userCode_ti.text = userObj.userCode; 
+				passWord_ti.text = userObj.password; 
+				isAdmin_rbg.selectedValue = userObj.isAdmin;  
+				isSingleLogin_rbg.selectedValue = userObj.isSingleLogin;  
+				var selectLabel:Array = new Array();
+				for(var i:int=0; i<roleData.length; i++){
+					var obj:Object = roleData.getItemAt(i);
+					for(var j:int=0; j<userObj.msRoles.length; j++){
+						var item:Object = userObj.msRoles.getItemAt(j);
+						if(obj.id == item.id){
+							obj.selected=true;
+							selectLabel.push(obj.roleName);
+							break;
+						}
+					}
+				}
+				if(userObj.msPerson!=null){
+					msPerson_ti.selectObj = userObj.msPerson;
+					msPerson_ti.selText.text = userObj.msPerson.personName;
+				}
+				
+				email_ti.text = userObj.email; 
+				
+				setTimeout(function():void{	msRoles_cc.setLabel(selectLabel.join(","));},200);
+				//				manageDepartment_cc.selectedItems = userObj.manageDepartment;
+				
+				//				uploadFiles.saveDgToDb(userObj.id, "MS_USER");
+			}
+			
+			private function reSetFormData():void
+			{
+				userName_ti.text = "";
+				userCode_ti.text = "";
+				passWord_ti.text = "";
+				isAdmin_rbg.selectedValue = 0;  
+				isSingleLogin_rbg.selectedValue = 0;
+				msRoles_cc.deselectAll();
+				msPerson_ti.selText.text = ""; 
+				email_ti.text = ""; 
+				this.roleData = appCore.roleData;
+				this.currentState="normal";
+				userManager_wfpDataGrid.dataProvider=['frameAPI', 'FrameAPI', 'findAllUser', []]; 
+				//				manageDepartment_cc.selectedItems = null;
+				
+				//				uploadFiles.reSetData(); 
+			}
+			
+			public function btn_delete_clickHandler(event:MouseEvent):void
+			{
+				var arr:Array = userManager_wfpDataGrid.selectedItems;
+				if(arr!=null || arr.length==0){
+					TAlert.show("你确定要删除选中的数据？","系统提示", TAlert.YES | TAlert.NO, null, function(ent:CloseEvent):void{
+						if (ent.detail == TAlert.YES){
+							var ids:Array = new Array();
+							for(var i:int=0; i<arr.length; i++){
+								var obj:Object = arr[i];
+								ids.push(obj.id);
+							}
+							appCore.dataDeal.dataRemote("frameAPI", "FrameAPI", "deleteUserByIds", [appCore.jsonEncoder.encode(ids)]);
+							appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+								
+								userManager_wfpDataGrid.dataProvider=['frameAPI', 'FrameAPI', 'findAllUser', []]; 
+							});
+						}
+					});
+					
+				}else{
+					TAlert.show("请选择要删除的用户！");
+				}
+			}
+			
+			public function btn_import_clickHandler(event:MouseEvent):void
+			{
+				file = new FileReference();
+				file.addEventListener(Event.SELECT,selectFiles);
+				file.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA,completeFiles);
+				file.browse([new FileFilter("Excel 2003(*.xls)", "*.xls")]); 
+			}
+			
+			public function btn_export_clickHandler(event:MouseEvent):void
+			{
+				var javaMethod:JavaMethod = new JavaMethod();
+				javaMethod.bean = "userService";
+				javaMethod.method = "findUserByOrgId";
+				javaMethod.parameters = ["550"];
+				
+				appCore.exportByMethod(javaMethod, headerArr, "用户信息");
+			}
+			
+			protected function addSureBtn_clickHandler(event:MouseEvent):void
+			{
+				var msUser:Object = new Object();
+				msUser.userName=userName_ti.text;
+				msUser.userCode=userCode_ti.text;
+				msUser.password=passWord_ti.text;
+				msUser.isAdmin=isAdmin_rbg.selectedValue;
+				msUser.isEnable=1;
+				msUser.loginUid=0;
+				msUser.isSingleLogin=isSingleLogin_rbg.selectedValue;
+				var df:DateFormatter = new DateFormatter();
+				df.formatString="YYYY-MM-DD JJ:NN:SS";
+				msUser.createtime= df.format(new Date());;
+				msUser.remark="";
+				msUser.email=email_ti.text;
+				msUser.msPerson=msPerson_ti.selectObj;
+				msUser.msPerson.id=msPerson_ti.selectObj.personId;
+				//				msUser.manageDepartment="";
+				//				msUser.organizations="";
+				var msRoles:ArrayCollection = new ArrayCollection();
+				var v:Vector.<Object> = msRoles_cc.selectedItems as Vector.<Object>;
+				v.forEach(function(item:Object, index:int, vector:Vector.<Object>):void{
+					if(item.createTime) item.createTime = df.format(item.createTime);
+					msRoles.addItem(item);
+				});
+				msUser.msRoles=msRoles;
+				
+				var method:String = "addUser";
+				if(this.currentState=="modify") {
+					method="updateUser";
+					msUser.id=userId;
+				}
+				
+				appCore.dataDeal.dataRemote("frameAPI", "FrameAPI", method, [appCore.jsonEncoder.encode(msUser)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+					reSetFormData();
+				});
+			}
+			
+			protected function addCancelBtn_clickHandler(event:MouseEvent):void
+			{
+				reSetFormData();
+			}
+			
+			protected function saveAttachment_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				//				uploadFiles.saveDgToDb("434","MS_USER");
+			}
+			
+			//选择文件到列表  
+			private function selectFiles(event:Event):void
+			{
+				file.upload(urlRequest);//使用后台servlet上传选择中的文件
+			}
+			
+			private function completeFiles(event:DataEvent):void
+			{
+				//因为上传返回的是一个数组，防止上传的时候选择多个文件
+				var str:String = event.data as String;
+				var arry:Array = str.split(",");
+				//因为导入肯定是一个文件，所以直接获取第一个，即为上传文件的路径
+				var uploadpath:String = arry[0];
+				
+				appCore.dataDeal.dataRemote("frameAPI", "FrameAPI", "importUsers", [uploadpath]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,importExcelHandler);
+				
+			}
+			
+			private function importExcelHandler(event:ResultEvent):void
+			{
+				
+			}
+			
+			protected function msPerson_ti_selectChange_handler(event:Event):void
+			{
+				
+			}
+			
+			protected function module1_initializeHandler(event:FlexEvent):void
+			{
+				if(appCore.orgData != null && appCore.orgData.length != 0) {
+					orgData = appCore.orgData;
+				} else {
+					findOrgTreeData(appCore.loginUser.companyId);
+				}
+			}
+			
+			private function findOrgTreeData(orgId:int):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","findOrgTreeByOrgId",[orgId.toString()]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, findOrgTreeByOrgIdHandler);
+			}
+			
+			private function findOrgTreeByOrgIdHandler(event:ResultEvent):void
+			{
+				if(event.result != null) {
+					orgData = new JSONDecoder().decode(event.result as String) as ArrayCollection;
+					appCore.orgData = orgData;
+				} else {
+					TAlert.show("查找数据失败","提示");
+				}
+			}
+			
+			private var comIdStr:String="";           //可管公司ID，以,隔开，如：510101,510102,51000022,1003107,1005609,51000023,51000024,51000025
+			private var depIdStr:String="";           //可管部门ID，以,隔开，如：510102,51000022,1003107,1005609,51000023,51000024,51000025
+			private var orgCheckAll:String="";        //可管公司部门id，用于在组织机构树上显示已选择的节点
+			
+			protected function orgTreeClick():void{
+				
+				var org_arr:Array = getOrgCheckedsAll();
+				var tmp_arr:Array = getOrgCheckeds();
+				if(org_arr==null || org_arr.length==0)
+				{
+					return;
+				}
+				if(tmp_arr==null || tmp_arr.length==0)
+				{
+					return;
+				}
+				
+				var comNameStr:String = "";         //可管公司名称
+				var depNameStr:String = "";         //可管部门名称
+				comIdStr = "";
+				depIdStr = "";
+				orgCheckAll = "";
+				for each(var obj:Object in org_arr)
+				{
+					orgCheckAll += obj.id + ",";
+				}
+				for each(var objtmp:Object in tmp_arr)
+				{
+					if(objtmp.orgType==1)
+					{
+						comNameStr += objtmp.orgName + ",";
+						comIdStr += objtmp.id + ",";
+					}else{
+						depNameStr += objtmp.orgName + ",";
+						depIdStr += objtmp.id + ",";
+					}
+				}
+				comtA.text=comNameStr.substr(0,comNameStr.length-1);
+				deptA.text=depNameStr.substr(0,depNameStr.length-1);
+			}
+			/*返回组织机构树全部所选中节点*/
+			public function getOrgCheckedsAll(arr:ArrayCollection = null):Array
+			{
+				if(arr == null) {
+					arr = orgTree.dataProvider as ArrayCollection;
+				}
+				
+				var orgTreeArr:Array = new Array();
+				
+				for each (var orgTreeNode:Object in arr) {
+					if( orgTreeNode.checked ) {
+						orgTreeArr.push(orgTreeNode);
+						
+						if( orgTreeNode.children != null &&  orgTreeNode.children.length != 0) {
+							orgTreeArr = orgTreeArr.concat(getOrgCheckedsAll(orgTreeNode.children));
+						}
+					}
+				}
+				
+				return orgTreeArr;
+			}
+			/*返回组织机构树全部所选中节点，如果公司节点的所有部门子节点被选中则不保存部门节点ID，只保存公司节点ID，反之则保存部门节点ID，不保存公司节点ID*/
+			public function getOrgCheckeds(arr:ArrayCollection = null):Array
+			{
+				if(arr == null) {
+					arr = orgTree.dataProvider as ArrayCollection;
+				}
+				
+				var orgTreeArr:Array = new Array();
+				
+				for each (var orgTreeNode:Object in arr) {
+					if( orgTreeNode.checked) {
+						if(orgTreeNode.orgType==1)
+						{
+							 if(isAllchecked(orgTreeNode)){
+								 orgTreeArr.push(orgTreeNode);
+							 }else{
+								 if( orgTreeNode.children != null &&  orgTreeNode.children.length != 0) {
+									 orgTreeArr = orgTreeArr.concat(getOrgCheckeds(orgTreeNode.children));
+								 } 
+							 }
+						}
+						else
+						{
+							orgTreeArr.push(orgTreeNode);
+							if( orgTreeNode.children != null &&  orgTreeNode.children.length != 0) {
+								orgTreeArr = orgTreeArr.concat(getOrgCheckeds(orgTreeNode.children));
+							}
+						}
+					}
+				}
+				
+				return orgTreeArr;
+			}
+			/*判断所选节点的子节点是否被全部选中*/
+			private function isAllchecked(treeNode:Object):Boolean
+			{
+				var isAll:Boolean=true;
+				if(treeNode.children !=null && treeNode.children.length != 0)
+				{
+					var nodeChildren:ArrayCollection=treeNode.children as ArrayCollection;
+					for each(var node:Object in nodeChildren)
+					{
+						if(node.checked)
+						{
+							isAll=isAllchecked(node);
+						}else{
+							isAll=false;
+							break;
+						}
+					}
+				}
+				return isAll;
+			}
+			
+			/*重新绑定已选择的组织机构数节点*/
+			public function reSelectOrgNode(orgCheckedAll:String="",orgTreeArr:ArrayCollection=null):void
+			{
+				
+				if(orgTreeArr == null) {
+					orgTreeArr = orgTree.dataProvider as ArrayCollection;
+				}
+				
+				
+				
+				for each (var orgTreeNode:Object in orgTreeArr) {
+					if(orgCheckedAll.search("," + orgTreeNode.id + ",") != -1) {
+						orgTreeNode.checked = true;
+					} else {
+						orgTreeNode.checked = false;
+					}
+					
+					if(orgTreeNode.children != null && orgTreeNode.children.length != 0) {
+						reSelectOrgNode(orgCheckedAll, orgTreeNode.children);
+					}
+				}
+				
+				//展开所有节点 此方法因数据量过大会导致前台加载数据展开树节点进程卡死
+				//orgTree.validateNow();
+				//orgTree.expandChildrenOf(orgTree.dataProvider[0],true);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup  width="100%" height="100%">
+		
+		<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" includeIn="normal" verticalAlign="middle">
+		</s:HGroup>
+		
+		<s:VGroup width="100%" height="100%" includeIn="normal">
+			<custom:CustomDataGrid id="userManager_wfpDataGrid" width="100%" height="100%" 
+								   dataProvider="{['frameAPI', 'FrameAPI', 'findAllUser', []]}" 
+								   textAlign="center" isPaging="true" isCheckBox="true"
+								   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on"
+								   creationComplete="{userManager_wfpDataGrid.allowMultipleSelection = true;}">
+				<custom:columns>
+					<mx:DataGridColumn dataField="msPerson.personName" headerText="人员姓名" />
+					<mx:DataGridColumn dataField="userName" headerText="用户名" />
+					<mx:DataGridColumn dataField="userCode" headerText="登录账号" />
+					<mx:DataGridColumn dataField="password" headerText="登录密码" />
+					<mx:DataGridColumn dataField="msPerson.orgId" headerText="所属公司"/>
+					<mx:DataGridColumn dataField="email" headerText="邮件地址" />
+					<mx:DataGridColumn dataField="remark" headerText="备注" />
+				</custom:columns>
+			</custom:CustomDataGrid>
+		</s:VGroup>
+		
+		<s:VGroup width="100%" height="100%" includeIn="add,modify">
+			<s:HGroup id="add_btn_hg"  width="100%" horizontalAlign="left" verticalAlign="middle">
+				<s:Button id="addSureBtn" label="保存" styleName="save" click="addSureBtn_clickHandler(event)"/>
+				<s:Button id="addCancelBtn" label="取消" styleName="cancel" click="addCancelBtn_clickHandler(event)"/>
+			</s:HGroup>
+			<ns:GroupBox title="基本信息" width="100%">
+				<ns:layout>
+					<s:VerticalLayout/>
+				</ns:layout>
+				<s:HGroup width="100%" verticalAlign="middle">
+					<control:FormLabel label="用户名" verticalAlign="middle" required="true"/>
+					<control:TextInputFl id="userName_ti" width="180" maxChars="50" />
+					
+					<control:FormLabel label="用户帐号" verticalAlign="middle" required="true"/>
+					<control:TextInputFl id="userCode_ti" width="180" maxChars="50" />
+					
+					<control:FormLabel label="密码" verticalAlign="middle" required="true"/>
+					<control:TextInputFl id="passWord_ti" width="100%" maxChars="50" />
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					<control:FormLabel label="用户类型" verticalAlign="middle" required="true"/>
+					<s:HGroup width="180">
+						<s:RadioButton id="normal_cb" label="普通" value="0" groupName="isAdmin_rbg" selected="true"/>
+						<s:RadioButton id="admin_cb" label="管理" value="1" groupName="isAdmin_rbg" selected="false"/>
+						<s:RadioButton id="super_cb" label="超级管理" value="2" groupName="isAdmin_rbg" selected="false"/>
+					</s:HGroup>
+					
+					<control:FormLabel label="单用户登录" verticalAlign="middle" required="true"/>
+					<s:HGroup width="180">
+						<s:RadioButton id="single_cb" label="启用" value="0" groupName="isSingleLogin_rbg" selected="true"/>
+						<s:RadioButton id="notSingle_cb" label="不启用" value="1" groupName="isSingleLogin_rbg" selected="false"/>
+					</s:HGroup>
+					
+					<control:FormLabel label="拥有角色" verticalAlign="middle" required="true"/>
+					<control:ComboCheck id="msRoles_cc" type="combolist" width="100%" labelField="roleName" dataProvider="{roleData}"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					<control:FormLabel label="人员信息" verticalAlign="middle" />
+					<mxml:FieldSelect id="msPerson_ti" width="180"
+									  armTitleWindow="com.itsm.common.selectwindow.person.SelectPerson"
+									  isMultipleSelected="false"
+									  sText=""/>
+					
+					<control:FormLabel label="电子邮箱" verticalAlign="middle" />
+					<control:TextInputFl id="email_ti" width="180" maxChars="50" />
+					
+					<!--<control:FormLabel label="可管部门" verticalAlign="middle" />-->
+					<!--<control:ComboCheck id="manageDepartment_cc" type="combolist" width="100%" labelField="orgName"  dataProvider="{appCore.manageOrgData}" />-->
+					<!--<control:ComboCheck id="manageDepartment_cc" type="combolist" width="100%" labelField="orgName"  dataProvider="{appCore.orgData}" />-->
+					<!--<control:TextAreaFl text="显示可管部门" width="100%" height="40"/>-->
+				</s:HGroup>
+				<s:HGroup width="100%" verticalAlign="middle" height="100%">
+					<s:VGroup width="50%" height="100%">
+						<mx:Tree id="orgTree" width="100%" height="100%" dataProvider="{orgData}" 
+								 itemRenderer="com.framelib.renderer.TreeCheckBoxItemRenderer" 
+								 labelField="orgName" click="orgTreeClick()"/>
+					</s:VGroup> 
+					<s:VGroup width="50%" height="100%">
+						<s:HGroup width="100%" height="50%">
+							<control:FormLabel label="可管公司" />
+							<control:TextAreaFl id="comtA" text="显示可管公司" width="100%" height="100%"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="50%">
+							<control:FormLabel label="可管部门" />
+							<control:TextAreaFl id="deptA" text="显示可管部门" width="100%" height="100%"/>
+						</s:HGroup>
+					</s:VGroup> 
+				</s:HGroup>
+			</ns:GroupBox>
+			<!--<container:GroupBox title="附件" height="100%" width="100%">
+			<mxml:UploadDocumentsInfo id="uploadFiles" width="100%" height="100%"
+			allowNull.modify="false" allowNull.add="true"
+			uploadBtnEnable.query="false" deleteBtnEnable.query="false"/>
+			</container:GroupBox>-->
+		</s:VGroup>
+	</s:VGroup>
+</s:Module>

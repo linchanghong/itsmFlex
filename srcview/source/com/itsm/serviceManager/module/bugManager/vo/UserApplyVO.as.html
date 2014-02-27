@@ -1,0 +1,88 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>UserApplyVO.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="ActionScriptpackage">package</span> <span class="ActionScriptDefault_Text">com</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">itsm</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">serviceManager</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">module</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">bugManager</span><span class="ActionScriptOperator">.</span><span class="ActionScriptDefault_Text">vo</span>
+<span class="ActionScriptBracket/Brace">{</span>
+
+    <span class="ActionScriptBracket/Brace">[</span><span class="ActionScriptMetadata">Bindable</span><span class="ActionScriptBracket/Brace">]</span><span class="ActionScriptMetadata">RemoteClass</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptString">"com.sccl.serviceManager.bugManager.dto.UserApplyDTO"</span><span class="ActionScriptBracket/Brace">)</span><span class="ActionScriptBracket/Brace">]</span>
+    <span class="ActionScriptReserved">public</span> <span class="ActionScriptclass">class</span> <span class="ActionScriptDefault_Text">UserApplyVO</span> <span class="ActionScriptReserved">extends</span> <span class="ActionScriptDefault_Text">Object</span>
+    <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptfunction">function</span> <span class="ActionScriptDefault_Text">UserApplyVO</span><span class="ActionScriptBracket/Brace">(</span><span class="ActionScriptBracket/Brace">)</span>
+        <span class="ActionScriptBracket/Brace">{</span>
+        <span class="ActionScriptBracket/Brace">}</span>
+    
+         <span class="ActionScriptComment">//主键
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyId</span>:<span class="ActionScriptDefault_Text">Number</span>;
+         <span class="ActionScriptComment">//用户请求单编号
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">userApplyCode</span>:<span class="ActionScriptDefault_Text">String</span>;
+         <span class="ActionScriptComment">//请求类型1- 问题 2-bug 3-需求
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyType</span>:<span class="ActionScriptDefault_Text">int</span>;
+         <span class="ActionScriptComment">//请求单的填写者，可以是用户，也可以是支撑人员
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyEntry</span>:<span class="ActionScriptDefault_Text">Object</span>;
+         <span class="ActionScriptComment">//提出请求的具体用户
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">sponsor</span>:<span class="ActionScriptDefault_Text">Object</span>;
+        <span class="ActionScriptComment">//请求发起人对应的公司
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">company</span>:<span class="ActionScriptDefault_Text">String</span>;
+         <span class="ActionScriptComment">//请求发起人对应的部门
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">department</span>:<span class="ActionScriptDefault_Text">String</span>;
+         <span class="ActionScriptComment">//请求发起人的联系电话
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">telephone</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//请求发起时间
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyStartDate</span>:<span class="ActionScriptDefault_Text">String</span>;
+         <span class="ActionScriptComment">//期望解决时间
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyEndDate</span>:<span class="ActionScriptDefault_Text">String</span>;
+         <span class="ActionScriptComment">//请求来源，用户登录系统录入，用户通过QQ电话等提交
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyOrigin</span>:<span class="ActionScriptDefault_Text">ConstDetailVO</span>;
+         <span class="ActionScriptComment">//请求的紧急程度
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">urgent</span>:<span class="ActionScriptDefault_Text">ReplyLevelVO</span>;
+         <span class="ActionScriptComment">//问题可能影响的范围
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">range</span>:<span class="ActionScriptDefault_Text">ConstDetailVO</span>;
+         <span class="ActionScriptComment">//请求对应的业务系统
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">belongSystem</span>:<span class="ActionScriptDefault_Text">SupportSystemVO</span>;
+         <span class="ActionScriptComment">//请求所对应的业务模块
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">sysModule</span>:<span class="ActionScriptDefault_Text">SystemModuleVO</span>;
+         <span class="ActionScriptComment">//响应时间
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">replyTime</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//受理人
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">replyer</span>:<span class="ActionScriptDefault_Text">Object</span>;
+        <span class="ActionScriptComment">//计划解决时间
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">planFinishTime</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//实际解决时间
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">realFinishTime</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//请求主题摘要
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyTitle</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//请求描述
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">directions</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//问题的实际影响范围
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">realRange</span>:<span class="ActionScriptDefault_Text">ConstDetailVO</span>;
+        <span class="ActionScriptComment">//原因分析
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">reason</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//处理方法
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">solutions</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//需求提出理由
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyReason</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//请求单状态
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyStatus</span>:<span class="ActionScriptDefault_Text">uint</span>;
+        <span class="ActionScriptComment">//请求单状态名称
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">applyStatusStr</span>:<span class="ActionScriptDefault_Text">String</span>;
+        <span class="ActionScriptComment">//是否删除：0-未删除；1-已删除
+</span>        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">DR</span>:<span class="ActionScriptDefault_Text">String</span>;
+        
+<span class="ActionScriptComment">//        public var applyEntryName:String;
+</span><span class="ActionScriptComment">//        
+</span><span class="ActionScriptComment">//        public var replyerName:String;
+</span><span class="ActionScriptComment">//        
+</span><span class="ActionScriptComment">//        public var sponsorName:String;
+</span>        
+        <span class="ActionScriptReserved">public</span> <span class="ActionScriptvar">var</span> <span class="ActionScriptDefault_Text">attachments</span>:<span class="ActionScriptDefault_Text">Array</span>;
+
+
+    <span class="ActionScriptBracket/Brace">}</span>
+<span class="ActionScriptBracket/Brace">}</span></pre></body>
+</html>

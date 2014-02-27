@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009"
+						 xmlns:s="library://ns.adobe.com/flex/spark"
+						 xmlns:mx="library://ns.adobe.com/flex/mx"
+						 xmlns:container="com.framelib.container.*"
+						 xmlns:mxml="com.itsm.common.mxml.*"
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:custom="com.itsm.common.custom.*"
+						 width="600" height="400" creationComplete="creationCompleteHandler(event)"
+						 title="人员选择">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			private var selectComponent:FieldSelect;//主程序的引用
+			
+			[Bindable]
+			private var selectName:String = ""; //选中名字
+			private var selectData:ArrayCollection = new ArrayCollection();	//选中数据
+			
+			[Bindable]
+			private var gdData:Array = null;
+			
+			/**
+			 * 绑定树数据
+			 */
+			protected function tree_itemClickHandler(event:ListEvent):void
+			{
+				var item:XML = tree.selectedItem as XML;
+				gdData = ["selectPersonAPI", "SelectPersonAPI", "findPersons", [String(item.@id)]];
+			}
+			
+			/**
+			 * 确定按钮事件监听 
+			 */
+			protected function sureClickHandler(event:Event):void
+			{
+				
+				//给FieldSelect中的控件赋值
+//				selectComponent.selectObj = dg.selectedItem;
+//				selectComponent.selText.text = dg.selectedItem.personName;
+				if(selectComponent.isMultipleSelected){	
+					selectComponent.selectObj = selectData;
+				}else
+					selectComponent.selectObj = selectData.getItemAt(0);
+				
+				selectComponent.selText.text = selectName;
+				
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**
+			 * 关闭窗口
+			 */
+			private function closeWindow(event:MouseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**
+			 * 查询按钮事件监听 
+			 */
+			protected function queryClikHandler(event:Event):void
+			{
+//				var item:XML = tree.selectedItem as XML;
+//				if(item == null){
+//					TAlert.show("请选择公司或者部门！");
+//					return;
+//				}
+				
+				gdData = ["selectPersonAPI", "SelectPersonAPI", "queryPersons", [0, userName.text]];
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				selectComponent = this.owner as FieldSelect; //FieldSelect的引用
+			}
+			
+			protected function dg_itemClickHandler(event:ListEvent):void
+			{
+				var obj:Object = dg.selectedItem;
+				
+				if(obj != null) {
+					if(selectComponent.isMultipleSelected){
+						
+						if(selectName!=""){
+							var isHave:Boolean = true;
+							var names:Array = selectName.split(",");
+							for(var i:int=0; i<names.length; i++){
+								if(obj.personName==names[i]){
+									names.splice(i, 1);
+									selectData.removeItemAt(i);
+									isHave=false;
+									break;
+								}
+							}
+							
+							if(isHave) {
+								names.push(obj.personName);
+								selectData.addItem(obj);
+							}
+							
+							selectName=names.join(",");
+						}else{
+							
+							selectName = obj.personName;
+							selectData.addItem(obj);
+						}
+					}else{
+						selectName = obj.personName;
+						selectData.removeAll();
+						selectData.addItem(obj);
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<container:layout>
+		<s:VerticalLayout paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5"/>
+	</container:layout>
+	<mx:HDividedBox width="100%" height="100%">
+		<!--<mxml:TreeCompanyAndDepart id="tree" width="150" height="100%" minWidth="100" maxWidth="200"
+								   autoLoad="true"
+								   isShowDepartment="true" idFiled="id" labelField="orgName" parentIdFiled="parentId" 
+								   itemClick="tree_itemClickHandler(event)"/>-->
+		<mxml:TreeAKSL id="tree" height="100%" minWidth="200" maxWidth="300" idFiled="id"
+					   isLoadDept="true" itemClick="tree_itemClickHandler(event)"
+					   labelField="@orgName" parentIdFiled="parentId" />
+		<s:BorderContainer width="100%" height="100%">
+				<s:layout>
+					<s:VerticalLayout gap="5" paddingBottom="5" paddingLeft="5" paddingRight="5"
+									  paddingTop="5"/>
+				</s:layout>
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel width="100" label="请输入查询名称：" verticalAlign="middle"/>
+				<control:TextInputFl id="userName" width="100%" height="25" text="{selectName}"/>
+				<s:Button id="btnQuery" label="查询" click="queryClikHandler(event);" styleName="query"
+						  toolTip="查询"/>
+			</s:HGroup>
+			<custom:CustomDataGrid id="dg" width="100%" height="100%" dataProvider="{gdData}"
+								   DoubleClick="sureClickHandler(null);" isCheckBox="false"
+								   isControlColumns="false" isPaging="true" isRowNum="true"
+								   itemClick="dg_itemClickHandler(event)">
+				<custom:columns>
+					<mx:DataGridColumn dataField="personId" headerText="用户ID"/>
+					<mx:DataGridColumn dataField="personName" headerText="用户名"/>
+					<mx:DataGridColumn dataField="orgName" headerText="部门"/>
+				</custom:columns>
+			</custom:CustomDataGrid>
+		</s:BorderContainer>
+	</mx:HDividedBox>
+	<container:controlBarContent>
+		<s:HGroup width="100%" height="100%" horizontalAlign="right" gap="10">
+			<s:Button label="确定" click="sureClickHandler(event);" styleName="submit"/>
+			<s:Button label="取消" click="closeWindow(event);" styleName="cancel"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

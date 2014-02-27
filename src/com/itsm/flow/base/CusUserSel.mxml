@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		   xmlns:s="library://ns.adobe.com/flex/spark"
+		   xmlns:mx="library://ns.adobe.com/flex/mx"
+		   xmlns:base="com.itsm.flow.base.*"
+		   xmlns:datagrid="common.components.datagrid.*"
+		   width="100%" height="100%" currentState="DeptUsers" initialize="initForm()" 
+		   >
+<fx:Script>
+	<![CDATA[
+		import com.itsm.common.utils.AppCore;
+		import com.itsm.flow.app.GlobalUtil;
+		import com.services.IService;
+		import com.services.base.CusUsersService;
+		
+		import common.utils.FAppCoreUtil;
+		
+		import mx.collections.ArrayCollection;
+		import mx.events.ItemClickEvent;
+		import mx.events.ListEvent;
+		import mx.rpc.events.ResultEvent;
+		
+		public var MuliSel:Boolean = false;									//是否多选
+		public var hasSelUsersArr:Array = new Array();						//选中人员数据集
+		public var UserIDArr:Array = new Array();							//选择人员ID集
+		public var UserNameArr:Array = new Array();							//选择人员名称集
+		public var _WhereStr:String="";
+		[Bindable]
+		public var includeEffective:Boolean = false;								//是否包含禁用人员
+		/**格式：1=1 and */
+		public var _WhereStrUserIds:String="";
+		private var FAppCore:GlobalUtil=GlobalUtil.getInstence();
+		
+		//默认部门选择方式
+		private function initForm():void
+		{
+			this.currentState = "DeptUsers";
+			DeptOrder.selected = true;		
+		} 
+		
+		//设置选中部门
+		public function selDept(event:Event):void
+		{
+			var selDept:XML = DeptSel.selectedNode;
+			var Deptid:String = selDept.@id;
+//			var where:String = " Type=3 and  DeptID=" + Deptid;
+			var where:String = " org_id='" + Deptid+"'";
+			GridSel.WhereStr = _WhereStrUserIds+where;
+			GridSel.GridLoadData();
+		}
+		
+		//初始化Grid
+		private function initmyGrid(event:Event):void
+		{
+			var myGrid:CustomdataGrid = event.currentTarget as CustomdataGrid;
+			var headerArr:Array = new Array(["用户ID", "personId", 0, "", FAppCoreUtil.fcInteger, ""], 
+										["用户名称", "personName", 100, "", FAppCoreUtil.fcString, ""],
+										["部门ID", "deptId", 0, "", FAppCoreUtil.fcLookup, ""], 
+										["部门名称", "deptName", 80, "", FAppCoreUtil.fcString, ""]);
+//										["EMOSS编号", "CODE", 70, "", FAppCoreUtil.fcString, ""],
+//										["用户帐号", "UserCode", 70, "", FAppCoreUtil.fcString, ""], 
+//										["创建时间", "CreateTime", 60, "", FAppCoreUtil.fcDate, ""]); 
+		    myGrid.HeaderArray = headerArr;                 //显示字段
+			myGrid.RemoteService = new CusUsersService("flowData", "FlowData");
+			myGrid.RemoteDest = "flowData";       //远程目标
+			myGrid.RemoteSource = "FlowData";      //远程源
+			myGrid.RemoteOperation = "GetPageData";     //远程获取数据方法
+			myGrid.CustomColumnsModuleName="CusUserSel";    //本模块名称，用于字段显示自定义
+			myGrid.ShowUpGuide=false;                        //显示上面的操作栏
+			myGrid.ShowDownGuide=true;                     //显示下面的操作栏
+			/*var WhereStr:String=" Type=3 and CompId="+FAppCore.FCusUser.CompId.toString();
+			if(_WhereStr.length>0) 
+				WhereStr ="Type=3 and " + _WhereStr;	
+			if (!includeEffective) WhereStr += " and Effective=1 ";
+			myGrid.WhereStr = _WhereStrUserIds+WhereStr;  注释代改*/
+			myGrid.MuliSel = MuliSel;						//多选
+/* 			if (MuliSel)
+				myGrid.HasCheckBoxSel = true;
+ */			myGrid.isPage = false;                          //多页或单页
+			//**********该属性需从主窗体获取
+		    myGrid.UserID = String(FAppCore.FCusUser.UserId);       //当前用户ID
+		    //**************************
+			myGrid.setNewQuickSearch("用户编号/名称",["personName","personId"]);
+			if (myGrid.id == "GridSel2")
+			{
+			    myGrid.RemoteGetAllCount = "GetAllCount";       //远程获取记录数
+				myGrid.isPage = true;                           //多页或单页
+				//myGrid.ShowDownGuide=true;
+			    myGrid.isMulPage = true;                        //多页取数或多页一次取数
+			    myGrid.PageCount = 20;                          //每页显示数据
+			    myGrid.AutoDataBind = true;
+			}else{ //id== GridSel GetPageData方法(where ,order )
+				myGrid.SortAD = " PERSON_ID ASC"; //排序
+			}
+		}
+		
+		//单选项，部门或人员模式
+		private function handleCard(event:ItemClickEvent):void 
+		{
+			if (event.currentTarget.selectedValue == "DeptOrder") 
+			{
+				this.currentState = "DeptUsers";
+				DeptOrder.selected = true;	
+			} 
+			else 
+			{
+				this.currentState = "UsersGrid";
+				hasSelUsersArr = new Array();
+				NameOrder.selected = true;
+			} 
+		}
+		
+		//清除已选中的记录
+		private function onClick():void
+		{
+			hasSelUsersArr = new Array();
+			HasSelUsers.text = "";
+		}
+		
+		//Grid点击，返回值
+		private function onGridItemClick(event:ListEvent):void
+		{
+			var newSel:Array = new Array();
+			if (this.currentState == "DeptUsers")
+				newSel = GridSel.SelectedItems;
+			else
+				newSel = GridSel2.SelectedItems;
+			var hassel:Boolean = false;
+			if (!MuliSel)
+				hasSelUsersArr = new Array();
+			for (var i:int=0;i<newSel.length;i++)
+			{
+				hassel = false;
+				for (var j:int=0;j<hasSelUsersArr.length;j++)
+				{
+					if (hasSelUsersArr[j].personId == newSel[i].personId)
+					{
+						hassel = true;
+						break;
+					}
+				}
+				if (!hassel)
+				{
+					hasSelUsersArr.push(newSel[i]);
+				}
+			}
+			HasSelUsers.text = "";
+			UserIDArr = new Array();
+			UserNameArr = new Array();
+			for (var X:int=0; X<hasSelUsersArr.length;X++)
+			{
+				HasSelUsers.text += hasSelUsersArr[X].personName;
+				UserIDArr.push(hasSelUsersArr[X].personId);
+				UserNameArr.push(hasSelUsersArr[X].personName);
+				if (X<hasSelUsersArr.length -1)
+					HasSelUsers.text += ",";
+			}
+		}
+		
+		//返回ID集字符串
+		public function GetUsersIDStr():String
+		{
+			return UserIDArr.toString();
+		}
+		
+		//设置默认选中人员
+		public function SetUsersSel(selUsersStr:String):void
+		{
+			var server:CusUsersService = new CusUsersService("flowData", "FlowData");
+			
+			//此处采用对所有用户的查询中搜寻用户ID串，因为有可能是之前已经选择的用户已经锁定。
+			server.GetAll("PERSON_ID in (" + selUsersStr + ")",null).addResultListener(receivedRecords);
+		}
+		
+		//默认选择人员集
+		private function receivedRecords( result:ResultEvent ):void
+		{
+//			hasSelUsersArr = result.result as Array;
+			var json:String = result.result as String;
+			hasSelUsersArr=JSON.parse(json) as Array;
+			HasSelUsers.text = "";
+			UserIDArr = new Array();
+			UserNameArr = new Array();
+			for (var X:int=0; X<hasSelUsersArr.length;X++)
+			{
+				HasSelUsers.text += hasSelUsersArr[X].personName;
+				UserIDArr.push(hasSelUsersArr[X].personId);
+				UserNameArr.push(hasSelUsersArr[X].personName);
+				if (X<hasSelUsersArr.length -1)
+					HasSelUsers.text += ",";
+			}
+		}
+		
+	]]>
+</fx:Script>
+	<fx:Declarations>
+		<s:RadioButtonGroup id="User" itemClick="handleCard(event);"/>
+		<mx:SetProperty name="selected" target="{NameOrder}" value="false"/>
+	</fx:Declarations>
+	<s:states>
+		<s:State name="DeptUsers"/>
+		<s:State name="UsersGrid"/>
+	</s:states>
+	<s:VGroup width="100%" height="100%">
+		
+		<s:HGroup id="hbox1" width="100%" height="25" fontSize="12" gap="2">
+			<s:RadioButton id="DeptOrder" width="113" label="以部门人员排序" groupName="User"
+							value="DeptOrder"/>
+			<s:RadioButton id="NameOrder" label="以人员姓氏拼音排序" groupName="User" value="NameOrder"/>
+			<s:TextInput id="HasSelUsers" width="100%" editable="false"/>
+			<s:Button id="tempbtn" width="56" height="23" label="清除" click="onClick()"/>
+		</s:HGroup>
+		
+		<mx:HDividedBox width="100%" height="100%" includeIn="DeptUsers"> 
+			<base:DeptsSelect id="DeptSel" width="184" height="100%"
+							 AllOrEffective="{includeEffective}" Check="false"
+							 SetSelDeptsData="selDept(event)">
+			</base:DeptsSelect>
+			<datagrid:CustomdataGrid id="GridSel" width="100%" height="100%"
+									 initGrid="initmyGrid(event)"
+									 ItemClick="onGridItemClick(event)">
+			</datagrid:CustomdataGrid>
+		</mx:HDividedBox>
+		
+		<datagrid:CustomdataGrid includeIn="UsersGrid" id="GridSel2" width="100%" height="100%"
+								 initGrid="initmyGrid(event)"
+								 ItemClick="onGridItemClick(event)">
+		</datagrid:CustomdataGrid>
+	</s:VGroup>
+</s:Group>

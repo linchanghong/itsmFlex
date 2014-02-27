@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:mx="library://ns.adobe.com/flex/mx" 
+						 xmlns:container="com.framelib.container.*" 
+						 xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+						 title="人员配置查询"
+						 creationComplete="creationCompleteHandler()" 
+						 width="390" height="220">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			import com.itsm.serviceManager.module.bugManager.vo.ConstDetailVO;
+			import com.itsm.serviceManager.module.bugManager.vo.ReplyLevelVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SupportSystemVO;
+			
+			import common.utils.TAlert;
+			
+			import flash.events.Event;
+			
+			import mx.collections.ArrayCollection;
+			import mx.formatters.DateFormatter;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			import org.alivepdf.encoding.IntList;
+			
+			[Bindable]public var mainApp:Object = null;
+			[Bindable]public var callbackFunction:Function;  //回调函数
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject; 
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = false;
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+			//员工职位列表集合
+			[Bindable]
+			public var userStatuses:ArrayCollection;
+			//系统id
+			private var sysID:int = -1;
+			//人员id
+			private var userID:int = -1;
+			//职位id
+			private var statusID:int = -1;
+				
+			/**
+			 * 初始化弹出窗体
+			 */
+			public function creationCompleteHandler():void
+			{
+				this.selectType.dataProvider = userStatuses;
+			}
+			
+			/**确定按钮*/
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				if(formIsValid){
+					SupportSystemManager(mainApp).sysManagerObjGrid.curPage = 1;
+					SupportSystemManager(mainApp).dgArr = 
+						["supportSystemManagerAPI","SupportSystemManagerAPI", "findSysManagerEntityByQueryWindow", 
+							[sysID, userID, statusID],"search"];
+					button2_clickHandler(null);
+				}else{
+					TAlert.show("请至少输入一个查询条件!","温馨提示");
+				}
+			}
+			/**取消按钮事件*/
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**判断用户有没有输入数据,只要flag大于0就说明用户有输入数据,可以进行下一步*/
+			private function validateForm(event:Event):void{
+				var flag:int = 0;
+				if(supportEmp.selectObj.hasOwnProperty("userId")){
+					userID = supportEmp.selectObj.userId;
+					flag++;
+				}
+				if(belongSys.selectObj.hasOwnProperty("systemID")){
+					sysID = belongSys.selectObj.systemID;
+					flag++;
+				}
+				if(selectType.selectedItem != undefined){
+					statusID = selectType.selectedItem.id;
+					flag++;
+				}
+				
+				if(flag > 0){
+					formIsEmpty = false;
+					formIsValid = true;
+				}else{
+					formIsEmpty = true;
+					formIsValid = false;
+				}
+				
+				if(formIsEmpty)
+					msg.text = "请至少选择一个查询条件！";
+				else
+					msg.text = "可以提交！";
+				msg.visible = true;
+			}
+			
+			/**职位列表点击事件，初始化没有信息，若被点击则从数据库加载数据*/
+			protected function selectType_clickHandler(event:MouseEvent):void{
+				BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","initUserStatuses",
+					[],initUserStatusesHandle);
+			}
+			/**加载职位列表后的数据处理*/
+			private function initUserStatusesHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				userStatuses = obj as ArrayCollection;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer width="100%" height="100%">
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingBottom="5" paddingTop="5" paddingLeft="5" paddingRight="5"/>
+		</s:layout>
+		<s:HGroup width="100%" height="37" paddingTop="10">
+			<control:FormLabel label="人员："  width="80" height="100%" required="false"/>
+			<bugmxml:BugFieldSelect id="supportEmp" width="245" height="100%"
+									armTitleWindow="com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+									selectChange="validateForm(event)"
+									isMultipleSelected="false"
+									textAlign="left"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="37" paddingTop="10">
+			<control:FormLabel label="系统："  width="80" height="100%" required="false"/>
+			<bugmxml:BugFieldSelect id="belongSys" width="245" height="100%"
+									armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+									selectChange="validateForm(event)"
+									isMultipleSelected="false"
+									textAlign="left"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="37" paddingTop="10">
+			<control:FormLabel label="职位："  width="80" height="100%" required="false"/>
+			<s:DropDownList id="selectType" 
+							width="245" height="100%" 
+							labelField="constDetailName"
+						    dataProvider="{userStatuses}"
+							change="validateForm(event);"
+							click="selectType_clickHandler(event)"
+							textAlign="left"/>
+		</s:HGroup>
+	</s:BorderContainer>
+	<container:controlBarContent>
+		<s:HGroup width="100%" height="30" horizontalAlign="right" verticalAlign="middle">
+			<s:Label id="msg" 
+					 width="50%"
+					 text="可以提交！" 
+					 textAlign="right"
+					 color="red" fontWeight="bold"
+					 visible="false" />
+			<s:Button label="确定" 
+					  width="25%" 
+					  styleName="submit" 
+					  enabled="{formIsValid}"
+					  click="button1_clickHandler(event)"/>
+			<s:Button label="取消" 
+					  width="25%" 
+					  styleName="cancel" 
+					  click="button2_clickHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+	
+</container:TitleWindowFl>

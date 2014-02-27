@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:mxml="com.itsm.common.custom.*"
+						 xmlns:mx="library://ns.adobe.com/flex/mx" 
+						 xmlns:container="com.framelib.container.*"
+						 title="公告" width="600" height="400"
+						 creationComplete="creationCompleteHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			[Bindable]
+			private var dataNotice:Array=null;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void{
+				dataNotice=["frameAPI","FrameAPI", "findAllNotice", []];
+				
+			}
+			
+			protected function dg_DoubleClickHandler(event:Event):void
+			{
+				
+				var index:int = dg.selectedIndex;
+				var item:Object = dg.selectedItem;
+				
+				var displayObject:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var noticeSetWindow:NoticeSetWindow = NoticeSetWindow(PopUpManager.createPopUp(displayObject, NoticeSetWindow, true));
+				PopUpManager.centerPopUp(noticeSetWindow); 
+				if(item!=null) {
+					noticeSetWindow.data=ObjectUtil.clone(item) as Object;
+					noticeSetWindow.dataAll=ObjectUtil.clone(dg.dataProvider as ArrayCollection) as ArrayCollection;
+					noticeSetWindow.index=index;
+					noticeSetWindow.currentState="see";
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mxml:CustomDataGrid id="dg" width="100%" height="100%" dataProvider="{dataNotice}"
+						 isCheckBox="false" allowMultipleSelection="false" 
+						 isRowNum="true" isControlColumns="false" isPaging="true"
+						 DoubleClick="dg_DoubleClickHandler(event)">
+		<mxml:columns>
+			<mx:DataGridColumn dataField="title" headerText="公告标题" width="200"/>
+			<mx:DataGridColumn dataField="content" headerText="公告内容"/>
+			<mx:DataGridColumn dataField="infoDate" headerText="发表时间" width="150"/>
+		</mxml:columns>
+	</mxml:CustomDataGrid>
+	
+</container:TitleWindowFl>

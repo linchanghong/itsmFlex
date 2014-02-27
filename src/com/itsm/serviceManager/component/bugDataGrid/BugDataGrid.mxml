@@ -1,0 +1,1096 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup width="100%" height="100%" 
+		  xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:ns1="com.itsm.common.custom.*"
+		  initialize="initdata()" 
+		  creationComplete="vgroup1_creationCompleteHandler(event)" xmlns:component="com.itsm.serviceManager.component.*" xmlns:bugDataGrid="com.itsm.serviceManager.component.bugDataGrid.*">
+	<!--creationComplete="completeInit()" >-->
+	
+	<!--
+	自定义DataGrid控件  功能目标：
+	1、是否显示checkBox列;		OK
+	2、是否显示行号列；			OK
+	3、是否显示汇总行；			not OK***
+	4、可显示列控件；			OK
+	5、分页控件；				OK
+	-->
+	
+	<fx:Declarations>
+		
+		<mx:CurrencyFormatter id="currencyFormatter" currencySymbol="￥" precision="2" useNegativeSign="false" />
+		<mx:DateFormatter id="dateFormatter" formatString="YYYY-MM-DD"/>
+		<mx:DateFormatter id="datetimeFormatter" formatString="YYYY-MM-DD HH:NN"/>
+		<mx:DateFormatter id="timeFormatter" formatString="HH:NN"/>
+		
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		<!-- 声明本组件将抛出的事件 -->
+		[Event(name="initGrid",type="flash.events.Event")]
+		[Event(name="itemClick",type="mx.events.ListEvent")]
+		[Event(name="DoubleClick",type="flash.events.Event")]
+		[Event(name="change",type="flash.events.Event")]
+		[Event(name="dataBindEvent",type="flash.events.Event")]
+		//[Event(name="createComplete",type="flash.events.Event")]
+	</fx:Metadata>
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.framelib.events.EventReflashWin;
+			import com.framelib.events.TdcPageChangeClickEvent;
+			import com.framelib.utils.HashMap;
+			import com.framelib.utils.Map;
+			import com.itsm.common.custom.ComCustomColumns;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.collections.SortField;
+			import mx.controls.CheckBox;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.DataGridEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.messaging.AbstractConsumer;
+			import mx.rpc.AbstractOperation;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.remoting.mxml.RemoteObject;
+			import mx.utils.ArrayUtil;
+			import mx.utils.ObjectProxy;
+			import mx.utils.ObjectUtil;
+			import mx.utils.StringUtil;
+			
+			import spark.components.supportClasses.ItemRenderer;
+			
+			private var jsonDe:JSONDecoder = new JSONDecoder();
+			
+			[Bindable]
+			private var tmp_dataProvider:ArrayCollection = new ArrayCollection();
+			//--private var selectNull:String = "sql:select t.* from cus_role t where t.role_grade = -99 ";
+			
+			private var _isRowNum:Boolean = false;
+			private var _isShowHeader:Boolean = true
+			private var _isPaging:Boolean = false;
+			private var _isControlColumns:Boolean = false;
+			private var _sumFields:String = "";
+			private var _sumDataArr:ArrayCollection;
+			private var _isCheckBox:Boolean = false;
+			private var _pagingRemoteDest:String = "frameAPI";
+			private var _pagingRemoteSource:String = "FrameAPI";
+			private var _pagingRemoteOperation:String = "customPage"; 
+			private var _pageCount:int = 15; 
+			private var _userId:Number;
+			private var _customColumnsModuleName:String=""; 
+			
+			/**************datagrid的属性*************/
+			private var _columns:Array = new Array();
+			private var _dataProvider:Object;
+			private var _selectedIndex:int;
+			private var _selectedIndices:Array;
+			private var _selectedItem:Object;
+			private var _selectedItems:Array;
+			private var _sortableColumns:Boolean;
+			private var _editable:Boolean;
+			private var _draggableColumns:Boolean;
+			private var _allowMultipleSelection:Boolean;
+			private var _wordWrap:Boolean;
+			private var _variableRowHeight:Boolean;
+			private var  _horizontalScrollPolicy:String;
+			[Bindable]
+			public var columnName:String = "";
+			[Bindable]
+			public var columnValue:uint = 0;
+			[Bindable]
+			public var rowBackGroundCorlor:uint = 0xFF6600;
+			[Bindable]
+			public var rowFontCorlor:uint = 0xFF6600;
+			
+			
+			//一共的记录条数
+			[Bindable]
+			private var _totalCount:int; 
+			//总页数
+			private var _totalPage:int;
+			//当前的页码
+			private var _curPage:int = 0;
+			//判断是否初始化数据:主要用于区分界面的刷新按钮与添加修改按钮
+			private var _initFlag:Boolean = true;
+			//远程目标名
+			private var columnRemoteDest:String = "frameAPI";
+			//自定义列名类
+			private var columnRemoteColumnSource:String ="FrameAPI";
+			//自定义列名方法
+			private var columnRemoteOperation:String = "findCustomcolumns";
+			
+			private var fAppCore:AppCore = AppCore.getInstance();  
+			private var dataDeal:DataDeal = fAppCore.dataDeal;
+			
+			//选择每页显示数的下拉菜单的选择下标值
+			private var _pageCountSelectIndex:uint = 1;
+			
+			//分页控件
+			private var pagingComponent:BugPagingComponent;
+			//如果要分页，需要一个sql或hql的查询
+			//--private var pagingSql:String = "";
+			//如果要分页，需要一个后台的方法名路径 数组 如：【constFlex,ConstFlex,findBySql】
+			private var pageMethodPath:Array = new Array;
+			//记录自定义选择表头
+			private var headersData:Array = new Array();
+			//模块名  自定义列时 用来 区分不同的datagrid 。
+			private var mdcComCustomColumns:ComCustomColumns;
+			
+			private var isPageFalseColumn:DataGridColumn;
+			
+			private var pageSelectedMap:Map = new HashMap();
+			
+			private var _isPageMulti:Boolean = false;
+			
+			private var customColumnsObj:Object = new Object();
+			
+			/**设置选择每页显示数的下拉菜单的选择下标值*/
+			public function set pageCountSelectIndex(value:uint):void
+			{
+				value >=0 
+					? _pageCountSelectIndex = value 
+					: _pageCountSelectIndex = 1;
+			}
+
+			public function set totalCount(value:int):void
+			{
+				_totalCount = value;
+				pagingComponent.changeTotalCount(value);
+			}
+
+			public function get totalPage():int
+			{
+				this._totalPage = pagingComponent.fPageCount;
+				return _totalPage;
+			}
+
+			public function get totalCount():int
+			{
+				this._totalCount = pagingComponent.fRecordCount;
+				return _totalCount;
+			}
+
+			public function get curPage():int
+			{
+				this._curPage = pagingComponent.fPageIndex;
+				return _curPage;
+			}
+			
+			public function set curPage(index:int):void{
+				pagingComponent.fPageIndex = index;
+			}
+
+			public function get initFlag():Boolean
+			{
+				return _initFlag;
+			}
+
+			[Bindable]
+			/** 
+			 * isPageMulti 是否分页多选；只是一个标识，是否能记录多页选择的数据</br>
+			 * 
+			 * 默认false，不会记录多页选择的数据；</br>
+			 * true，会改变selectedIndex, selectedItems, selectedIndecs数据；</br>
+			 * 内部使用一个Map记录多页选择的数据：(页数-1)x每页行数+行号=>key，选项=>value；</br>
+			 * selectedIndecs，是key数组；</br>
+			 * selectedItems，是value数组；</br>
+			 * selectedIndex，是key数组的最后一个元素；</br>
+			 * 
+			 * */
+			public function get isPageMulti():Boolean
+			{
+				return _isPageMulti;
+			}
+			
+			public function set isPageMulti(value:Boolean):void
+			{
+				_isPageMulti = value;
+			}
+			
+			public function get horizontalScrollPolicy():String
+			{
+				return _horizontalScrollPolicy;
+			}
+			
+			public function set horizontalScrollPolicy(value:String):void
+			{
+				_horizontalScrollPolicy = value;
+				wfpDataGrid.horizontalScrollPolicy = _horizontalScrollPolicy;
+			}
+			
+			override public function get variableRowHeight():Boolean
+			{
+				return _variableRowHeight;
+			}
+			
+			override public function set variableRowHeight(value:Boolean):void
+			{
+				_variableRowHeight = value;
+				wfpDataGrid.variableRowHeight = _variableRowHeight;
+			}
+			
+			public function get wordWrap():Boolean
+			{
+				return _wordWrap;
+			}
+			
+			public function set wordWrap(value:Boolean):void
+			{
+				_wordWrap = value;
+				wfpDataGrid.wordWrap = _wordWrap;
+			}
+			
+			/**模块名 默认为customDataGrid的id*/
+			public function get customColumnsModuleName():String
+			{
+				return _customColumnsModuleName;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set customColumnsModuleName(value:String):void
+			{
+				_customColumnsModuleName = value;
+			}
+			
+			/**用户ID*/
+			public function get userId():Number
+			{
+				return _userId;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set userId(value:Number):void
+			{
+				_userId = value;
+			}
+			
+			/**
+			 * 分页，每页记录的条数,默认15条,可以由用户自行定义
+			 * */
+			public function get pageCount():int
+			{
+				pagingComponent != null ? this.pageCount = pagingComponent.pageLine.selectedItem : "";
+				return _pageCount;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set pageCount(value:int):void
+			{
+				_pageCount = value;
+			}
+			
+			/**
+			 * 分页，远程方法
+			 * */
+			public function get pagingRemoteOperation():String
+			{
+				return _pagingRemoteOperation;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set pagingRemoteOperation(value:String):void
+			{
+				_pagingRemoteOperation = value;
+			}
+			
+			/**
+			 * 分页，远程数据源
+			 * */
+			public function get pagingRemoteSource():String
+			{
+				return _pagingRemoteSource;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set pagingRemoteSource(value:String):void
+			{
+				_pagingRemoteSource = value;
+			}
+			
+			/**
+			 * 分页，远程目标名
+			 * */
+			public function get pagingRemoteDest():String
+			{
+				return _pagingRemoteDest;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set pagingRemoteDest(value:String):void
+			{
+				_pagingRemoteDest = value;
+			}
+			
+			/**
+			 * 是否显示CheckBox列
+			 * 
+			 * true表示显示，false表示不显示
+			 * 
+			 * 默认是false
+			 **/
+			public function get isCheckBox():Boolean
+			{
+				return wfpDataGrid.isCheckBox;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isCheckBox(value:Boolean):void
+			{
+				_isCheckBox = value;
+				wfpDataGrid.isCheckBox = _isCheckBox;
+			}
+			
+			/**
+			 * 分页汇总下，需要手动提供的汇总数据
+			 * 
+			 * sql查询出的数据源的汇总
+			 **/
+			public function get sumDataArr():ArrayCollection
+			{
+				return wfpDataGrid.sumDataArr;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set sumDataArr(value:ArrayCollection):void
+			{
+				_sumDataArr = value;
+				wfpDataGrid.sumDataArr = _sumDataArr;
+			}
+			
+			/**
+			 * 显示汇总行时需合计的列的dataFied，用逗号隔开。
+			 * 
+			 * 如果设置此值，表示显示汇总行；否则不显示。
+			 * 
+			 * 列："psnPay,comPay,sumPay"
+			 **/
+			public function get sumFields():String
+			{
+				return wfpDataGrid.sumFields;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set sumFields(value:String):void
+			{
+				_sumFields = value;
+				wfpDataGrid.sumFields = _sumFields;
+			}
+			
+			/**
+			 * 是否可控件显示列
+			 * 
+			 * true表示可控制，false表示不可控制
+			 * 
+			 * 默认是false
+			 **/
+			[Bindable]
+			public function get isControlColumns():Boolean
+			{
+				return _isControlColumns;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isControlColumns(value:Boolean):void
+			{
+				_isControlColumns = value;
+			}
+			
+			/**
+			 * 是否分页
+			 * 
+			 * true表示分页，false表示不分页
+			 * 
+			 * 默认是false
+			 **/
+			[Bindable]
+			public function get isPaging():Boolean
+			{
+				return _isPaging;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isPaging(value:Boolean):void
+			{
+				_isPaging = value;
+				wfpDataGrid.isPaging = _isPaging;
+			}
+			
+			/**
+			 * 是否显示行号
+			 * 
+			 * true 显示；false不显示
+			 * 
+			 * 默认false
+			 **/
+			public function get isRowNum():Boolean
+			{
+				return _isRowNum;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isRowNum(value:Boolean):void
+			{
+				_isRowNum = value;
+				wfpDataGrid.isRowNum = _isRowNum;
+			}
+			
+			/**
+			 * 是否列明
+			 * 
+			 * true 显示；false不显示
+			 * 
+			 * 默认false
+			 **/
+			public function get isShowHeader():Boolean
+			{
+				return _isShowHeader;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isShowHeader(value:Boolean):void
+			{
+				_isShowHeader = value;
+				wfpDataGrid.showHeaders = _isShowHeader;
+			}
+			
+			
+			
+			
+			
+			/**
+			 * 当显示CheckBox列时，checkbox是多选还是单选
+			 * 
+			 * true表示多选，false表示单选
+			 * 
+			 * 默认是false
+			 **/
+			[Bindable]
+			public function get allowMultipleSelection():Boolean
+			{
+				return wfpDataGrid.allowMultipleSelection;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set allowMultipleSelection(value:Boolean):void
+			{
+				_allowMultipleSelection = value;
+				if(_isCheckBox){
+					wfpDataGrid.isMutipleSelete = _allowMultipleSelection;
+					wfpDataGrid.allowMultipleSelection = _allowMultipleSelection;
+				}
+			}
+			
+			public function get draggableColumns():Boolean
+			{
+				return wfpDataGrid.draggableColumns;
+			}
+			
+			public function set draggableColumns(value:Boolean):void
+			{
+				_draggableColumns = value;
+				wfpDataGrid.draggableColumns = _draggableColumns;
+			}
+			
+			public function get editable():Boolean
+			{
+				return wfpDataGrid.editable;
+			}
+			
+			public function set editable(value:Boolean):void
+			{
+				_editable = value;
+				wfpDataGrid.editable = _editable;
+			}
+			
+			public function get sortableColumns():Boolean
+			{
+				return wfpDataGrid.sortableColumns;
+			}
+			
+			public function set sortableColumns(value:Boolean):void
+			{
+				_sortableColumns = value;
+				wfpDataGrid.sortableColumns = _sortableColumns;
+			}
+			
+			/**
+			 * 如果设置了isPageMulti为true，将还回分页多选Map的values数组
+			 * */
+			public function get selectedItems():Array
+			{
+				if(isPageMulti && pageSelectedMap.size() != 0) {
+					return pageSelectedMap.values();
+				}
+				return wfpDataGrid.selectedItems;
+			}
+			
+			public function set selectedItems(value:Array):void
+			{
+				_selectedItems = value;
+				wfpDataGrid.selectedItems = value;
+			}
+			
+			public function get selectedItem():Object
+			{
+				return wfpDataGrid.selectedItem;
+			}
+			
+			public function set selectedItem(value:Object):void
+			{
+				_selectedItem = value;
+				wfpDataGrid.selectedItem = _selectedItem;
+			}
+			
+			/**
+			 * 如果设置了isPageMulti为true，将还回分页多选Map的keys数组(int)
+			 * */
+			public function get selectedIndices():Array
+			{
+				if(isPageMulti && pageSelectedMap.size() != 0) {
+					return pageSelectedMapKeys();
+				}
+				return wfpDataGrid.selectedIndices;
+			}
+			
+			public function set selectedIndices(value:Array):void
+			{
+				_selectedIndices = value;
+				wfpDataGrid.selectedIndices = _selectedIndices;
+			}
+			
+			/**
+			 * 如果设置了isPageMulti为true，将还回分页多选Map的keys数组的最后一个元素
+			 * */
+			public function get selectedIndex():int
+			{
+				if(isPageMulti && pageSelectedMap.size() != 0) {
+					return int(pageSelectedMap.keys()[pageSelectedMap.keys().length - 1]);
+				}
+				return wfpDataGrid.selectedIndex;
+			}
+			
+			public function set selectedIndex(value:int):void
+			{
+				_selectedIndex = value;
+				wfpDataGrid.selectedIndex = _selectedIndex;
+			}
+			
+			/**
+			 * DataGrid的数据源</p>
+			 * 
+			 * 设置此属性时，可传ArrayCollection和Array。</br>
+			 * ArrayCollection，直接绑定；</br>
+			 * Array，后台方法；0.bean名、1.类名、2.方法名、3.参数数组；</br>
+			 * 后台方法需要满足以下条件：</br>
+			 * 1. 后三个参数必须为int first, int max, boolean isCount；</br>
+			 * 2. 返回值必须是list的json，list的0是数据集，list的1是总条数；
+			 **/
+			public function get dataProvider():Object
+			{
+				return wfpDataGrid.dataProvider;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set dataProvider(value:Object):void
+			{
+				if(value == null) {
+					return;
+				}
+				
+				if(value is ArrayCollection) {
+					_dataProvider = value;
+					setDataProvider();
+				} else if(value is Array) {
+					if(isPaging) {
+						//分页的情况下  如果传入 空字符串 表示清空datagrid
+						pageMethodPath = value as Array;
+						_dataProvider = value;
+						bindGridData(0, pageCount, true);
+					} else {
+						_dataProvider = value;
+						getGridData();
+					}
+				}
+			}
+			
+			/**
+			 * DataGrid的列数组
+			 **/
+			public function get columns():Array
+			{
+				return wfpDataGrid.columns;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set columns(value:Array):void
+			{
+				_columns = value;
+				wfpDataGrid.columns = _columns;
+			}
+			
+			/*********************************/ 
+			
+			//初始化，取可显示的列
+			private function initdata():void
+			{
+				pagingComponent = new BugPagingComponent();
+				pagingComponent.pageLine.selectedIndex = _pageCountSelectIndex;
+				this.pageCount = pagingComponent.pageLine.selectedItem;
+				pagingComponent.SetAutoResizeModule(true); 
+				pagingComponent.addEventListener("PageChangeClickEvent",OnPageChangeClickEvent);
+			}
+			
+			/** 绑定数据源，并dispatch事件*/
+			private function setDataProvider():void
+			{
+				wfpDataGrid.dataProvider = _dataProvider;
+				
+				//如果设置了分页多选，绑定数据时，要选中已选数据
+				if(isPageMulti && pageSelectedMap.size() != 0) {
+					setCurrentPageSelected();
+				}
+				
+				dispatchEvent(new Event("dataBindEvent"));
+			}
+			
+			/** 
+			 * 从pageSelectedMap中得到当前页选中的items，并设置</p>
+			 * 
+			 * 用key去比较，但有可能不是同一对象，此时把新的对象更新到Map中来。
+			 * 
+			 * 相当于，以前选中a，翻页时再查数据库a已经没有了，现在选中b，b更新到Map中。
+			 * */
+			private function setCurrentPageSelected():void
+			{
+				var minIndex:int = (pagingComponent.fPageIndex - 1) * pageCount;
+				var maxIndex:int = minIndex + pageCount - 1;
+				
+				var theDataProvider:ArrayCollection = wfpDataGrid.dataProvider as ArrayCollection;
+				var valueArr:Array = new Array();
+				var keyArr:Array = new Array();
+				
+				var keys:Array = pageSelectedMap.keys();
+				var keysLen:int = keys.length;
+				for (var i:int = 0; i < keysLen; i++) {
+					var theIndex:int = int(keys[i]);
+					if(theIndex >= minIndex && theIndex <= maxIndex) {
+						valueArr.push(theDataProvider[theIndex - minIndex]);
+						//更新map中的对象，保证用户看到的和实际操作的是同一对象；
+						pageSelectedMap.put(keys[i], theDataProvider[theIndex - minIndex]);
+						keyArr.push(theIndex - minIndex);
+					}
+				}
+				
+				selectedItems = valueArr;
+			}
+			
+			
+			/**
+			 * 设置列头及列属性
+			 * 
+			 * */	
+			private function setColumns():void
+			{
+				if(headersData.length != 0)
+					for each(var tmp_column:DataGridColumn in wfpDataGrid.columns)
+				{
+					var isVisible:Boolean = false;
+					
+					if(tmp_column.dataField == "" 
+						|| tmp_column.dataField == null 
+						|| tmp_column.dataField == "序号")
+						continue;
+					
+					for(var i:int = 0; i<headersData.length; i++)
+					{
+						if(tmp_column.dataField == headersData[i])
+							isVisible = true;
+					}
+					
+					tmp_column.visible = isVisible;
+				}
+			}
+			
+			//获得自定义行列名
+			private function getColumns():void
+			{
+				var dataDeal1:DataDeal = new DataDeal();
+				dataDeal1.dataRemote(columnRemoteDest,columnRemoteColumnSource,columnRemoteOperation,[customColumnsModuleName, userId]);
+				dataDeal1.remoteMethods.addEventListener(ResultEvent.RESULT,receivedColumns);
+			} 
+			
+			//获得自定义设置的列
+			private function receivedColumns( event:ResultEvent ):void
+			{
+				if(event.result == null) return;
+				var tempHeaders:ArrayCollection = jsonDe.decode(event.result as String) as ArrayCollection;
+				if (tempHeaders.length > 0)
+				{
+					customColumnsObj = tempHeaders[0];
+					var headersStr:String = customColumnsObj.columns;
+					headersData = headersStr.split(",");
+				}
+				
+				setColumns();	
+				
+				fAppCore.closeLoading();
+			}
+			
+			//自定义列
+			private function shownColumnBtn_clickHandler():void
+			{
+				if(customColumnsModuleName=="") {
+					TAlert.show("模块名为空","提示");
+					return;
+				}
+				mdcComCustomColumns= ComCustomColumns(PopUpManager.createPopUp(this,ComCustomColumns,true));
+				mdcComCustomColumns.headerArray = columns;
+				mdcComCustomColumns.userId = this.userId;
+				mdcComCustomColumns.moduleName = this.customColumnsModuleName;
+				if(customColumnsObj != null) {
+					mdcComCustomColumns.customColumnObjId = customColumnsObj.id;
+				}
+				
+				mdcComCustomColumns.headersData = this.headersData;
+				//mdcComCustomColumns.initWindows();
+				mdcComCustomColumns.addEventListener(EventReflashWin.REFLASHWINDOWS,onColumnEditComplete);
+				PopUpManager.centerPopUp(mdcComCustomColumns);
+				
+			} 
+			
+			//自定义显示字段，重新加载列
+			private function onColumnEditComplete(event:EventReflashWin):void
+			{
+				this.headersData = mdcComCustomColumns.headersData;
+				setColumns();
+			}
+			
+			//单击事件
+			private function bcdgItemClick(event:ListEvent):void
+			{
+				//				var item:Object = event.itemRenderer.data;
+				//				if(item.isSelected){
+				//					item.isSelected = !Boolean(item.isSelected);
+				//					wfpDataGrid.invalidateList();
+				//				}
+				var e:ListEvent = new ListEvent("itemClick");
+				dispatchEvent(e);
+			}
+			
+			//双击事件
+			private function bcdgDoubleClick(event:Event):void
+			{
+				var e:Event = new Event("DoubleClick");
+				dispatchEvent(e);
+			}
+			
+			public function afreshColumnEdit():void
+			{
+				this.setColumns();
+			}
+			
+			
+			protected function vgroup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// 将CustomDataGrid的列数组 传给 BaseCustomDataGrid
+				userId = fAppCore.loginUser.id;
+				customColumnsModuleName = this.id;
+				
+				//获取用户自定义显示列
+				if(isControlColumns){
+					getColumns();
+				}
+				
+				//添加分页控件，查询数据
+				if(isPaging){
+					isPageShow.addElement(pagingComponent);  
+				}
+			}
+			
+			/************************************分页Start*******************************************/
+			private function OnPageChangeClickEvent(event:TdcPageChangeClickEvent):void
+			{
+				var startIndex:int = (pagingComponent.fPageIndex-1)*pageCount;//从第几条数据开始取
+				if(startIndex >= 0) {
+					bindGridData(startIndex, pageCount, false);
+				}
+			}
+			
+			
+			//从数据库取分页数据，fPageIndex--第几页，fPagelimit--一页显示多少数据
+			private function bindGridData( startIndex:int, fPagelimit:int, flag:Boolean):void
+			{
+				fAppCore.showLoading();//开始等待
+				if(pageMethodPath != null && pageMethodPath.length >= 4) {
+					var parasArr:Array = (pageMethodPath[3] as Array).slice(0);
+					
+					if(pageMethodPath.length == 5){
+						if(pageMethodPath[4] == "add"){
+							if(pagingComponent.fRecordCount 
+								== pagingComponent.fPageCount
+								*this.pageCount){
+								startIndex = (pagingComponent.fPageCount)*pageCount;
+								pagingComponent.fPageIndex = pagingComponent.fPageCount +1;
+							}else{
+								startIndex = (pagingComponent.fPageCount-1)*pageCount;
+								pagingComponent.fPageIndex = pagingComponent.fPageCount;
+							}
+						}else
+							startIndex = (pagingComponent.fPageIndex-1)*pageCount;
+						pageMethodPath.pop();
+//						_initFlag = false;
+					}
+					
+					parasArr.push(startIndex, fPagelimit, flag)
+					dataDeal.dataRemote(pageMethodPath[0], pageMethodPath[1], pageMethodPath[2], parasArr);
+					dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,listHandle);
+//					if(startIndex == 0)
+//						_initFlag = true;
+				}
+			}
+			
+			private function listHandle(event:ResultEvent):void
+			{
+				fAppCore.closeLoading();//结束等待
+				if(event.result != null ) {
+					var arr:ArrayCollection = jsonDe.decode(event.result as String) as ArrayCollection;
+					if(arr != null) {
+						if(arr.length > 0) {
+							var ac:ArrayCollection = new ArrayCollection();
+							if(arr[0] is ArrayCollection) ac = arr[0]; 
+							else ac.addItem(arr[0] as Object);
+							dataProvider = ac;
+						} else {
+							dataProvider = tmp_dataProvider;
+						}
+						
+						if(arr.length > 1) {
+//							if(_initFlag)
+//								pagingComponent.fPageIndex = 1;
+							pagingComponent.Build(arr[1]);
+//							_initFlag = true;//为了避免添加或修改后再点击刷新,不会修改当前页码为"1"
+						}
+						
+						dispatchEvent(new Event("dataBindEvent"));
+					} else {
+						dataProvider = new ArrayCollection();//分页失败时，清空表格
+//						trace(event.token.message.destination+":没有返回数据集！");
+						trace(event.target.service.source+"."+event.target.name+"():没有返回数据集！");
+					}
+				} else {
+					dataProvider = new ArrayCollection();//分页失败时，清空表格
+					TAlert.show("分页取数据失败！","提示");
+				}
+			}
+			/************************************分页End********************************************/
+			
+			
+			protected function wfpDataGrid_initializeHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			
+			protected function wfpDataGrid_changeHandler(event:ListEvent):void
+			{
+				//改变选择时，如果是分页多选，更新pageSelectedMap。(页数-1)*每页行数+行号=>key，选项=>value
+				
+				if(isPageMulti) {
+					changePageSelected(event.rowIndex);
+				}
+				
+				var e:ListEvent = new ListEvent("change");
+				dispatchEvent(e);
+			}
+			
+			/**改变分页多选的数据集；</P>(页数-1)*每页行数+行号=>key，选项=>value*/
+			private function changePageSelected(rowIndex:int):void
+			{
+				//pageSelectedMap  已经有此key了，就移除；否则，就添加；
+				var keyInt:int = -1;
+				var keyStr:String = "";
+				if(rowIndex == -1) {//点全选的情况
+					var itemsLen:int = wfpDataGrid.dataProvider.length;
+					//全选中
+					if(wfpDataGrid.selectedItems.length != 0) {
+						for(var i:int = 0; i < itemsLen; i++) {
+							keyInt = (pagingComponent.fPageIndex - 1) * pageCount + i;
+							keyStr = keyInt.toString();
+							
+							if(!pageSelectedMap.containsKey(keyStr)) {
+								pageSelectedMap.put(keyStr, wfpDataGrid.selectedItems[i]);
+							}
+						}
+						//全取消
+					} else {
+						for(var j:int = 0; j < itemsLen; j++) {
+							keyInt = (pagingComponent.fPageIndex - 1) * pageCount + j;
+							keyStr = keyInt.toString();
+							
+							if(pageSelectedMap.containsKey(keyStr)) {
+								pageSelectedMap.remove(keyStr);
+							}
+						}
+					}
+				} else {
+					keyInt = (pagingComponent.fPageIndex - 1) * pageCount + rowIndex;
+					keyStr = keyInt.toString();
+					if(pageSelectedMap.containsKey(keyStr)) {
+						pageSelectedMap.remove(keyStr);
+					} else {
+						pageSelectedMap.put(keyStr, wfpDataGrid.selectedItem);
+					}
+				}
+				
+				//提示用户一共选择了多少条数据
+				psnNum_label.text = pageSelectedMap.size().toString();
+			}
+			
+			/** 将Map的String类型的key转换成int*/
+			private function pageSelectedMapKeys():Array
+			{
+				var reArr:Array = new Array();
+				var keysArr:Array = pageSelectedMap.keys();
+				var lenInt:int = keysArr.length;
+				for(var i:int = 0; i < lenInt; i++) {
+					reArr.push(int(keysArr[i]));
+				}
+				return reArr;
+			}
+			
+			/**
+			 * 如果绑定的datafield在dataprovider里没有属性，就阻止排序
+			 * */
+			protected function wfpDataGrid_headerReleaseHandler(event:DataGridEvent):void
+			{
+				if(wfpDataGrid.dataProvider != null)
+					if((wfpDataGrid.dataProvider as ArrayCollection).length > 0)
+						if(!(wfpDataGrid.dataProvider as ArrayCollection).getItemAt(0).hasOwnProperty(event.dataField))
+							event.preventDefault();
+			}
+			
+			
+			private function getGridData():void
+			{
+				fAppCore.showLoading();
+				if(pageMethodPath != null && pageMethodPath.length == 4) {
+					dataDeal.dataRemote(pageMethodPath[0], pageMethodPath[1], pageMethodPath[2], pageMethodPath[3]);
+					dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,findByHandler);
+				}
+			}
+			
+			private function findByHandler(event:ResultEvent):void
+			{
+				fAppCore.closeLoading();//结束等待
+				if(event.result != null) {
+					dataProvider = jsonDe.decode(event.result as String) as ArrayCollection;
+					dispatchEvent(new Event("dataBindEvent"));
+				} else {
+					TAlert.show("暂无数据！","提示");
+				}
+			}
+			
+			
+			protected function wfpDataGrid_dataChangeHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			public function getTotalNumber():Number
+			{
+				var total:String = StringUtil.trim(pagingComponent.totalRecord.text);
+				
+				return Number(total.substring(4,total.length-1));
+			}
+		]]>
+	</fx:Script>
+	
+	<bugDataGrid:BugDataGridInnerGrid id="wfpDataGrid" headerRelease="wfpDataGrid_headerReleaseHandler(event)"
+					 width="100%" height="100%"
+					 doubleClickEnabled="true" 
+					 columnName="{columnName}"
+					 columnValue="{columnValue}"
+					 rowBackGroundCorlor="{rowBackGroundCorlor}"
+					 rowFontCorlor="{rowFontCorlor}"
+					 dataProvider="{tmp_dataProvider}"
+					 doubleClick="bcdgDoubleClick(event)" 
+					 itemClick="bcdgItemClick(event)"
+					 change="wfpDataGrid_changeHandler(event)"
+					 dataChange="wfpDataGrid_dataChangeHandler(event)"
+					 initialize="wfpDataGrid_initializeHandler(event)">
+		
+	</bugDataGrid:BugDataGridInnerGrid>
+	
+	<s:HGroup width="100%" horizontalAlign="left" verticalAlign="middle" id="pageButton"
+			  visible="{isControlColumns==true || isPaging==true?true:false}"
+			  includeInLayout="{isControlColumns==true || isPaging==true?true:false}">
+		
+		<!--显示列设置  的按钮 -->
+		<mx:Button id="controlColumns_btn" visible="{isControlColumns}" includeInLayout="{isControlColumns}"
+				   icon="@Embed(source='assets/img/icon/Choose.png')" 
+				   width="20" height="20" toolTip="显示列设置" 
+				   click="shownColumnBtn_clickHandler()"/>
+		
+		<!-- 已选数据提示 -->
+		<s:HGroup id="psnNumShow" height="100%" visible="{isPageMulti}" 
+				  includeInLayout="{isPageMulti}"
+				  horizontalAlign="right" verticalAlign="middle">
+			<s:Label text="已选择 " />
+			<s:Label id="psnNum_label" text="0"/>
+			<s:Label text=" 条数据"/>
+		</s:HGroup>
+		
+		<!-- 分页的控件 -->
+		<s:HGroup id="isPageShow" width="100%" height="100%" visible="{isPaging}" includeInLayout="{isPaging}"
+				  horizontalAlign="right" verticalAlign="middle">
+			
+		</s:HGroup>
+	</s:HGroup>
+</s:VGroup>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				autoDrawBackground="true" width="100%" updateComplete="updateCompleteHandler(event)">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:DateTimeFormatter id="dtf" dateTimePattern="yyyy-MM-dd" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.event.PopEvent;
+			import common.utils.TAlert;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			import org.bytearray.gif.player.GIFPlayer;
+			import spark.components.List;
+			import spark.effects.Resize;
+			[Bindable]
+			private var sysInfoWidth:int=0;
+			[Bindable]
+			private var isNew:Boolean = false;
+			
+			public var popWindow:Object = null;
+			private var gifPlayer:GIFPlayer = new GIFPlayer(true); 
+			
+			protected function sysInfoName_clickHandler(event:MouseEvent):void
+			{
+				this.owner.dispatchEvent(new PopEvent(PopEvent.EVENT_NAME, itemIndex));
+			}
+			
+			protected function updateCompleteHandler(event:FlexEvent):void
+			{
+				sysInfoWidth=this.owner.width-120;
+				var request:URLRequest = new URLRequest("assets/img/homepage/new.gif");   
+				gifPlayer.load(request);   
+				img.addChild(gifPlayer); 
+				isNewShow(-7, new Date(data.infoDate));
+			}
+			
+			private function isNewShow(num:Number, infoDate:Date):void{
+				var now:Date = new Date();
+				var returnDate:Date = new Date(now.time); 
+				returnDate["date"]+= num;
+				isNew=verifyStartEndDate(returnDate, infoDate);
+			}
+			
+			/**
+			 * 验证开始结束
+			 * */
+			public function verifyStartEndDate(beginTime:Date, endTime:Date):Boolean{
+				if(beginTime==null && endTime==null){
+					return false;
+				}else{
+					if(ObjectUtil.dateCompare(beginTime, endTime)==1){
+						return false;
+					}else{
+						return true;
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+
+ <s:VGroup width="100%" gap="1" verticalAlign="bottom">
+	<s:HGroup width="100%" height="25" paddingLeft="8" paddingRight="50" verticalAlign="middle" gap="2">
+		<mx:Image width="5" height="9" source="assets/img/homepage/xsj.png"/>
+	 	<mx:LinkButton id="sysInfoName" width="{sysInfoWidth}" label="{data.title}"
+					   click="sysInfoName_clickHandler(event)" color="0x7A7A7A" textAlign="left"/>
+		<s:Label text="{dtf.format(data.infoDate)}" textAlign="right" width="60" color="#0033FF"/>
+		<mx:Image id="img" width="27" height="11" visible="{isNew}"/>
+	</s:HGroup>
+	<s:Line width="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="#cccccc" weight="1"/>
+		</s:stroke>
+	</s:Line>
+ </s:VGroup>
+</s:ItemRenderer>

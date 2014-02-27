@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+		   width="100%" height="100%" initialize="InitData()">
+
+	<!-- 声明本组件将抛出的事件 -->
+	<mx:Metadata>
+	[Event(name="SetSelCompData",type="flash.events.Event")]
+	</mx:Metadata>
+
+	<mx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.services.base.CusCompanyService;
+			
+			import common.components.CheckTree;
+			import common.utils.ArrayToXML;
+			
+			import mx.collections.ArrayCollection;
+			import mx.rpc.AbstractOperation;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.remoting.mxml.RemoteObject; 
+		
+			[Bindable]
+            public var  selectedNode:XML;
+            public var  Check:Boolean = true;
+			public var  RoleSelDepts:String;     							//角色对应已经选择的部门
+			public var  AllOrEffective:Boolean = false;
+
+            private var CompData:ArrayCollection;                           //部门目录数据
+			private var CompService:RemoteObject;                           //部门目录树远程对象
+			private var CompMethods:AbstractOperation;                      //得到部门数据源方法
+			private var XmlData:XML; 
+			
+//		    private var FAppCore:GlobalUtil=GlobalUtil.getInstence();
+			public var FAppCore:AppCore = AppCore.getInstance();
+		    private var service:CusCompanyService = new CusCompanyService("flowData", "FlowData");
+		    
+			public function InitData():void {
+				if (Check) {
+					CompTree.itemRenderer = switchCustomItem("CheckBox");
+				}
+//				var argt:Object = new Object();
+//				argt = [null,"CompLevleCode ASC"];
+				var MethodStr:String;
+				if (AllOrEffective){
+					//MethodStr = "GetAllFromView";
+					service.GetAllFromView(null,"CompLevleCode ASC").addResultListener(receivedCompRecords);
+				}
+				else{
+					//MethodStr = "GetAllFromViewEffective";
+					service.GetAllFromViewEffective(null,"org_code ASC").addResultListener(receivedCompRecords);
+				}
+				/* sDataDeal.DataDeal_QueryToData("GenericDestination","Ccspm.CusCompanyBLL",MethodStr,argt);
+				sDataDeal.RemoteMethods.addEventListener(ResultEvent.RESULT, receivedCompRecords); */
+			}
+			
+			
+			private function switchCustomItem(itemtype:String):ClassFactory {
+			 	// 判断内置单元格的组成，目前有CheckBox ，TextInput，Radio，以及默认的label
+			 	var inClass:ClassFactory;
+				switch(itemtype) {
+					case   "CheckBox":  
+						inClass = new ClassFactory(CheckTree);
+						break;
+					case   "Label": 
+					inClass = new ClassFactory(mx.controls.Label) ;
+					break;
+				}
+				return inClass;
+			 }
+			
+			//远程值返回，当页数据
+			public function receivedCompRecords( result:ResultEvent ):void
+			{
+				
+				FAppCore.closeLoading()
+				var json:String = result.result as String;
+				var obj:Object = JSON.parse(json);
+				CompData = new ArrayCollection(obj as Array);
+				var xml:ArrayToXML = new ArrayToXML();
+				var xmlTemp:XML = xml.transformToComTree(CompData, "orgName", "id", Check);
+				if(xmlTemp.@id!=null) XmlData = xmlTemp.node[0];
+				//CompTree.labelField  = "DeptName";
+				CompTree.dataProvider = XmlData;
+				//展开所有节点
+				//CompTree.validateNow();
+				//CompTree.selectedIndex=0;
+				//CompTree.expandChildrenOf(XmlData.node[0],true);
+			}
+			
+			//提供装载进被选中部门ID字符串如"12,15,18"
+			public function LoadSelComp(HasSelComp:String):void
+			{
+				if (XmlData==null) setTimeout(Load,1000); 
+				else Load();
+				function Load():void{
+					var xml:ArrayToXML = new ArrayToXML();
+					xml.SelCheck(XmlData,HasSelComp,"id");
+					CompTree.dataProvider = XmlData;
+					//展开所有节点
+					CompTree.validateNow();
+					CompTree.expandChildrenOf(XmlData,true);
+				}
+			}
+			
+			public function GetSelCompStr():String
+			{
+				var xml:ArrayToXML = new ArrayToXML();
+				var CompStr:String = xml.GetDeptsSel(XmlData,"id");
+				return CompStr;
+			}
+
+			public function GetSelCompNameStr():String
+			{
+				var xml:ArrayToXML = new ArrayToXML();
+				var CompNameStr:String = xml.GetDeptsSel(XmlData,"orgName");
+				return CompNameStr;
+			}
+
+            public function itemclick(event:Event):void 
+            {
+                selectedNode=Tree(event.target).selectedItem as XML;
+ 			    var event:Event = new Event("SetSelCompData");
+			    dispatchEvent(event);
+             }
+             
+		]]>
+	</mx:Script>
+			
+	<mx:Tree id="CompTree" width="100%" height="100%" fontSize="12" itemClick="itemclick(event)"
+			 labelField="@orgName" showRoot="false"></mx:Tree>
+	
+</mx:Canvas>
+

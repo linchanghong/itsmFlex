@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  width="100%" height="100%" creationComplete="initPage(event)" xmlns:bugDataGrid="com.itsm.serviceManager.component.bugDataGrid.*">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<mx:StringValidator id="analysisDateV" property="text" required="true"
+						    minLength="10" maxLength="10"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{analysisDate}"/> 
+		<mx:StringValidator id="developDateV" property="text" required="true"
+							minLength="10" maxLength="10"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{developDate}"/> 
+		<mx:StringValidator id="unitTestDateV" property="text" required="true"
+							minLength="10" maxLength="10"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{unitTestDate}"/> 
+		<mx:StringValidator id="functionalTestDateV" property="text" required="true"
+							minLength="10" maxLength="10"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{functionalTestDate}"/>
+		<mx:StringValidator id="subDemandTitleV" minLength="1" property="text"
+							requiredFieldError="主题摘要不少于一字！" source="{subDemandTitle}"/>
+		<mx:StringValidator id="subDemandDirectionV" minLength="2" property="text"
+							requiredFieldError="需求描述不少于两字！" source="{subDemandDirection}"/>
+	</fx:Declarations>
+	<fx:Script source="../code/DemandHandle4PMAddSubDemand.as"/>
+	
+	<s:states>
+		<s:State name="add"/>
+		<s:State name="mod"/>
+	</s:states>
+	<s:VGroup width="100%" height="100%">
+		
+		<s:HGroup id="buttonGroup" width="100%" height="25" minHeight="15">
+			<s:Button id="saveBtn" 
+					  height="100%" width="75"
+					  minWidth="22"
+					  label="保存"
+					  click="saveBtn_click_handle(event)" 
+					  enabled="{formIsValid}"
+					  icon="@Embed(source='assets/img/icon/save.png')"/>
+			<s:Label id="lbBeforeSave" visible="{formIsEmpty}" width="0"
+					 height="100%" filters="{filter}" text="↙红色字段为必填项！" verticalAlign="top"/>
+			<s:Label id="msg" visible="false" width="15%" height="100%" color="red" fontWeight="bold"
+					 text="保存成功!"/>
+			<s:HGroup width="60%" height="100%" horizontalAlign="right" contentBackgroundColor="22">
+				<mx:LinkButton id="resetBtn" 
+						  width="15%" minWidth="35" height="100%" 
+						  color="0x3380DD"
+						  textDecoration="underline"
+						  fontWeight="normal" 
+						  icon="@Embed(source='assets/img/icon/document.png')"
+						  label="重 置"
+						  toolTip="清空“添加需求服务单”小界面已填字段。"
+						  click="resetBtn_click_handle(event)"/>
+			</s:HGroup>
+		</s:HGroup>
+		<s:Scroller width="100%" height="100%">
+			<s:VGroup width="100%" height="100%">
+				<mx:VDividedBox width="100%" height="100%" minHeight="750" creationPolicy="all"
+								paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">	
+				
+				<s:VGroup id="top" width="100%" height="30%">
+				<container:GroupBox width="100%" height="100%" title="添加需求服务单">
+				<s:HGroup width="100%" height="25">
+						
+					<control:FormLabel width="16%" height="100%" label="需求人员：" required="true"
+									   textAlign="right"/>
+					<bugmxml:BugFieldSelect id="subDemandAnalyst" width="16%" height="100%"
+											armTitleWindow="com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+											isMultipleSelected="false"
+											sysID="{sysID}"
+											userStatus="202"
+										    selectChange="validateForm(event)"
+											selectObj.mod="{subDemandObj!=null?subDemandObj.analyst:''}" 
+										    sText.mod="{subDemandObj!=null?subDemandObj.analyst.userName:''}"
+											textAlign="left"/>
+						
+						<control:FormLabel width="16%" height="100%" label="重要程度：" required="true"
+										   textAlign="right" verticalAlign="middle"/>
+						<s:ComboBox id="subDemandUrgent" width="16%" height="100%"
+									dataProvider.add="{levels}"
+									dataProvider.mod="{BugUtil.getArrayListFromObject(subDemandObj.urgent)}"
+								    change="validateForm(event)"
+									initialize="subDemandUrgent.textInput.editable=false"
+									labelField="levelNameString" requireSelection="true"
+									selectedIndex="0" textAlign="left"/>
+						<!--BugUtil.getArrayListFromObject(
+						subDemandObj!=null?subDemandObj.urgent:null)-->
+						<control:FormLabel width="16%" height="100%" label="影响范围：" required="true"
+										   textAlign="right" verticalAlign="middle"/>
+						<s:ComboBox id="subDemandRange" width="16%" height="100%"
+									dataProvider.add="{scops}"
+									dataProvider.mod="{BugUtil.getArrayListFromObject(subDemandObj.range)}"
+									change="validateForm(event)"
+									initialize="subDemandRange.textInput.editable=false"
+									labelField="constDetailName" requireSelection="true"
+									selectedIndex="0" textAlign="left"/>
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25">
+						
+						<s:Label width="16%" height="100%" text="所属系统："
+								 textAlign="right" verticalAlign="middle"/>
+						<s:TextInput width="16%" height="100%" editable="false"
+									 text="{userApply!=null?userApply.belongSystem.systemName:''}" textAlign="left"/>
+						
+						<s:Label width="16%" height="100%" text="所属业务："
+								 textAlign="right" verticalAlign="middle"/>
+						<s:TextInput width="16%" height="100%" editable="false"
+									 text="{userApply!=null?userApply.sysModule.moduleName:''}" textAlign="left"/>
+						
+						<control:FormLabel width="16%" height="100%" label="预计需求分析完成时间："
+										   required="true" textAlign="right" verticalAlign="middle"/>
+						<control:DateFieldFl id="analysisDate"
+											 width="16%" height="100%"
+											 editable="false" 
+											 change="validateForm(event)"
+											 selectedDate.mod="{DateField.stringToDate(subDemandObj.planAnalysisDate,'YYYY-MM-DD')}"
+											 formatString="YYYY-MM-DD" 
+											 disabledRanges="{
+											 [ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+											 yearNavigationEnabled="true"
+											 />
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25">
+						
+						<control:FormLabel width="16%" height="100%" label="预计开发完成时间："
+										   required="true" textAlign="right" verticalAlign="middle"/>
+						<control:DateFieldFl id="developDate" 
+											 width="16%" height="100%"
+											 editable="false" 
+											 change="validateForm(event)"
+											 selectedDate.mod="{DateField.stringToDate(subDemandObj.planDevelopDate,'YYYY-MM-DD')}"
+											 formatString="YYYY-MM-DD" 
+											 disabledRanges="{
+											 [ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+											 yearNavigationEnabled="true"
+											 />
+						
+						<control:FormLabel width="16%" height="100%" label="预计单元测试完成时间："
+										   required="true" textAlign="right" verticalAlign="middle"/>
+						<control:DateFieldFl id="unitTestDate" 
+											 width="16%" height="100%"
+											 editable="false" 
+											 change="validateForm(event)"
+											 selectedDate.mod="{DateField.stringToDate(subDemandObj.planUtestDate,'YYYY-MM-DD')}"
+											 formatString="YYYY-MM-DD" 
+											 disabledRanges="{
+											 [ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+											 yearNavigationEnabled="true"
+											 />
+						
+						<control:FormLabel width="16%" height="100%" label="预计功能测试完成时间："
+										   required="true" textAlign="right" verticalAlign="middle"/>
+						<control:DateFieldFl id="functionalTestDate" 
+											 width="16%" height="100%"
+											 editable="false" 
+											 change="validateForm(event)"
+											 selectedDate.mod="{DateField.stringToDate(subDemandObj.planFtestDate,'YYYY-MM-DD')}"
+											 formatString="YYYY-MM-DD" 
+											 disabledRanges="{
+											 [ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+											 yearNavigationEnabled="true"
+											 />
+						
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="25">
+						<control:FormLabel width="16%" height="100%" label="主题摘要：" required="true"/>
+						<s:TextInput id="subDemandTitle" 
+									 width="84%" height="100%" 
+									 change="validateForm(event)"
+									 text.mod="{subDemandObj!=null?subDemandObj.demandTitle:''}"
+									 textAlign="left"/>
+					</s:HGroup>
+					
+					<s:HGroup width="100%" height="40%">
+						<control:FormLabel width="16%" height="100%" label="需求描述：" required="true"
+										   verticalAlign="middle"/>
+						<s:TextArea id="subDemandDirection" 
+									width="84%" height="100%"
+									change="validateForm(event)"
+									editable="true" 
+									text.mod="{subDemandObj!=null?subDemandObj.directions:''}" 
+									textAlign="left" 
+									verticalAlign="middle"/>
+					</s:HGroup>
+					
+				</container:GroupBox>
+				</s:VGroup>	
+				<s:VGroup id="center" width="100%" height="36%" paddingTop="5">
+					<mx:TabNavigator id="infoList" width="100%" height="100%" focusColor="#58F0C0"
+									 selectedIndex="0">
+						
+						<s:NavigatorContent id="bugDirBtn" width="100%" height="100%" label="需求服务单附件">
+							<mxml:UploadDocumentsInfo id="subDemandFileGrid" width="100%"
+													  height="100%"
+													  attachMentsArr="{subDemandObj.attachments}"
+													  busDataId="{subDemandID}" 
+													  busTableName="{subDemandTableName}"/>
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="docBtn" width="100%" height="100%" label="需求服务单集合表">
+							<s:VGroup width="100%" height="100%" paddingTop="0">
+								<s:HGroup width="100%" height="1%">
+									<s:Button id="putBtn" 
+											  width="9%" height="100%" 
+											  label="呈报"
+											  enabled="{putBtnIsEnable}"
+											  click="putBtn_clickHandler(event)" cornerRadius="2"
+											  icon="@Embed(source='assets/img/icon/report.png')"/>
+									<s:Button id="modfiyBtn" 
+											  width="9%" height="100%" 
+											  label="修改"
+											  enabled="{putBtnIsEnable}"
+									click="modfiyBtn_clickHandler(event)" cornerRadius="2"
+									icon="@Embed(source='assets/img/icon/modify.png')"/>
+								</s:HGroup>
+								<bugDataGrid:BugDataGrid id="subDemandsGrid" 
+												  width="100%" height="97%"
+												  allowMultipleSelection="false"
+												  dataProvider="{subDemandsArray}"
+												  editable="false" 
+												  horizontalScrollPolicy="on"
+												  isCheckBox="false" 
+												  isControlColumns="true"
+												  isPaging="true" 
+												  isRowNum="true" 
+												  textAlign="center"
+												  paddingTop="0"
+												  itemClick="subDemandsGrid_itemClickHandler(event)">
+									<bugDataGrid:columns>
+										<mx:DataGridColumn dataField="demandTitle" headerText="主题摘要"/>
+										<mx:DataGridColumn dataField="belongsSystem.systemName"
+														   headerText="所属系统"/>
+										<mx:DataGridColumn dataField="urgent.levelNameString"
+														   headerText="重要程度"/>
+										<mx:DataGridColumn dataField="range.constDetailName"
+														   headerText="影响范围"/>
+										<mx:DataGridColumn dataField="status" headerText="状态"/>
+									</bugDataGrid:columns>
+								</bugDataGrid:BugDataGrid>
+							</s:VGroup>
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="bugTypeBtn" width="100%" height="100%" label="客户需求信息">
+							<s:Scroller width="100%" height="100%">
+								<s:VGroup width="100%" height="100%">
+							<mx:VDividedBox width="100%" height="100%" minHeight="400">
+							<s:VGroup width="100%" height="40%">
+								<s:HGroup width="100%" height="20%" paddingTop="2">
+									<s:Label width="10%" height="100%" text="开发经理：" textAlign="right"/>
+									<s:TextInput id="developmentManagerInput"
+												 width="20%" height="100%" editable="false"
+												 text="{developerManagerName}"
+												 textAlign="left"/>
+									
+									<s:Label width="10%" height="100%" text="计划完成时间："
+											 textAlign="right"/>
+									<s:TextInput width="20%" height="100%" editable="false"
+												 text="{userApply!=null?userApply.planFinishTime:''}"
+												 textAlign="left"/>
+								</s:HGroup>
+								
+								<s:HGroup width="100%" height="20%" paddingTop="2">
+									<s:Label width="10%" height="100%" text="子需求单总数："
+											 textAlign="right"/>
+									<s:TextInput id="subDemandCount" width="20%" height="100%"
+												 editable="false"
+												 text="{userApply!=null?userApply.subDemandCount+'':'0'}"/>
+									<s:Label width="10%" height="100%" text="子需求单完成数："
+											 textAlign="right"/>
+									<s:TextInput id="subDemandFinishedCount" width="20%"
+												 height="100%" editable="false"
+												 text="{subDemandCount.text!='0'?userApply.subDemandCompletedCount+'':'0'}"/>
+									<s:Label width="10%" height="100%" text="子需求单剩余数："
+											 textAlign="right"/>
+									<s:TextInput id="subDemandRemainingCount" width="20%"
+												 height="100%" editable="false"
+												 text="{subDemandCount.text=='0'?'0':userApply.subDemandCount-userApply.subDemandCompletedCount}"/>
+								</s:HGroup>
+								
+								<s:HGroup width="100%" height="60%" paddingTop="2">
+									<s:Label width="10%" height="100%" text="客户需求内容："
+											 textAlign="right"/>
+									<s:TextArea id="userDemandContent" width="90%" height="100%"
+												editable="false" text="{userApply.directions}"/>
+								</s:HGroup>
+							</s:VGroup>	
+							<container:GroupBox title="文档附件"
+												width="100%" height="60%">
+								<mxml:UploadDocumentsInfo id="demandFileGrid" width="100%" height="100%"
+														 attachMentsArr="{userApply.attachments}"
+														 busDataId="{billId}" 
+														 busTableName="{applyTableName}"/>
+							</container:GroupBox>
+						</mx:VDividedBox>
+						</s:VGroup>
+						</s:Scroller>
+						</s:NavigatorContent>
+						
+					</mx:TabNavigator>
+				</s:VGroup>
+				
+				<s:HGroup id="bottom" width="100%" height="34%" paddingTop="5">
+				<container:GroupBox width="100%" height="100%" title="客户需求单进度">
+					<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="100%"/>
+				</container:GroupBox>
+				</s:HGroup>
+				</mx:VDividedBox>
+			</s:VGroup>
+		</s:Scroller>
+	</s:VGroup>
+</s:Module>

@@ -1,0 +1,363 @@
+
+@namespace tab "flexlib.controls.tabBarClasses.*";
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+@namespace skin "com.itsm.common.skins.*";
+@namespace mxm "com.itsm.common.mxml.*";
+@namespace c "rich.containers.*";
+
+global
+{
+	font-family: "宋体";
+}
+
+s|TitleWindow{
+	skin-class:ClassReference("com.itsm.common.skins.BaseTitleWinodwSkin");
+}
+
+mx|Alert{
+	borderSkin:ClassReference("com.itsm.common.skins.BaseAlertSkin");
+}
+
+s|Application
+{
+	
+}
+
+mxm|CustomMenuTree
+{
+	borderSkin:ClassReference(null);
+	folderClosedIcon: ClassReference(null);
+	folderOpenIcon: ClassReference(null);
+	defaultLeafIcon: Embed(source='/assets/img/icon/bullet_blue.png');
+	disclosureOpenIcon: Embed(source='/assets/img/icon/disclosureOpenIcon.png');
+	disclosureClosedIcon:Embed(source='/assets/img/icon/disclosureClosedIcon.png');
+	
+}
+
+.ExtendedDividerBoxButtonV{
+	buttonWidth:			229;
+	dividerThickness: 		13;
+	cornerRadius:			0;
+	
+	downSkin:	 ClassReference(null);
+	overSkin:	ClassReference(null);
+	upSkin:	ClassReference(null);
+	selectedDownSkin: ClassReference(null);
+	selectedOverSkin:	ClassReference(null);
+	selectedUpSkin: ClassReference(null);
+}
+
+/*��¼������ʽ*/
+#login_state
+{  
+	backgroundImage:Embed("/assets/img/login/bg_main1.jpg");
+}
+#loginGroup
+{  
+	backgroundImage:Embed("/assets/img/login/bg_login1.png");
+	line-height:180px;
+	width: 555px;
+	height: 180px;
+}
+#login_corpright
+{  
+	backgroundImage:Embed("/assets/img/login/bg_copyright.png");
+}
+#btn_login
+{  
+	skin:Embed("/assets/img/login/button_login1.png");
+	up-skin:Embed("/assets/img/login/button_login2.png");
+	over-skin:Embed("/assets/img/login/button_login1.png");
+	down-skin:Embed("/assets/img/login/button_login2.png");
+}
+
+#btn_rest
+{  
+	skin:Embed("/assets/img/login/button_rest1.png");
+	up-skin:Embed("/assets/img/login/button_rest2.png");
+	over-skin:Embed("/assets/img/login/button_rest1.png");
+	down-skin:Embed("/assets/img/login/button_rest2.png");
+}
+
+#line{
+	backgroundImage:Embed("/assets/img/login/m.png");
+}
+
+#barbg{
+	backgroundImage:Embed("/assets/img/bar/barbg.png");
+}
+
+/*���˵���*/
+#logobg
+{
+	backgroundImage:Embed("/assets/img/bar/logobg.png");
+}
+#bar_menu
+{
+	backgroundImage:Embed("/assets/img/mainheader/bg_header_nav.png");
+}
+/*���˵�*/
+#mainMenuBar 
+{
+	backgroundAlpha: 0;
+	horizontal-gap: 10;
+	separator-width: 0;
+	content-background-alpha: 0;
+}
+#firstPage_btn
+{
+	chrome-color: #4c92e4;
+	skin:Embed("/assets/img/mainheader/cus.png");
+	up-skin:Embed("/assets/img/mainheader/cus.png");
+	over-skin:Embed("/assets/img/mainheader/cus_over.png");
+	down-skin:Embed("/assets/img/mainheader/cus_over.png");
+}
+	
+#menu_cus
+{
+	chrome-color: #4c92e4;
+	skin:Embed("/assets/img/mainheader/cus.png");
+	up-skin:Embed("/assets/img/mainheader/cus.png");
+	over-skin:Embed("/assets/img/mainheader/cus_over.png");
+	down-skin:Embed("/assets/img/mainheader/cus_over.png");
+}
+#menu_pro
+{
+	skin:Embed("/assets/img/mainheader/pro.png");
+	up-skin:Embed("/assets/img/mainheader/pro.png");
+	over-skin:Embed("/assets/img/mainheader/pro_over.png");
+	down-skin:Embed("/assets/img/mainheader/pro_over.png");
+}
+#menu_ent
+{
+	skin:Embed("/assets/img/mainheader/ent.png");
+	up-skin:Embed("/assets/img/mainheader/ent.png");
+	over-skin:Embed("/assets/img/mainheader/ent_over.png");
+	down-skin:Embed("/assets/img/mainheader/ent_over.png");
+}
+#menu_bus
+{
+	skin:Embed("/assets/img/mainheader/bus.png");
+	up-skin:Embed("/assets/img/mainheader/bus.png");
+	over-skin:Embed("/assets/img/mainheader/bus_over.png");
+	down-skin:Embed("/assets/img/mainheader/bus_over.png");
+}
+#menu_els
+{
+	skin:Embed("/assets/img/mainheader/els.png");
+	up-skin:Embed("/assets/img/mainheader/els.png");
+	over-skin:Embed("/assets/img/mainheader/els_over.png");
+	down-skin:Embed("/assets/img/mainheader/els_over.png");
+}
+#menu_sha
+{
+	skin:Embed("/assets/img/mainheader/sha.png");
+	up-skin:Embed("/assets/img/mainheader/sha.png");
+	over-skin:Embed("/assets/img/mainheader/sha_over.png");
+	down-skin:Embed("/assets/img/mainheader/sha_over.png");
+}
+#menu_tal
+{
+	skin:Embed("/assets/img/mainheader/tal.png");
+	up-skin:Embed("/assets/img/mainheader/tal.png");
+	over-skin:Embed("/assets/img/mainheader/tal_over.png");
+	down-skin:Embed("/assets/img/mainheader/tal_over.png");
+}
+
+/*������ı���ɫ*/
+#contentMain
+{
+	backgroundColor: #4c9be4;
+}
+
+/*���˵�*/
+mx|Accordion
+{
+	border-style:none;
+	corner-radius: 5;
+}
+mx|AccordionHeader{
+/*	chrome-color:#ACCAE5;
+	paddingLeft:25;,
+		scaleGridTop=1, 				
+		scaleGridBottom=2, 
+		scaleGridLeft=1, 
+		scaleGridRight=2
+		*/
+	disabledSkin: Embed("/assets/img/accordion/accordion_up.png");
+	downSkin: Embed("/assets/img/accordion/accordion_up_over.png");
+	overSkin: Embed("/assets/img/accordion/accordion_up_over.png");
+	selectedDisabledSkin: Embed("/assets/img/accordion/accordion_selected.png");
+	selectedDownSkin: Embed("/assets/img/accordion/accordion_selected.png");
+	selectedOverSkin: Embed("/assets/img/accordion/accordion_selected_over.png");
+	selectedUpSkin: Embed("/assets/img/accordion/accordion_selected.png");
+	upSkin: Embed("/assets/img/accordion/accordion_up.png");
+}
+
+/**��������ʽ*/
+c|SuperTabNavigator
+{
+	tab-height: 31;
+	tab-width: 144;
+	verticalGap:0;
+	backgroundColor:#f6f6f6;
+	border-color:#979797;
+	paddingTop:0;
+	tabStyleName:tabStyleName;
+}
+.tabStyleName {
+	tabCloseButtonStyleName:tabCloseButtonStyleName;
+	freshButtonStyleName:tabFreshButtonStyleName;
+	downSkin:Embed("/assets/img/tab/tab_selected.png");
+	upSkin:Embed("/assets/img/tab/tab_up.png");
+	overSkin:Embed("/assets/img/tab/tab_up_over.png");
+	disabledSkin:Embed("/assets/img/tab/tab_selected.png");
+	selectedDisabledSkin: Embed("/assets/img/tab/tab_selected.png");
+	selectedDownSkin: Embed("/assets/img/tab/tab_selected.png");
+	selectedOverSkin: Embed("/assets/img/tab/tab_selected_over.png");
+	selectedUpSkin: Embed("/assets/img/tab/tab_selected.png");
+} 
+.tabCloseButtonStyleName{
+	padding-top: 5;
+	paddingRight: 9;
+	right: 9;
+	x: 9;
+	skin:ClassReference("spark.skins.spark.TitleWindowCloseButtonSkin");
+}
+.tabFreshButtonStyleName{
+	skin:ClassReference("com.itsm.common.skins.TabFreshSkin");
+}
+#bottom_left
+{
+	backgroundImage:Embed("/assets/img/mainheader/foot_left.png");
+}
+#bottom_center
+{
+	backgroundImage:Embed("/assets/img/mainheader/foot_mind.png");
+}
+#bottom_right
+{
+	backgroundImage:Embed("/assets/img/mainheader/foot_right.png");
+}
+
+
+s|NavigatorContent{
+	background-color:#f6f6f6;
+}
+s|List{
+	background-color:#f9f9f9;
+	border-visible:false; 
+}
+
+/*mx|LinkButton {
+	upSkin:Embed("/assets/img/tab/Tab_upSkin.png");
+	downSkin:Embed("/assets/img/tab/Tab_downSkin.png");
+	overSkin:Embed("/assets/img/tab/Tab_overSkin.png");
+}*/
+
+mx|ToolTip{
+	fontSize: 12;
+	font-family: "宋体";
+}
+s|Button.view{
+	icon:Embed("assets/img/icon/view.png");
+}
+s|Button.query{
+	icon:Embed("assets/img/icon/find.png");
+}
+
+s|Button.delete{
+	icon:Embed("assets/img/icon/del.png");
+}
+
+s|Button.view{
+	icon:Embed("assets/img/icon/view.png");
+}
+
+s|Button.agree{
+	icon:Embed("assets/img/button/agree.png");
+}
+s|Button.pass{
+	icon:Embed("assets/img/button/pass.png");
+}
+s|Button.notpass{
+	icon:Embed("assets/img/button/notpass.png");
+}
+s|Button.import{
+	icon:Embed("assets/img/icon/upload.png");
+}
+
+s|Button.export{
+	icon:Embed("assets/img/icon/download.png");
+}
+
+s|Button.template{
+	icon:Embed("assets/img/icon/geneate.png");
+}
+
+s|Button.save{
+	icon:Embed("assets/img/icon/save.png");
+}
+
+s|Button.submit{
+	icon:Embed("assets/img/button/sure.png");
+}
+
+s|Button.cancel{
+	icon:Embed("assets/img/icon/cancel.png");
+}
+
+s|Button.refresh{
+	icon:Embed("assets/img/icon/refresh.png");
+}
+
+s|Button.back{
+	icon:Embed("assets/img/button/back.png");
+}
+
+s|Button.add{
+	icon:Embed("assets/img/icon/add.png");
+}
+
+s|Button.modify{
+	icon:Embed("assets/img/icon/modify.png");
+}
+
+s|Button.report{
+	icon:Embed("assets/img/icon/report.png");
+}
+
+s|Button.setup{
+	icon:Embed("assets/img/icon/setup2.png");
+}
+
+s|Button.flowTurn{
+	icon:Embed("assets/img/icon/cus.png");
+}
+
+s|Button.release{
+	icon:Embed("assets/img/icon/fb2.png");
+}
+
+s|Button.copy{
+	icon:Embed("assets/img/icon/copy.png");
+}
+
+s|Button.steup{
+	icon:Embed("assets/img/icon/steup.png");
+}
+
+s|Button.refes{
+	icon:Embed("assets/img/icon/fb2.png");
+}
+
+s|Button.upPage{
+	icon:Embed("assets/img/icon/c3.png");
+}
+
+s|Button.downPage{
+	icon:Embed("assets/img/icon/c4.png");
+	backgroundImage:Embed("assets/img/icon/c4.png");
+}
+

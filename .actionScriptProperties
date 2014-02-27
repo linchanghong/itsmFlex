@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<actionScriptProperties analytics="false" mainApplicationPath="ItsmFlex.mxml" projectUUID="c7e1ff54-8862-4430-8fd6-2fae9f676c6d" version="10">
+  <compiler additionalCompilerArguments="-services &quot;H:\JAVA\apache-tomcat-6.0.35\webapps\itsm\WEB-INF\flex\services-config.xml&quot; -locale zh_CN" autoRSLOrdering="true" copyDependentFiles="true" flex3CompatMode="false" flexSDK="Flex 4.6.0" fteInMXComponents="false" generateAccessible="true" htmlExpressInstall="true" htmlGenerate="true" htmlHistoryManagement="true" htmlPlayerVersionCheck="true" includeNetmonSwc="false" outputFolderPath="" removeUnusedRSL="true" sourceFolderPath="src" strict="true" targetPlayerVersion="0.0.0" useApolloConfig="false" useDebugRSLSwfs="true" verifyDigests="true" warn="true">
+    <compilerSourcePath/>
+    <libraryPath defaultLinkType="0">
+      <libraryPathEntry kind="4" path="">
+        <excludedEntries>
+          <libraryPathEntry kind="3" linkType="1" path="${PROJECT_FRAMEWORKS}/libs/flex.swc" useDefaultLinkType="false"/>
+          <libraryPathEntry kind="3" linkType="1" path="${PROJECT_FRAMEWORKS}/libs/core.swc" useDefaultLinkType="false"/>
+        </excludedEntries>
+      </libraryPathEntry>
+      <libraryPathEntry kind="1" linkType="1" path="libs"/>
+      <libraryPathEntry kind="1" linkType="1" path="${DCD_LIB_LOCATION}"/>
+      <libraryPathEntry kind="1" linkType="1" path="${DCD_LOCALE_LOCATION}"/>
+      <libraryPathEntry kind="3" linkType="1" path="${DCD_FIBER_LOCATION}/fiber.swc" useDefaultLinkType="false"/>
+      <libraryPathEntry kind="3" linkType="1" path="${DCD_FIBER_LOCALE_LOCATION}/fiber_rb.swc" useDefaultLinkType="false"/>
+      <libraryPathEntry kind="3" linkType="1" path="${DCD_FIBER_LOCATION}/playerfds.swc" useDefaultLinkType="false"/>
+      <libraryPathEntry kind="1" linkType="1" path="${FLEXUNIT_LIB_LOCATION}/version4libs/Common"/>
+      <libraryPathEntry kind="1" linkType="1" path="${FLEXUNIT_LIB_LOCATION}/version4libs/FlexProject"/>
+      <libraryPathEntry kind="1" linkType="1" path="${FLEXUNIT_LIB_LOCATION}/version4libs/FlexProject_Extended"/>
+      <libraryPathEntry kind="1" linkType="1" path="${FLEXUNIT_LOCALE_LOCATION}/version4locale/"/>
+    </libraryPath>
+    <sourceAttachmentPath/>
+  </compiler>
+  <applications>
+    <application path="ItsmFlex.mxml"/>
+  </applications>
+  <modules>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/module/PersonalMonthReport.swf" optimize="true" sourcePath="src/com/itsm/assessManager/module/PersonalMonthReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/base/launch/FlowTodoWindow.swf" optimize="true" sourcePath="src/com/itsm/flow/base/launch/FlowTodoWindow.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/NoticeSet.swf" optimize="true" sourcePath="src/com/itsm/sys/NoticeSet.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/module/AssessManager.swf" optimize="true" sourcePath="src/com/itsm/assessManager/module/AssessManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/problemManager/mxml/PopProblemSearchUserApply.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/problemManager/mxml/PopProblemSearchUserApply.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/OrganizeManager.swf" optimize="true" sourcePath="src/com/itsm/sys/OrganizeManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/demandManager/mxml/DemandSuccess4PM.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/demandManager/mxml/DemandSuccess4PM.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/FirstPage.swf" optimize="true" sourcePath="src/com/itsm/sys/FirstPage.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/flow/AssessPage.swf" optimize="true" sourcePath="src/com/itsm/assessManager/flow/AssessPage.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/QueryUserManager.swf" optimize="true" sourcePath="src/com/itsm/sys/QueryUserManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4PM.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4PM.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/flow/WorkReportFlowView.swf" optimize="true" sourcePath="src/com/itsm/assessManager/flow/WorkReportFlowView.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/problemManager/mxml/ProblemManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/problemManager/mxml/ProblemManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/tst/TestFlow.swf" optimize="true" sourcePath="src/com/itsm/flow/tst/TestFlow.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/SelectPsnInfo.swf" optimize="true" sourcePath="src/com/itsm/sys/SelectPsnInfo.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/HomePage.swf" optimize="true" sourcePath="src/com/itsm/sys/HomePage.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/BugManagerSuccess.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/BugManagerSuccess.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/userInfo/mxml/UserInfo.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/userInfo/mxml/UserInfo.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeFlowView.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeFlowView.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/BugManagerMod.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/BugManagerMod.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/flow/WorkReportFlowSubmit.swf" optimize="true" sourcePath="src/com/itsm/assessManager/flow/WorkReportFlowSubmit.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/LogQuery.swf" optimize="true" sourcePath="src/com/itsm/sys/LogQuery.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/Test.swf" optimize="true" sourcePath="src/com/Test.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/demandManager/mxml/DemandHandle4PM.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/demandManager/mxml/DemandHandle4PM.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/view/FlowRoleManage.swf" optimize="true" sourcePath="src/com/itsm/flow/view/FlowRoleManage.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/module/PersonalWeeklyReport.swf" optimize="true" sourcePath="src/com/itsm/assessManager/module/PersonalWeeklyReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/module/ProjectWeeklyReport.swf" optimize="true" sourcePath="src/com/itsm/assessManager/module/ProjectWeeklyReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/analyzes/mxml/Analyzes.swf" optimize="true" sourcePath="src/com/itsm/analyzes/mxml/Analyzes.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandManagerMod.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandManagerMod.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/RoleRightManager.swf" optimize="true" sourcePath="src/com/itsm/sys/RoleRightManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/module/PersonalDailyReport.swf" optimize="true" sourcePath="src/com/itsm/assessManager/module/PersonalDailyReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4FuncTester.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4FuncTester.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/tst/ViewFlow.swf" optimize="true" sourcePath="src/com/itsm/flow/tst/ViewFlow.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/SetManager.swf" optimize="true" sourcePath="src/com/itsm/sys/SetManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/RoleRightTree.swf" optimize="true" sourcePath="src/com/itsm/sys/RoleRightTree.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4UnitTester.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4UnitTester.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4DevelopManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4DevelopManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/base/ComApproveHistory.swf" optimize="true" sourcePath="src/com/itsm/flow/base/ComApproveHistory.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/UserManager.swf" optimize="true" sourcePath="src/com/itsm/sys/UserManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeInfoSubmit.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/knowledgeManager/mxml/KnowledgeInfoSubmit.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/view/FlowHandle.swf" optimize="true" sourcePath="src/com/itsm/flow/view/FlowHandle.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/demandManager/mxml/DemandHandle4PMAddSubDemand.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/demandManager/mxml/DemandHandle4PMAddSubDemand.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/PerManager.swf" optimize="true" sourcePath="src/com/itsm/sys/PerManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/view/FlowModel.swf" optimize="true" sourcePath="src/com/itsm/flow/view/FlowModel.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/WarningSetManager.swf" optimize="true" sourcePath="src/com/itsm/sys/WarningSetManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/report/module/PersonalMonthReport.swf" optimize="true" sourcePath="src/com/itsm/report/module/PersonalMonthReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/MenuButtonManager.swf" optimize="true" sourcePath="src/com/itsm/sys/MenuButtonManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/report/module/PersonalYearReport.swf" optimize="true" sourcePath="src/com/itsm/report/module/PersonalYearReport.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/BugManagerView.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/BugManagerView.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/demandManager/mxml/DemandManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/demandManager/mxml/DemandManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/demandManager/mxml/DemandManagerMod.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/demandManager/mxml/DemandManagerMod.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandSuccess.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandSuccess.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/userInfo/mxml/PopUserInfoSearchUserApply.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/userInfo/mxml/PopUserInfoSearchUserApply.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/BugManagerAccept.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/BugManagerAccept.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/BugManager.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/BugManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4Analyst.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4Analyst.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/bugManager/mxml/PopSearchUserApply.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/bugManager/mxml/PopSearchUserApply.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/base/launch/FlowMessageWindow.swf" optimize="true" sourcePath="src/com/itsm/flow/base/launch/FlowMessageWindow.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/assessManager/flow/AssessView.swf" optimize="true" sourcePath="src/com/itsm/assessManager/flow/AssessView.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/sys/ConstManager.swf" optimize="true" sourcePath="src/com/itsm/sys/ConstManager.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4Developer.swf" optimize="true" sourcePath="src/com/itsm/serviceManager/module/subDemandManager/mxml/SubDemandHandle4Developer.mxml"/>
+    <module application="src/ItsmFlex.mxml" destPath="com/itsm/flow/base/launch/FlowtodoAdvancedataGrid.swf" optimize="true" sourcePath="src/com/itsm/flow/base/launch/FlowtodoAdvancedataGrid.mxml"/>
+  </modules>
+  <buildCSSFiles/>
+  <flashCatalyst validateFlashCatalystCompatibility="false"/>
+</actionScriptProperties>

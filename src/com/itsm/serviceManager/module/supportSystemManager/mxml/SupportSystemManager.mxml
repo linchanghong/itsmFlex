@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  xmlns:bugDataGrid="com.itsm.serviceManager.component.bugDataGrid.*"
+		  width="100%" height="100%"
+		  creationComplete="module1_creationCompleteHandler(event)"
+		  xmlns:ns="http://www.c.sccl.com">
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.managers.PopUpManager;
+			
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.events.MoveEvent;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			//表格数据
+			[Bindable]
+			public var dgArr:Array;
+			//页面数据存储对象
+			[Bindable]
+			private var sysManagerObj:Object;
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = true;
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject;
+			//员工职位列表集合
+			[Bindable]
+			private var userStatuses:ArrayCollection;
+			//工具类
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			
+			/**模块加载*/
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				dgArr = ['supportSystemManagerAPI', 'SupportSystemManagerAPI', 'initHomePage', []];
+			}
+			/**查看*/			
+			protected function queryBtn_clickHandler(event:MouseEvent):void
+			{
+				if(!judgeIsSelect())
+					return;
+				this.currentState = "query";
+			}
+			/**修改按钮点击*/
+			protected function modBtn_clickHandler(event:MouseEvent):void
+			{
+				if(!judgeIsSelect())
+					return;
+				this.currentState = "mod";
+			}
+			
+			/**是否选择一条记录*/
+			private function judgeIsSelect():Boolean{
+				if(sysManagerObjGrid.selectedIndex != -1 && sysManagerObjGrid.selectedItem != null)
+					return true;
+				else
+					TAlert.show("请选择一条数据","温馨提示");
+				return false;
+			}
+			
+			/**新增按钮的点击事件*/
+			protected function addBtn_clickHandler(event:MouseEvent):void
+			{
+				BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","initUserStatuses",
+					[],initUserStatusesHandle);
+			}
+			
+			/**加载职位列表后的数据处理*/
+			private function initUserStatusesHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				userStatuses = obj as ArrayCollection;
+				sysManagerObj = null;
+				this.currentState = "add";
+			}
+			
+			/**删除*/
+			protected function delBtn_clickHandler(event:MouseEvent):void
+			{
+				if(!judgeIsSelect())
+					return;
+				popWwarn(delSysManagerEntityProcess);
+			}
+			//弹出确认按钮panel
+			private function popWwarn(method:Function):void{
+				TAlert.show("您确认删除吗？","删除",TAlert.OK|TAlert.NO,this,method,null,TAlert.YES);
+			}
+			//确认删除请求调用
+			private function delSysManagerEntityProcess(event:CloseEvent):void{
+				if(event.detail == TAlert.OK){
+					sysManagerObj.system.onlineDate = DateField.stringToDate(sysManagerObj.system.onlineDate,"YYYY-MM-DD");
+					BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","delSysManagerEntity",
+						[appCore.jsonEncoder.encode(sysManagerObj)],delSysManagerEntityHandle);
+				}
+			}
+			
+			/**删除后页面处理*/
+			private function delSysManagerEntityHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj == "1"){
+					TAlert.show("删除成功","温馨提示");
+					refreshBtn_clickHandler(null);
+				}
+			}
+			/**刷新页面表格*/
+			protected function refreshBtn_clickHandler(event:MouseEvent):void
+			{
+				dgArr = ['supportSystemManagerAPI', 'SupportSystemManagerAPI', 'initHomePage', []];
+			}
+			/**查询按钮点击后，弹窗*/
+			protected function btnSearch_clickHandler(event:MouseEvent):void{
+				var popWin:PopSearchSysManagerEntity = PopSearchSysManagerEntity(PopUpManager.createPopUp(this,PopSearchSysManagerEntity,true));
+				
+				popWin.mainApp = this;
+				
+				PopUpManager.centerPopUp(popWin);
+			}
+			
+			/**将页面添加或改动的数据存入数据库*/
+			protected function saveBtn_clickHandler(event:MouseEvent):void
+			{
+				if(this.currentState == "add")
+					BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","addSysManagerEntity",
+						[appCore.jsonEncoder.encode(createObj())],addSysManagerEntityHandle);
+				else
+					BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","modSysManagerEntity",
+						[appCore.jsonEncoder.encode(createObj())],modSysManagerEntityHandle);
+			}
+			
+			/**添加后的页面处理*/
+			private function addSysManagerEntityHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj == "1"){
+					TAlert.show("添加成功","温馨提示");
+					module1_creationCompleteHandler(null);
+				}
+				cancelBtn_clickHandler(null);
+			}
+			
+			/**修改后的页面处理*/
+			private function modSysManagerEntityHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj == "1"){
+					TAlert.show("修改成功","温馨提示");
+					module1_creationCompleteHandler(null);
+				}
+				cancelBtn_clickHandler(null);
+			}
+			/**取消，返回初始页面*/
+			protected function cancelBtn_clickHandler(event:MouseEvent):void
+			{
+				this.currentState="normal";
+			}
+			
+			/**从页面搜罗数据封装实体*/
+			private function createObj():Object{
+				var obj:Object = new Object();
+				
+				//支撑人员
+				var supportEmpObj:Object = new Object();
+				//所属系统
+				var sysObj:Object = new Object();
+				//人员职位
+				var statusObj:Object = new Object();
+				//id
+				var eidObj:Object = new Object();
+				
+				if(this.currentState == "add"){
+					supportEmpObj.id = supportEmp.selectObj.hasOwnProperty("userId")?supportEmp.selectObj.userId:-1;
+					sysObj.systemID = belongSys.selectObj.hasOwnProperty("systemID")?belongSys.selectObj.systemID:-1;
+					statusObj.id = selectType.selectedItem != undefined?selectType.selectedItem.id:-1;
+				}else{
+					supportEmpObj.id = 
+						supportEmp.selectObj.hasOwnProperty("userId")
+						?supportEmp.selectObj.userId
+						:sysManagerObj.hasOwnProperty("user")
+						?sysManagerObj.user.id
+						:-1;
+					sysObj.systemID = 
+						belongSys.selectObj.hasOwnProperty("systemID")
+						?belongSys.selectObj.systemID
+						:sysManagerObj.hasOwnProperty("system")
+						?sysManagerObj.system.systemID
+						:-1;
+					statusObj.id = 
+						selectType.selectedItem != undefined
+						?selectType.selectedItem.id
+						:sysManagerObj.hasOwnProperty("userStatus")
+						?sysManagerObj.userStatus.id
+						:-1;
+				}
+				
+				
+				obj.user = supportEmpObj;
+				obj.system = sysObj;
+				obj.userStatus = statusObj;
+				eidObj.sysID = sysObj.systemID;
+				eidObj.userID = supportEmpObj.id;
+				eidObj.userStatus = statusObj.id;
+				obj.eid = eidObj;
+				
+				return obj;
+					
+			}
+			
+			/**当前状态为“mod”时，点击员工职位选择所作处理*/
+			protected function selectType_clickHandler(event:MouseEvent):void{
+				if(userStatuses == null)
+					BugUtil.handle_server_method("supportSystemManagerAPI","SupportSystemManagerAPI","initUserStatuses",
+						[],selectType_click_initUserStatusesHandle);
+				else{
+					selectType.dataProvider = userStatuses;
+					validateForm(null);
+				}
+			}
+			/**加载职位列表后的数据处理*/
+			private function selectType_click_initUserStatusesHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				userStatuses = obj as ArrayCollection;
+				selectType.dataProvider = userStatuses;
+				validateForm(null);
+			}	
+			
+			/**验证方法*/
+			private function validateForm(event:Event):void  
+			{            
+				msg.visible = false;
+				// 标记表单有效的开始 
+				judgeFormIsValid();
+				
+				// 检查表单是否为空 
+				judgeFormIsEmpty();
+				
+				if(formIsEmpty){
+					msg.text = "红色字段必填！";
+					msg.visible = true;
+				}else{
+					if(formIsValid){
+						msg.text = "可以保存！";
+						msg.visible = true;
+					}
+				}
+					
+			}
+			
+			/**判断表单是否有效*/
+			private function judgeFormIsValid():void{
+				formIsValid = supportEmp.sText != "" && 
+					belongSys.sText != "" && 
+					selectType.selectedItem != undefined && 
+					supportEmp.sText != null && 
+					belongSys.sText != null;
+			}
+			
+			/**判断表单是否为空：任一为空即为空*/
+			private function judgeFormIsEmpty():void{
+				//判断页面必填字段是否为空
+				formIsEmpty = supportEmp.sText == "" || 
+					supportEmp.sText == null || 
+					belongSys.sText == "" || 
+					belongSys.sText == null || 
+					selectType.selectedItem == undefined;
+			}
+			
+			/**点击表格中数据，对页面数据封装器进行数据存储*/
+			protected function sysManagerObjGrid_itemClickHandler(event:ListEvent):void
+			{
+				sysManagerObj = sysManagerObjGrid.selectedItem;
+			}
+			
+			/**智能猜测用户行为*/
+			protected function sysManagerObjGrid_mouseOverHandler(event:MouseEvent):void{
+//				timer = new Timer(5000, 1);
+//				timer.addEventListener(TimerEvent.TIMER,deferredMethod);
+//				timer.start();
+			}
+			/**时间到点后处理*/
+			private function deferredMethod(event:TimerEvent):void{
+//				cancelBtn_clickHandler(null);
+//				timer.stop();
+			}
+		]]>
+	</fx:Script>
+	
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="query"/>
+		<s:State name="mod"/>
+		<s:State name="del"/>
+	</s:states>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+
+		<s:Group width="100%" height="100%">
+			<s:VGroup width="100%" height="100%"
+					  left="10" right="10" bottom="10"
+					  horizontalAlign="center">
+				
+				<s:Label text="支撑系统管理"
+						 fontSize="20" fontWeight="bold" paddingBottom="15"/>
+				
+				<s:VGroup width="100%" height="20%" includeIn="add,mod,query">
+					<ns:GroupBox width="100%" height="100%" title.add="添加支撑系统信息" title.mod="修改支撑系统信息" title.query="查看支撑系统信息">	
+						<s:HGroup width="100%" height="25">
+							<s:Button id="saveBtn" width="75" height="100%" label="保存"
+									  click="saveBtn_clickHandler(event)"
+									  cornerRadius="2"
+									  enabled="{formIsValid == true != formIsEmpty}"
+									  visible.query="false" includeInLayout.query="false"								  
+									  icon="@Embed(source='assets/img/icon/save.png')"/>
+							
+							<s:Button id="cancelBtn" width="75" height="100%" label="取消"
+									  cornerRadius="2"
+									  click="cancelBtn_clickHandler(event)"
+									  icon="@Embed(source='assets/img/icon/cancel.png')"/>
+							
+							<s:Label id="msg" 
+									 width="15%" height="100%" 
+									 color="red" fontWeight="bold"
+									 text="红色字段必填！"
+									 visible="false"
+									 includeIn="add, mod"
+									 verticalAlign="middle"/>
+							
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<control:FormLabel width="15%" height="100%" label="人员：" required="true" textAlign="right"/>
+							<bugmxml:BugFieldSelect id="supportEmp" width="15%" height="100%"
+													armTitleWindow="com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+												    sText.mod="{sysManagerObj!=null?sysManagerObj.hasOwnProperty('user')
+													?sysManagerObj.user.userName:'':''}"
+													sText.query="{sysManagerObj!=null?sysManagerObj.hasOwnProperty('user')
+													?sysManagerObj.user.userName:'':''}"
+													selectChange="validateForm(event)"
+													isMultipleSelected="false"
+													enabled.query="false"
+													enabled.mod="false"
+													textAlign="left"/>
+							
+							<control:FormLabel width="15%" height="100%" label="系统：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<bugmxml:BugFieldSelect id="belongSys" width="15%" height="100%"
+													armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+													sText.mod="{sysManagerObj!=null?sysManagerObj.hasOwnProperty('system')
+													?sysManagerObj.system.systemName:'':''}"
+													sText.query="{sysManagerObj!=null?sysManagerObj.hasOwnProperty('system')
+													?sysManagerObj.system.systemName:'':''}"
+													selectChange="validateForm(event)"
+													isMultipleSelected="false"
+												    enabled.query="false"
+													enabled.mod="false"
+													textAlign="left"/>
+							
+							<control:FormLabel width="16%" height="100%" label="职位：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<s:DropDownList id="selectType" 
+											width="16%" height="100%" 
+											labelField="constDetailName"
+											requireSelection="true" 
+											selectedIndex="0" 
+											change="validateForm(event);"
+											click.mod="selectType_clickHandler(event)"
+											textAlign="left"
+											dataProvider.add="{userStatuses}"
+											dataProvider.mod="{BugUtil.getArrayListFromObject(sysManagerObj.userStatus)}"
+											dataProvider.query="{BugUtil.getArrayListFromObject(sysManagerObj.userStatus)}"
+											enabled.query="false"/>
+						</s:HGroup>
+					</ns:GroupBox>
+				</s:VGroup>
+				
+				<s:VGroup width="100%" horizontalAlign="center">
+					<s:HGroup width="57.5%" height="25" horizontalAlign="left">
+						<s:Button id="queryBtn" width="75" height="100%" label="查看" cornerRadius="2"
+								  click="queryBtn_clickHandler(event)"
+								  includeInLayout="false"
+								  visible="false"
+								  icon="@Embed(source='assets/img/icon/view.png')"/>
+						
+						<s:Button id="modfiyBtn" width="75" height="100%" label="修改"
+								  cornerRadius="2"
+								  includeInLayout="false"
+								  visible="false"
+								  click="modBtn_clickHandler(event)"
+								  icon="@Embed(source='assets/img/icon/modify.png')"/>
+						
+						<s:Button id="addBtn" width="75" height="100%" label="新增"
+								  click="addBtn_clickHandler(event)"
+								  cornerRadius="2"
+								  icon="@Embed(source='assets/img/icon/add.png')"/>
+						
+						<s:Button id="delBtn" width="75" height="100%" label="删除"
+								  cornerRadius="2"
+								  click="delBtn_clickHandler(event)"
+								  icon="@Embed(source='assets/img/icon/del.png')"/>
+						
+						<s:Button id="searchBtn" width="75" height="100%" label="查询"
+								  click="btnSearch_clickHandler(event)" cornerRadius="2"
+								  icon="@Embed(source='assets/img/icon/search.png')"/>
+						
+						<s:Button id="refreshBtn" width="75" height="100%" label="刷新"
+								  cornerRadius="2"
+								  click="refreshBtn_clickHandler(event)"
+								  icon="@Embed(source='assets/img/icon/refresh.png')"/>
+					</s:HGroup>
+				</s:VGroup>
+				
+				<bugDataGrid:BugDataGrid id="sysManagerObjGrid" 
+								  width="57.5%" height="60%"
+								  allowMultipleSelection="false"
+								  editable="false" 
+								  horizontalScrollPolicy="on"
+								  isCheckBox="false"
+								  isControlColumns="true" 
+								  isPaging="true" 
+								  isRowNum="true"
+								  textAlign="center"
+								  dataProvider="{dgArr}"
+								  mouseOver="sysManagerObjGrid_mouseOverHandler(event)"
+								  itemClick="sysManagerObjGrid_itemClickHandler(event)"
+								  pageCountSelectIndex="0">
+					<bugDataGrid:columns>
+						<mx:DataGridColumn dataField="user.userName" headerText="支撑人员" width="150"/>
+						<mx:DataGridColumn dataField="system.systemName" headerText="所属系统" width="170"/>
+						<mx:DataGridColumn dataField="userStatus.constDetailName" headerText="支撑人员类别" width="200"/>
+					</bugDataGrid:columns>
+				</bugDataGrid:BugDataGrid>
+				
+			</s:VGroup>
+		</s:Group>
+	
+</s:Module>

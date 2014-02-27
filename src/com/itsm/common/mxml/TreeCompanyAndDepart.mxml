@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxml:TreeFm xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:mx="library://ns.adobe.com/flex/mx"
+			 xmlns:mxml="com.itsm.common.mxml.*"
+			 creationComplete="creationCompleteHandler(event)"
+			 itemClick="itemClickHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			private var _isShowDepartment:Boolean=false;
+			private var _autoLoad:Boolean=true;
+			
+			public function get autoLoad():Boolean
+			{
+				return _autoLoad;
+			}
+
+			/**是否缺省载入数据, 制定载入需要手动载入*/
+			public function set autoLoad(value:Boolean):void
+			{
+				_autoLoad = value;
+			}
+
+			public function get isShowDepartment():Boolean
+			{
+				return _isShowDepartment;
+			}
+			
+			/**
+			 * 是否显示部门
+			 */ 
+			public function set isShowDepartment(value:Boolean):void
+			{
+				_isShowDepartment = value;
+			}
+			
+			
+			public var appCore:AppCore = AppCore.getInstance();
+
+			/**
+			 * 页面初始化
+			 */
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				var compnyId:String = appCore.loginUser.companyId;
+				var isAdmin:int = appCore.loginUser.isAdmin;
+				
+				if(autoLoad) loadData(compnyId, isAdmin);
+			}
+			
+			public function loadData(companyId:String, isAdmin:int=-1):void{
+				appCore.dataDeal.dataRemote("treeAPI", "treeAPI", "findAllDepartment", [companyId, isAdmin, _isShowDepartment], true);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(event:ResultEvent):void{
+					var dataAc:ArrayCollection=appCore.jsonDecoder.decode(event.result as String) as ArrayCollection;
+					dataProvider = dataAc;
+					validateNow();
+					expandChildrenOf(firstVisibleItem, true);
+				});
+			}
+			
+			/**
+			 * 点击父级目录就展开
+			 * **/
+			protected function itemClickHandler(event:ListEvent):void
+			{
+				var item:Object = TreeFm(event.currentTarget).selectedItem;
+				
+				if (event.target.dataDescriptor.isBranch(item)) {
+					event.target.expandItem(item, !event.target.isItemOpen(item), true);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+</mxml:TreeFm>

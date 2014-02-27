@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  xmlns:ns="http://www.c.sccl.com" xmlns:mxml="com.itsm.common.mxml.*" xmlns:control="com.framelib.control.*" >
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<!--<mx:Consumer id="consumer" destination="serverpush" message="messageHandler(event)"/>  
+		
+		<mx:RemoteObject id="server" destination="sentToFlex"  result="remoteServerCallback(event)"/>--> 
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.messaging.events.MessageEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			[Bindable]
+			private var treeData:ArrayCollection = new ArrayCollection([
+				{id:1, label:'1', parentId:0, orderNum:1}, {id:8, label:'22', parentId:2, orderNum:2}, {id:2, label:'2', parentId:0, orderNum:2}, 
+				{id:3, label:'3', parentId:0, orderNum:3}, {id:4, label:'11', parentId:1, orderNum:1}, {id:5, label:'12', parentId:1, orderNum:2}, 
+				{id:6, label:'13', parentId:1, orderNum:3}, {id:7, label:'21', parentId:2, orderNum:1}, {id:9, label:'111', parentId:4, orderNum:1}, 
+				{id:10, label:'221', parentId:8, orderNum:1}, {id:11, label:'2211', parentId:10, orderNum:1}]);
+			[Bindable]
+			private var treeData1:ArrayCollection = new ArrayCollection([
+				{tableId:1, label:'1', parentId:0, orderNum:1}, {tableId:8, label:'22', parentId:2, orderNum:2}, {tableId:2, label:'2', parentId:0, orderNum:2}, 
+				{tableId:3, label:'3', parentId:0, orderNum:3}, {tableId:4, label:'11', parentId:1, orderNum:1}, {tableId:5, label:'12', parentId:1, orderNum:2}, 
+				{tableId:6, label:'13', parentId:1, orderNum:3}, {tableId:7, label:'21', parentId:2, orderNum:1}, {tableId:9, label:'111', parentId:4, orderNum:1}, 
+				{tableId:10, label:'221', parentId:8, orderNum:1}, {tableId:11, label:'2211', parentId:10, orderNum:1}]);
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			public function messageHandler(event:MessageEvent):void  
+			{  
+				mesTi.text =  event.message.body as String;  
+				trace("server push data to client..............");  
+			}  
+			
+			
+			public function remoteServerCallback(event:ResultEvent):void  
+			{  
+				trace("Server is start....");  
+			}  
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" paddingBottom="3" paddingLeft="3" paddingRight="3" paddingTop="3">
+		<s:HGroup width="100%" height="50%">
+			<mxml:TreeFm id="testTree"  width="50%" height="100%" minWidth="50" idFiled="tableId" dataProvider="{treeData1}"/>
+			
+			<s:Panel width="50%" height="100%" title="待办业务" 
+					 dropShadowVisible="false" borderVisible="true" >
+				<control:DateFieldFl width="140" />
+			</s:Panel>
+		</s:HGroup>
+		
+		
+		<s:HGroup width="100%" height="50%">
+			<s:Panel width="50%" height="100%" 
+					 dropShadowVisible="false" borderVisible="true" title="常用功能" >
+				<s:TextInput id="mesTi" text="后台发送的消息"/>
+			</s:Panel>
+			
+			<s:Panel width="50%" height="100%" title="电子邮件" 
+					 dropShadowVisible="false" borderVisible="true" >
+			</s:Panel>
+		</s:HGroup>
+	</s:VGroup>
+</s:Module>

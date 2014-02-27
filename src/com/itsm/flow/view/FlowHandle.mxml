@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  width="100%" height="100%" 
+		  xmlns:launch="com.itsm.flow.base.launch.*">
+	<s:layout>
+		<s:VerticalLayout />
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.events.FlowAdvancedatagridEvent;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.flow.events.ViewFlowEvent;
+			
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			protected function initFlowGrid(event:Event):void{
+				flowdg.addEventListener(ViewFlowEvent.EVENT_VIEWFLOW, FlexGlobals.topLevelApplication.viewFlow);
+				flowdg.addEventListener(FlowAdvancedatagridEvent.OPENFLOWTODOWINDOW, FlexGlobals.topLevelApplication.onOpenFlowToWindow);
+				FlexGlobals.topLevelApplication.addEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, reloadFlowtodo);
+			}
+			
+			private function reloadFlowtodo(event:ReloadFlowtodoEvent):void{
+				
+				var isCloseWin:Boolean = event.isCloseWin;
+				if (isCloseWin){
+					var displayObj:* = event.displayObj;
+					flowdg.reloaddata();
+					FlexGlobals.topLevelApplication.closeTab(displayObj);
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:VGroup width="100%" height="100%" >
+		<s:Button click="{flowdg.reloaddata();}" label="刷新" styleName="refresh"/>
+		<launch:FlowtodoAdvancedataGrid id="flowdg" width="100%" height="100%" GETTOTALCOUNT="initFlowGrid(event)" AutoDataBind="true"/>
+	</s:VGroup>
+</s:Module>

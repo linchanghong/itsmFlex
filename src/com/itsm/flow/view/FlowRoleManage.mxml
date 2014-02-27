@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:datagrid="common.components.datagrid.*"
+					xmlns:components="common.components.*"
+					width="100%" height="100%" creationComplete="init()"
+					xmlns:base="com.itsm.flow.base.*">
+	<fx:Script source="FlowRoleManagePM.as"/>
+	<fx:Script>
+		<![CDATA[
+			import common.utils.FAppCoreUtil;
+			 
+			//初始化Grid
+			private function initmyGrid(event:Event):void
+			{
+				var myGrid:CustomdataGrid=event.currentTarget as CustomdataGrid;
+				var headerArr:Array=new Array(["用户ID", "UserId", 0, "", FAppCoreUtil.fcInteger, ""], 
+					["用户名称", "UserName", 100, "", FAppCoreUtil.fcString, ""], 
+					["部门ID", "DeptId", 0, "", FAppCoreUtil.fcLookup, ""], 
+					["部门名称", "DeptName", 80, "", FAppCoreUtil.fcString, ""], 
+					["用户编号", "UserCode", 70, "", FAppCoreUtil.fcString, ""], 
+					["创建时间", "CreateTime", 0, "", FAppCoreUtil.fcDate, ""]);
+				myGrid.HeaderArray=headerArr; //显示字段
+				myGrid.RemoteService = new CusUsersService("flowData", "FlowData");
+//				myGrid.RemoteDest="GenericDestination"; //远程目标
+//				myGrid.RemoteSource="Ccspm.CusUsersBLL"; //远程源
+				myGrid.RemoteDest="flowData"; //远程目标
+				myGrid.RemoteSource="FlowData"; //远程源
+				myGrid.RemoteOperation="GetAllEffective"; //远程获取数据方法
+				myGrid.CustomColumnsModuleName="CusUserSel"; //本模块名称，用于字段显示自定义
+				myGrid.ShowUpGuide=false; //显示上面的操作栏
+				myGrid.ShowDownGuide=false; //显示下面的操作栏
+				myGrid.MuliSel=false; //多选
+				myGrid.WhereStr = "compid=" + FAppCore.FCusUser.CompId;
+				myGrid.isPage=false; //多页或单页
+				//**********该属性需从主窗体获取
+				myGrid.UserID= String(FAppCore.FCusUser.UserId);  //当前用户ID
+				//**************************
+			}
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="FlowRoleManage"/>
+		<s:State name="FlowRoleModi"/>
+		<s:State name="FlowRoleUsersModi"/>
+		<s:State name="CompSel"/>
+		<s:State name="DelSel"/>
+		<s:State name="UserSel"/>
+		<s:State name="ShowComp"/>
+		<s:State name="ShowDept"/>
+		<s:State name="ShowUsers"/>
+	</s:states>
+	<s:layout>
+		<s:VerticalLayout gap="1"/>		
+	</s:layout>
+	<fx:Declarations>
+		<s:RadioButtonGroup id="User" itemClick="DeptUserSel(event);"/>
+	</fx:Declarations>
+	<!--初始页 -->
+	<s:HGroup id="btnBox" includeIn="FlowRoleManage,ShowComp,ShowDept,ShowUsers" width="100%"
+			  height="25" gap="2">
+		<components:IconButton id="newRole" height="23" label="新增角色" styleName="add" click="NewRole_Click()"							   enabled="true"/>
+		<components:IconButton id="newRole0" height="23" label="新增人员" styleName="add" click="NewUserRole_Click()"
+							   enabled="true"/>
+		<components:IconButton id="ModiRole" height="23" label="修  改" styleName="modify" click="Modi_Click()"
+							   enabled="true"/>
+		<components:IconButton id="DelRole" height="23" label="删  除" styleName="delete" click="Del_Click()"
+							   enabled="true"/>
+	</s:HGroup>
+	<mx:HDividedBox id="hdividedbox1" includeIn="FlowRoleManage,ShowComp,ShowDept,ShowUsers"
+					width="100%" height="100%">
+		<mx:AdvancedDataGrid id="FlowRoleGrid" includeIn="FlowRoleManage,ShowComp,ShowDept,ShowUsers"
+							 width="200" height="100%" designViewDataType="tree"
+							 itemClick="ItemClick(event)" selectionMode="singleRow">
+			<mx:dataProvider>
+				<mx:GroupingCollection2 id="Having">
+					<mx:grouping>
+						<mx:Grouping>
+							<mx:GroupingField name="FlowRoleName"/>
+						</mx:Grouping>
+					</mx:grouping>
+				</mx:GroupingCollection2>
+			</mx:dataProvider>
+			<mx:columns>
+				<mx:AdvancedDataGridColumn width="140" dataField="FlowRoleName" headerText="角色名称"/>
+				<mx:AdvancedDataGridColumn width="120" dataField="UserName" headerText="人员名称"/>
+				<mx:AdvancedDataGridColumn visible="false" width="250" dataField="ManageDepts"
+										   headerText="管辖部门"/>
+				<mx:AdvancedDataGridColumn visible="false" dataField="RoleUserID"
+										   headerText="角色人员户ID"/>
+				<mx:AdvancedDataGridColumn visible="false" dataField="FlowRoleID" headerText="角色ID"/>
+				<mx:AdvancedDataGridColumn visible="false" dataField="UserID" headerText="用户ID"/>
+			</mx:columns>
+		</mx:AdvancedDataGrid>
+		<base:CompSelect id="CompTree" includeIn="ShowComp" width="100%" height="100%" Check="false"/>
+		<base:DeptsSelect id="DeptTree" includeIn="ShowDept" width="100%" height="100%"/>
+		<datagrid:CustomdataGrid id="GridSel2" includeIn="ShowUsers" width="100%" height="100%"
+								 initGrid="initmyGrid(event)">
+		</datagrid:CustomdataGrid>
+	</mx:HDividedBox>
+	
+	<!-- 新增角色 -->
+	<s:HGroup includeIn="FlowRoleModi" width="100%" height="25">
+		<components:IconButton id="buttonOK" height="23" label="保存" click="click_OK()"
+							   styleName="save"/>
+		<components:IconButton id="buttonCannel" height="23" label="取消" click="Click_Cannel()"
+							   styleName="cancel"/>
+	</s:HGroup>
+	<s:HGroup includeIn="FlowRoleModi" width="100%" height="100%" gap="3"  horizontalAlign="center"  verticalAlign="middle">
+		<s:BorderContainer width="302" height="143" horizontalCenter="0" verticalCenter="0" cornerRadius="3">
+			<s:HGroup x="0" y="0" width="100%" height="100%" 
+					  verticalAlign="middle">
+				<s:VGroup width="100%" height="100%" verticalAlign="middle" gap="2">
+					<s:HGroup width="100%" height="25" 
+							  verticalAlign="middle">
+						<s:Label text="流程角色名"/>
+						<s:TextInput id="RoleName"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25" 
+							  verticalAlign="middle">
+						<s:CheckBox id="Effective" width="85" label="激活该角色" selected="true"/>
+					</s:HGroup>
+				</s:VGroup>
+			</s:HGroup>
+		</s:BorderContainer>
+	</s:HGroup>
+	
+	<!-- 新增修改人员 -->
+	<s:HGroup id="hbox2" includeIn="FlowRoleUsersModi,CompSel,DelSel,UserSel" width="100%"
+			  height="25" gap="3">
+		<components:IconButton id="Btn_OK" label="保存" click="Btnclick_OK()" styleName="save"/>
+		<components:IconButton id="Btn_Cancel" label="取消" click="Click_Cannel()"
+							   styleName="cancel"/>
+	</s:HGroup>
+	<s:BorderContainer includeIn="FlowRoleUsersModi,CompSel,DelSel,UserSel" width="100%" height="100%">
+		<s:VGroup id="vbox1" width="100%" height="100%"  verticalAlign="top" gap="0">
+			<s:HGroup id="hbox1" width="100%" height="23" horizontalAlign="left" gap="3"
+					  verticalAlign="middle">
+				<mx:Label width="100" text="角色人员选择：" textAlign="right"/>
+				<base:UserSelectInput id="UserSelInput" width="198" MuliSel="false">
+				</base:UserSelectInput>
+				<s:HGroup width="100%" height="100%" horizontalAlign="right" gap="3"
+						  verticalAlign="middle">
+					<!--<s:RadioButton id="CompOrder" visible="{FAppCore.FIsProvinceCompay}" width="95"
+								   label="可管辖公司" groupName="User" value="CompSel"/>-->
+					<s:RadioButton id="CompOrder" width="95" visible="{FAppCore.FIsProvinceCompay}"
+								   label="可管辖公司" groupName="User" value="CompSel"/>
+					<s:RadioButton id="DeptOrder" width="95" label="可管辖部门" groupName="User"
+								   value="DelSel"/>
+					<s:RadioButton id="NameOrder" width="93" label="可管辖人员" groupName="User"
+								   value="UserSel"/>
+				</s:HGroup>
+			</s:HGroup>
+			<base:CompSelect id="CompTreeSel" includeIn="CompSel" width="100%" height="100%"/>
+			<base:DeptsSelect id="DeptTreeSel" includeIn="DelSel" width="100%" height="100%"/>
+			<base:CusUserSel id="UsersSel" includeIn="UserSel" width="100%" height="100%"
+							 MuliSel="true"/>	
+		</s:VGroup>
+	</s:BorderContainer>
+</s:Module>

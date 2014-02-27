@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:flow="com.itsm.flow.base.*"
+		  width="100%" height="100%" 
+		  creationComplete="creationCompleteHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			[Bindable]
+			public var reportType:int=1;       //报告类型，1：个人日报，2：个人周报，3：项目周报，4：项目月报
+			
+			public var billId:String;
+			public var oprtTypeId:String;
+			public var IsSave:Boolean;
+			
+			//所属系统
+			[Bindable]
+			public var systems:ArrayCollection;
+			
+			private var sqlWhere:String=" and p.report_type="+reportType;      //查询条件
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				var workReportId:String=billId;
+				appCore.dealData("workReportManagerAPI", "WorkReportManagerAPI", "findWorkReportById",[workReportId],loadFlowData);
+			}
+			/**
+			 * 读取数据
+			 * */
+			private var workReport:Object;
+			private function loadFlowData(event:ResultEvent):void {
+				workReport=appCore.jsonDecoder.decode(event.result as String);
+				
+				reportType=Number(workReport.type);
+				resetReportInfo();
+				
+				reportTitle.text=workReport.title;
+				text_systemName.text=workReport.belongsSystem.systemName
+				typeName.text=workReport.typeName;
+				reportDate.text=workReport.reportDate;
+				reporter.text=workReport.reporter.userName;
+				startDate.text=workReport.startDate;
+				endDate.text=workReport.endDate;
+				text_content.text=workReport.content;
+				
+				finish.value=Number(workReport.planFinish);
+				plan_content.text=workReport.plancontent;
+				
+				AppHistoryGrid.gridMain.OnlyInit();
+				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+			
+			
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+				var workReportId:String=(workReport.id).toString();
+				appCore.dataDeal.dataRemote("workReportManagerAPI","WorkReportManagerAPI","statusWorkReport",[workReportId,"2"]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, flowHanelResult);
+			}
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{
+				TAlert.show("流程退回");
+			}
+			private function resetReportInfo():void{
+				var dateNowStr:String=DateField.dateToString(new Date(),"YYYY年MM月DD日");
+				reportDate.text=dateNowStr;
+				reporter.text=appCore.loginUser.userName;
+				if(reportType==1){
+					typeName.text="个人日报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人日报";
+					plan_group.visible=false;
+					plan_group.height=0;
+				}
+				if(reportType==2){
+					typeName.text="个人周报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人周报";
+				}
+				if(reportType==3){
+					typeName.text="项目周报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"项目周报";
+				}
+				if(reportType==4){
+					typeName.text="项目月报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"项目月报";
+				}
+				if(reportType==6){
+					typeName.text="个人月报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人月报";
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->	
+	</fx:Declarations>
+	
+	<s:Scroller width="100%" height="100%">	
+		<s:VGroup width="100%" height="100%">
+			<mx:VDividedBox width="100%" height="100%" minHeight="550" creationPolicy="all">
+				<s:Scroller width="100%" height="50%">
+					<s:VGroup width="100%" height="100%" paddingRight="4">
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="报告标题：" verticalAlign="middle" required="true" width="110"/>
+							<control:TextInputFl id="reportTitle" width="100%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="报告类型：" verticalAlign="middle" width="110"/>
+							<control:TextInputFl id="typeName" width="50%" enabled="false"/>
+							<control:FormLabel label="填报时间：" verticalAlign="middle" width="110"/>
+							<control:TextInputFl id="reportDate" width="50%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="支撑团队：" verticalAlign="middle" required="true" width="110"/>
+							<control:TextInputFl id="text_systemName" width="50%" enabled="false"/>
+							<control:FormLabel label="填报人：" verticalAlign="middle" width="110"/>
+							<control:TextInputFl id="reporter" width="50%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="报告开始时间：" verticalAlign="middle" required="true" width="110"/>
+							<control:DateFieldFl id="startDate" width="50%" enabled="false"
+												 formatString="YYYY-MM-DD"
+												 textAlign="left"/>
+							<control:FormLabel label="报告截止时间：" verticalAlign="middle" required="true"  width="110"/>
+							<control:DateFieldFl id="endDate" width="50%" enabled="false"
+												 formatString="YYYY-MM-DD"
+												 textAlign="left"/>
+						</s:HGroup>
+						<s:HGroup id="content_group" width="100%" height="100%" verticalAlign="middle">
+							<control:FormLabel label="报告内容：" verticalAlign="middle" required="true" width="110"/>
+							<s:TextArea id="text_content" width="100%" height="100%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup id="plan_group" width="100%" height="100%" verticalAlign="middle">
+							<s:VGroup width="100%" height="100%">
+								<s:HGroup width="100%" height="28">
+									<control:FormLabel label="计划完成情况：" verticalAlign="middle" required="false"  width="110"/>
+									<mx:NumericStepper id="finish" value="0" stepSize="1" maximum="100" minimum="0" enabled="false"/>
+									<s:Label text=" %" fontSize="15" verticalAlign="middle" height="100%"/>
+								</s:HGroup>
+								<s:HGroup width="100%" height="100%">
+									<control:FormLabel label="计划内容：" verticalAlign="middle" required="false" width="110"/>
+									<s:TextArea id="plan_content" width="100%" height="100%" enabled="false"/>
+								</s:HGroup>
+							</s:VGroup>
+						</s:HGroup>
+					</s:VGroup>
+				</s:Scroller>
+				<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="60%"/>
+			</mx:VDividedBox>
+		</s:VGroup>
+	</s:Scroller>
+	
+</s:Module>

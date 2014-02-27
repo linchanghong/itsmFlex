@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%"
+		 enterFrame="group1_enterFrameHandler(event)">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Metadata>
+		[Event(name="selectChange",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[			
+			import mx.core.FlexGlobals;
+			import mx.core.IFlexDisplayObject;
+			import mx.managers.PopUpManager;
+			
+			import spark.components.TitleWindow;
+			
+			/**将要弹出的titlewindow的类名。比如:armTitleWindow="com.wfm.flex.common.base.PeriodTitleWindow"*/
+			public var armTitleWindow:Class; 
+			
+			private var titleWin:TitleWindow ;//弹出框的一个实例
+			/**接收弹出框传来的一个对象，能在主程序中调用*/
+			public var selectObj:Object = new Object();
+			private var tmpSelectObj:Object = selectObj; //这个对象和selectObj比较，如果改变就触发事件
+			/**textinput的初始值，可设置*/
+			[Bindable]
+			public var sText:String; 
+			[Bindable]
+			public var textVisible:Boolean = true;
+			/**系统id*/
+			[Bindable]
+			public var sysID:int = -1;
+			/**用户身份*/
+			[Bindable]
+			public var userStatus:int = -1;
+			/**是否多选*/
+			private var _isMultipleSelected:Boolean = false;
+			
+			//使用者传递过来的参数
+			public var parame:Object = "";
+			
+			public function get isMultipleSelected():Boolean
+			{
+				return _isMultipleSelected;
+			}
+			
+			public function set isMultipleSelected(value:Boolean):void
+			{
+				_isMultipleSelected = value;
+			}
+			
+			//点按钮弹出窗口
+			protected function openTitleWindow(event:MouseEvent):void
+			{
+				titleWin = armTitleWindow(PopUpManager.createPopUp(DisplayObject(FlexGlobals.topLevelApplication),armTitleWindow,true));
+				titleWin.owner = this;//将此组件实例传给弹出框，以便在弹出框中给文本框赋值
+				PopUpManager.centerPopUp(titleWin);
+			}
+
+			protected function group1_enterFrameHandler(event:Event):void
+			{
+				//如果selectObj改变就触发事件
+				if(tmpSelectObj != selectObj) {
+					tmpSelectObj = selectObj;
+					this.dispatchEvent(new Event("selectChange"));
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<s:HGroup id="Selbox" width="100%" height="25" verticalAlign="middle" horizontalAlign="right" gap="1" >
+		<s:TextInput id="selText" text="{sText}" width="100%" height="100%" fontSize="12" editable="false"
+					 visible="{textVisible}"/>
+		<mx:Button id="selBtn" width="25" height="100%" toolTip="选择" 
+				   click="openTitleWindow(event)" 
+				   icon="@Embed(source='assets/img/icon/find.png')"/>
+	</s:HGroup>
+</s:Group>

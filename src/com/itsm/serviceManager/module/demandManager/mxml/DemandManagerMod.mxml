@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  width="100%" height="100%"
+		  creationComplete="init(event)">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<mx:PhoneNumberValidator id="telephoneInputV" 
+								 source="{telephoneInput}" 
+								 property="text" 
+								 required="true" requiredFieldError="请正确填写电话!"/>
+		<mx:StringValidator   
+			id="applyStartDateV"  
+			source="{applyStartDate}"   
+			property="text"
+		    required="true"
+			requiredFieldError="日期格式：YYYY-MM-DD"/> 
+		<mx:StringValidator   
+			id="applyEndDateV"  
+			source="{applyEndDate}"   
+			property="text"
+			required="true"
+			requiredFieldError="日期格式：YYYY-MM-DD"/>
+		<mx:StringValidator   
+			id="applyTitleInputV"  
+			source="{applyTitleInput}"   
+			property="text"  
+			minLength="1"
+			requiredFieldError="主题摘要不少于一字！"/>
+		<mx:StringValidator   
+			id="directionsAreaV"  
+			source="{directionsArea}"   
+			property="text"  
+			minLength="2"
+			requiredFieldError="需求内容不少于两字！"/>
+		<mx:StringValidator   
+			id="reasonAreaV"  
+			source="{reasonArea}"   
+			property="text"  
+			minLength="2"
+			requiredFieldError="提出的理由不少于两字！"/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.base.launch.FlowTodoWindow;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			import com.itsm.serviceManager.module.bugManager.vo.ConstDetailVO;
+			import com.itsm.serviceManager.module.bugManager.vo.MsUserVO;
+			import com.itsm.serviceManager.module.bugManager.vo.ReplyLevelVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SupportSystemVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SystemModuleVO;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.core.FlexGlobals;
+			import mx.effects.Fade;
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			import mx.validators.Validator;
+			
+			import spark.filters.GlowFilter;
+			
+			[Bindable]
+			public var billId:String;
+			public var oprtTypeId:String;
+			
+			private var appCore:AppCore=AppCore.getInstance();
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			//当前时间
+			[Bindable]
+			private var now:Date = new Date();
+			
+			[Bindable]
+			public var userApply:Object;
+			
+			[Bindable]
+			public var applyId:String;
+			
+			//请求单所在数据库表名
+			[Bindable]
+			public var applyTableName:String = "T_USER_APPLY";
+			
+			//bug来源
+			[Bindable]
+			public var bugSources:ArrayCollection;
+			
+			//bug作用范围
+			[Bindable]
+			public var bugScops:ArrayCollection;
+			
+			/**用户所选择的系统id*/
+			[Bindable]
+			public var systemID:int = -1;
+			
+			//重要程度
+			[Bindable]
+			public var levels:ArrayCollection;
+			
+			//默认情况下选择不同意(发布事件)
+			[Bindable]
+			private var FlowBillModi:Event;
+			
+			//呈报按钮是否显示
+			[Bindable]
+			private var isPutButtonView:Boolean = true;
+			
+			private var flowTodoWindow:FlowTodoWindow;
+			
+			//流程模型类型
+//			private static const FLOW_TYPE:String = "2";
+			[Bindable]
+			private var flowType:String = "3";
+			
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject; 
+			
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = true;
+			
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+			
+			//判断系统下拉是否被点击,没有就说明其值是userApply的原始值
+			[Bindable]
+			private var isSystemBeClicked:Boolean = false;
+			
+			//闪烁使用的filter
+			[Bindable]
+			private var filter:GlowFilter = new spark.filters.GlowFilter();
+			
+			
+			public function init(event:FlexEvent):void{
+				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","showUserApllyByID",[billId]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,loadBugUserApplyInfoInfo);
+				
+				FlowBillModi = new Event("FlowBillModi");
+				this.dispatchEvent(FlowBillModi);
+				
+//				flowTodoWindow = new FlowTodoWindow();
+				this.addEventListener("willAgreeEvent",doWillAgreeeEventHandle);
+				
+			}
+			
+			public function doWillAgreeeEventHandle(event:Event):void{
+//				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","setReplyer",[billId, FAppCore.FCusUser.UserId]);
+//				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,beforeHandle);
+			}
+			
+			public function loadBugUserApplyInfoInfo(event:ResultEvent):void{
+				userApply = getResultObj(event);
+				
+				flowType = BugUtil.myTrim(userApply.applyType+"");
+				
+				if(userApply.applyStatus > 0){
+					applyId = userApply.applyId;
+					isPutButtonView = false;
+				}else
+					//闪烁提示
+					showAndHideLabel(!formIsValid);
+				
+				AppHistoryGrid.gridMain.OnlyInit();
+				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+			
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+
+				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","agreeBugUserApplyFlow1st",[billId]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, flowHanelResult);
+				
+			}
+			
+			/**
+			 * 同意处理前调用
+			 */
+			public function agreeBefore():void{
+//				var flag:Boolean = false;
+//				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","setReplyer",[billId, FAppCore.FCusUser.UserId]);
+//				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,beforeHandle);
+			}
+			
+			private function beforeHandle(event:ResultEvent):void{
+				
+			}
+			
+			
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+			
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{
+				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","disagreeBugUserApplyFlow1st",[billId]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, disagreeResult);
+			}
+			
+			private function disagreeResult(event:ResultEvent):void {
+				//TAlert.show("数据生效");
+			}
+			
+			//将远程服务器返回的数据进行处理
+			private function getResultObj(event:ResultEvent):Object{
+				var resultStr:String = event.result.toString();	
+				
+				trace("流程:远程服务器返回的数据为："+resultStr);
+				
+				return new JSONDecoder().decode(resultStr);
+			}
+			
+			//这里主要是因为dropDownList的dataProvider需要的是IList接口对象
+			private function getArrayListFromObject(obj:Object):ArrayCollection{
+				return new ArrayCollection(new Array(obj));
+			}
+			
+			
+			//向数据库存入数据,并且设置流程"可通过"
+			protected function saveBtn_click_handler(event:MouseEvent):void{
+				judgeFormIsEmpty();
+				if(formIsValid && !formIsEmpty)
+					handle_server_method("bugManagerAPI","BugManagerAPI","updateBugUerApplyAdd",
+					[appCore.jsonEncoder.encode(storeValue2userApply())], saveBtn_click_handle);
+				else
+					TAlert.show("输入有误,请查看页面提示信息!","温馨提示");
+			}
+			
+			private function saveBtn_click_handle(event:ResultEvent):void{
+				var obj:Object = getResultObj(event);
+				if(obj == 1){
+					isPutButtonView = true;
+					showAndHideLabel(!isPutButtonView);
+					
+					FlowBillModi = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillModi);
+				}else{
+					saveBtn_click_handler(null);
+				}
+			}
+			
+			//将界面中的用户修改的值存入对象之中
+			private function storeValue2userApply():Object{
+				
+				var obj:Object = new Object();
+				
+				
+				//对象处理:bug来源,bug模块,bug系统,bug影响范围,bug实际影响范围,bug重要程度,请求单状态
+				var origin:ConstDetailVO = new ConstDetailVO();
+				if(bugSource.selectedItem != null)
+					origin.id = bugSource.selectedItem.id;
+				obj.applyOrigin = origin;
+				
+				var module:SystemModuleVO = new SystemModuleVO();
+				module.moduleID = bugModule.selectObj.hasOwnProperty("moduleID")
+					?bugModule.selectObj.moduleID:bugModule.sText != ""
+					?userApply.sysModule.moduleID:"-1";
+				obj.sysModule = module;
+				
+				var system:SupportSystemVO = new SupportSystemVO();
+				system.systemID = bugSystem.selectObj.hasOwnProperty("systemID")
+					?bugSystem.selectObj.systemID:bugSystem.sText != ""
+					?userApply.belongSystem.systemID:-1;
+				obj.belongSystem = system;
+				
+				var range:ConstDetailVO = new ConstDetailVO();
+				if(bugRange.selectedItem != null)
+					range.id = bugRange.selectedItem.id;
+				obj.range = range;
+				
+				var urgent:ReplyLevelVO = new ReplyLevelVO();
+				if(bugUrgent.selectedItem != null)
+					urgent.replyLevelId = bugUrgent.selectedItem.replyLevelId;
+				obj.urgent = urgent;
+				
+				
+				//可以确定：主题摘要、电话、请求单id
+				obj.applyTitle = applyTitleInput.text;
+				obj.telephone = telephoneInput.text;
+				obj.applyId = userApply != null ? 
+					userApply.applyId : null;
+				
+				//请求单填写者
+				var applyEntry:Object = new Object();
+				applyEntry.id = appCore.loginUser.id;
+				applyEntry.personId = appCore.loginUser.msPerson.id;
+				applyEntry.companyID = appCore.loginUser.companyId;
+				obj.applyEntry = applyEntry;
+				
+				
+				//提出请求的具体用户
+				var sponsor:Object = new Object();
+				if(sponsorInput.selectObj.hasOwnProperty("userId")){
+					sponsor.id = sponsorInput.selectObj.userId;
+					obj.sponsor = sponsor;
+				}else{
+					sponsor.id = userApply.sponsor.id;
+					obj.sponsor = sponsor;
+				}
+				
+				
+				//公司与部门
+				obj.company = companyInput.text;
+				obj.department = departmentInput.text;
+				
+				
+				//用户请求单编号
+				/*编号格式按照这样，问题：WT201308120001这样编号下去，
+				需求就XQ201308120001，BUG：BG201308120001*/
+				//var codeStr:String = "BG";
+				obj.userApplyCode = userApply != null ? 
+					userApply.userApplyCode : null;
+				
+				//时间处理
+				applyDateHandle(obj);
+				
+				//文本框
+				obj.directions = directionsArea!=null?BugUtil.myTrim(directionsArea.text):"";
+				obj.applyReason = reasonArea!=null?BugUtil.myTrim(reasonArea.text):"";
+				
+				if(userApply != null){
+					obj.applyType = userApply.applyType;
+					obj.DR = userApply.DR;
+					obj.applyStatus = 0;
+				}
+				
+				return obj;
+			}
+			
+			private function applyDateHandle(apply:Object):void{
+				//时间处理
+				
+				var df:DateFormatter = new DateFormatter();
+				df.formatString="YYYY-MM-DD";
+				
+				
+				//期望解决时间
+				if(applyEndDate.selectedDate != null && applyEndDate.text != "")
+					apply.applyEndDate = df.format(applyEndDate.selectedDate);
+				else
+					apply.applyEndDate = 
+						StringUtil.trim(applyEndDate.text);
+				
+				//请求发起时间
+				if(applyStartDate.selectedDate != null && applyStartDate.text != "")
+					apply.applyStartDate = df.format(applyStartDate.selectedDate);
+				else
+					apply.applyStartDate = 
+						BugUtil.myTrim(applyStartDate.text);
+				
+			}
+			
+			
+			
+			/**保存按钮的回调函数*/
+			private function setReplyerHandle(event:ResultEvent):void{
+				var flag:Object = getResultObj(event);
+				if(flag == 1){
+					var FlowBillSave:Event = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillSave);
+				}else{
+					TAlert.show("系统繁忙,稍后再试!","温馨提示");
+				}
+			}
+			
+			//
+			private var FISAfterFlowCommit:Boolean=false;
+			
+			/**呈报按钮点击后将*/
+			protected function putBtn_clickHandler(event:MouseEvent):void
+			{
+					var arr:Array = new  Array();
+					var Oitem:String= "department:"+FAppCore.FCusUser.DeptId;
+					arr.push(Oitem);
+					
+					var sender:Object = new Object();
+					sender.id=FAppCore.FCusUser.UserId;
+					sender.personName=FAppCore.FCusUser.UserName;
+					//		fAppCore.StartFlowInstence(sender, item.applyEntry.id, FLOW_TYPE, item.applyId, arr, FISAfterFlowCommit, putBtn_clickHandle);
+//					FAppCore.StartFlowInstence(sender, sender.id, FLOW_TYPE, userApply.applyId, arr, FISAfterFlowCommit, putBtn_clickHandle);
+					FAppCore.StartFlowInstence(sender, sender.id, flowType, userApply.applyId, arr, FISAfterFlowCommit, putBtn_clickHandle);
+			}
+			
+			private function putBtn_clickHandle(event:ResultEvent):void{
+				
+				//修改数据库请求单的状态
+				//请求状态：0—未提交，1—未受理，2—处理中，3—完成
+				userApply.applyStatus = 1;
+				userApply.applyStatusStr = "未受理";
+				
+				//	//处理呈报对象的时间
+				//	dateOfuserApplyFormat(userApply);
+				//	
+				//	var str:String = appCore.jsonEncoder.encode(userApply);//updateUerApplyStatus
+				//	handle_server_method("bugManagerAPI","BugManagerAPI","updateBugUerApply",
+				//		[str], after_putBtn_clickHandle);
+				handle_server_method("bugManagerAPI","BugManagerAPI","updateUerApplyStatusNoDataBack",
+					[userApply.applyId, userApply.applyStatus], after_putBtn_clickHandle);
+				
+			}
+			
+			private function after_putBtn_clickHandle(event:ResultEvent):void{
+				var obj:Object = getResultObj(event);
+				if(obj == 1)
+//					msg.visible = true;
+					refreshMyFlowtodo();
+				else
+					putBtn_clickHandle(null);
+			}
+			
+//			private function cancelBtn_click_handle(event:MouseEvent):void{
+//				planFinishDate.selectedDate = null;
+//				planFinishDate.text = "";
+//			}
+			
+			/**
+			 * 报告人弹窗选择改变事件,主要用于更新界面的公司和部门的值,和责任人弹窗人员筛选
+			 */
+			protected function sponsorInput_selectChangeHandler(event:Event):void
+			{
+				isPutButtonView = false;
+				showAndHideLabel(!isPutButtonView);
+				
+				companyInput.text = sponsorInput.selectObj.hasOwnProperty("companyName") ? sponsorInput.selectObj.companyName : "";
+				departmentInput.text = sponsorInput.selectObj.hasOwnProperty("companyName") ? sponsorInput.selectObj.orgName : "";
+			}
+			
+			//点击修改界面的bug来源下拉列表时调用==========bug来源
+			protected function bugSource_clickHandler(event:MouseEvent):void
+			{
+				isPutButtonView = false;
+				showAndHideLabel(!isPutButtonView);
+				
+				//先查看bugSources是否为null，为null再向服务器请求数据
+				if(bugSources == null){
+					handle_server_method("bugManagerAPI","BugManagerAPI","initBugSource",
+						[], bugSource_clickHandle);
+				}else{
+					bugSource.dataProvider = bugSources;
+				}
+			}
+			
+			//点击修改界面的bug来源下拉列表后从后台传入的数据的处理
+			private function bugSource_clickHandle(event:ResultEvent):void{
+				bugSources = getResultObj(event) as ArrayCollection;
+				bugSource.dataProvider = bugSources;
+			}
+			
+			//点击修改界面的bug来源下拉列表时调用==========重要程度
+			protected function bugUrgent_clickHandler(event:MouseEvent):void
+			{
+				isPutButtonView = false;
+				showAndHideLabel(!isPutButtonView);
+				
+				//先查看levels是否为null，为null再向服务器请求数据
+				if(levels == null){
+					handle_server_method("bugManagerAPI","BugManagerAPI","initLevels",
+						[], bugUrgent_clickHandle);
+				}else{
+					bugUrgent.dataProvider = levels;
+				}
+			}
+			
+			//点击修改界面的bug来源下拉列表后从后台传入的数据的处理
+			private function bugUrgent_clickHandle(event:ResultEvent):void{
+				levels = getResultObj(event) as ArrayCollection;
+				bugUrgent.dataProvider = levels;
+			}
+			
+			//点击修改界面的作用范围下拉列表时调用==========作用范围
+			protected function bugRange_clickHandler(event:MouseEvent):void
+			{
+				isPutButtonView = false;
+				showAndHideLabel(!isPutButtonView);
+				
+				//先查看bugScops是否为null，为null再向服务器请求数据
+				if(bugScops == null){
+					handle_server_method("bugManagerAPI","BugManagerAPI","initBugScope",
+						[], bugRange_clickHandle);
+				}else{
+					bugRange.dataProvider = bugScops;
+				}
+			}
+			
+			//点击修改界面的作用范围下拉列表后从后台传入的数据的处理
+			private function bugRange_clickHandle(event:ResultEvent):void{
+				bugScops = getResultObj(event) as ArrayCollection;
+				bugRange.dataProvider = bugScops;
+			}
+			
+			protected function bugModule_changedHandler():void{
+				isPutButtonView = false;
+				showAndHideLabel(!isPutButtonView);
+			}
+			
+			/**系统更改*/
+			protected function bugSystem_selectChangeHandler(event:Event):void
+			{
+				bugModule.selectObj = "";
+				bugModule.sText = "";
+				systemID = bugSystem.selectObj.hasOwnProperty("systemID")
+					?bugSystem.selectObj.systemID:(bugSystem.sText != "" 
+						&& bugSystem.sText != null)
+					?userApply.hasOwnProperty("belongSystem")
+					?userApply.belongSystem.systemID:-1:-1;
+				validateForm(event);
+			}
+			
+//			//所属系统更改时调用
+//			protected function bugSystem_changeHandler():void{
+//				var sysID:int = bugSystem.selectedItem.systemID;
+//				handle_server_method("bugManagerAPI","BugManagerAPI","initSystemModules",
+//					[sysID], bugSystem_changeHandle);
+//			}
+//			
+//			private function bugSystem_changeHandle(event:ResultEvent):void{
+//				
+//				modules = getResultObj(event) as ArrayCollection;
+//				bugModule.dataProvider = modules;
+//			}
+//			
+//			
+//			//点击修改界面的所属系统下拉列表时调用==========所属系统
+//			protected function bugSystem_clickHandler(event:MouseEvent):void
+//			{
+//				//系统下拉被点击标志
+//				isSystemBeClicked = true;
+//				//先查看systems是否为null，为null再向服务器请求数据
+//				if(systems == null){
+//					handle_server_method("bugManagerAPI","BugManagerAPI","initSupportSystems",
+//						[], bugSystem_clickHandle);
+//				}else{
+//					var sysid:uint = bugSystem.selectedItem.systemID;
+//					bugSystem.dataProvider = systems;
+//					if(bugSystem.selectedIndex == 0){
+//						modules = systems.getItemAt(0).systemModules as ArrayCollection;
+//						bugModule.dataProvider = modules;
+//					}else{
+//						var flag:Boolean = false;
+//						if(modules != null){
+//							if(modules.getItemAt(0).systemID == sysid)
+//								bugModule.dataProvider = modules;
+//							else
+//								flag = true;
+//						}else
+//							flag = true;
+//						if(flag)
+//							handle_server_method("bugManagerAPI","BugManagerAPI","initSystemModules",
+//								[sysid], bugModule_clickHandle);
+//					}
+//					
+//				}
+//			}
+//			
+//			//点击修改界面的所属系统下拉列表后从后台传入的数据的处理
+//			private function bugSystem_clickHandle(event:ResultEvent):void{
+//				systems = getResultObj(event) as ArrayCollection;
+//				modules = systems.getItemAt(0).systemModules as ArrayCollection;
+//				
+//				bugSystem.dataProvider = systems;
+//				bugModule.dataProvider = modules;
+//			}
+//			
+//			//点击修改界面的所属模块下拉列表时调用==========所属模块
+//			protected function bugModule_clickHandler(event:MouseEvent):void
+//			{
+//				isPutButtonView = false;
+//				showAndHideLabel(!isPutButtonView);
+//				
+//				var sysid:uint;
+//				if(userApply == null || isSystemBeClicked){
+//					sysid = bugSystem.selectedItem != null 
+//						? bugSystem.selectedItem.systemID : -1;
+//				}else
+//					sysid = userApply.belongSystem.systemID;
+//				if(modules == null || modules.getItemAt(0).systemID != sysid)
+//					handle_server_method("bugManagerAPI","BugManagerAPI","initSystemModules",
+//						[sysid], bugModule_clickHandle);
+//				else
+//					bugModule.dataProvider = modules;
+//			}
+//			//点击修改界面的所属模块下拉列表后从后台传入的数据的处理
+//			private function bugModule_clickHandle(event:ResultEvent):void{
+//				var obj:Object = getResultObj(event);
+//				
+//				modules = obj as ArrayCollection;
+//				bugModule.dataProvider = modules;
+//			}
+//			
+			
+			
+			
+			/**关闭当前页面*/
+			private function refreshMyFlowtodo():void{
+				var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this);
+				FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+			}
+			
+			/**用于调用服务器端相应的方法处理*/
+			private function handle_server_method(
+				componentName:String, className:String, methodName:String, arguments:Array, handleName:Function):void{
+				
+				appCore = AppCore.getInstance();
+				
+				appCore.dataDeal.dataRemote(componentName,className,methodName,arguments);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, handleName);
+			}
+			
+			/**验证方法*/
+			private function validateForm(event:Event):void  
+			{                     
+				//检查验证传递和返回一个布尔值相应。 
+				//保存引用当前集中表单控件 
+				//这样isValid()辅助方法可以只通知 
+				//当前集中形式控制和不影响 
+				//任何其他的表单控件。 
+				focussedFormControl = event.target as DisplayObject;  
+				
+				var info1:String = BugUtil.compareDate(applyStartDate.text, applyEndDate.text);
+				
+				var info2:String = BugUtil.compareDate(applyStartDate.text, 
+					DateField.dateToString(new Date(),"YYYY-MM-DD"));
+				// 标记表单有效的开始 
+				formIsValid = 
+					applyStartDate.selectedDate != null 
+					? applyStartDate.selectedDate <= new Date() 
+					: true 
+					&& info1 == "1" 
+					&& info2 == "1";
+				
+				judgeFormIsEmpty();
+				
+				//运行每个验证器反过来,使用isValid() 
+				//辅助方法和更新formIsValid的价值 
+				//因此。 
+				validate(telephoneInputV); 
+				validate(applyStartDateV); 
+				validate(applyEndDateV); 
+				validate(applyTitleInputV); 
+				validate(directionsAreaV); 
+				validate(reasonAreaV);
+				
+				isPutButtonView = false;
+				
+				//闪烁提示
+				showAndHideLabel(!isPutButtonView);
+			} 
+			
+			/**判断是否有空字段*/
+			private function judgeFormIsEmpty():void{
+				// 检查表单是否为空 
+				formIsEmpty = telephoneInput.text == "" ||
+					applyStartDate.text == "" ||
+					applyEndDate.text == "" ||
+					applyTitleInput.text == "" ||
+					directionsArea.text == "" || 
+					reasonArea.text == "" || 
+					bugSystem.sText == "" || 
+					bugSystem.sText == null || 
+					bugModule.sText == "" || 
+					bugModule.sText == null; 
+			}
+			
+			/** 
+			 * 验证方法 
+			 * */ 
+			private function validate(validator:Validator):Boolean 
+			{                 
+				//得到验证对象 
+				var validatorSource:DisplayObject = validator.source as DisplayObject; 
+				
+				//镇压事件如果当前控制被验证的不是 
+				//当前集中控制的形式。这阻止了用户 
+				//从接收视觉验证提示在其他表单控件。 
+				var suppressEvents:Boolean = (validatorSource != focussedFormControl); 
+				
+				//执行验证。返回一个ValidationResultEvent。 
+				//传递null作为第一个参数使验证器 
+				//使用属性中定义的属性的标记 
+				// < mx:Validator >标记。 
+				var event:ValidationResultEvent = validator.validate(null, suppressEvents);  
+				
+				//检查验证传递和返回一个布尔值。 
+				var currentControlIsValid:Boolean = (event.type == ValidationResultEvent.VALID); 
+				
+				// 修改验证标记 
+				formIsValid = formIsValid && currentControlIsValid; 
+				
+				return currentControlIsValid; 
+			} 
+			
+			/** 
+			 *  清除验证信息 重置功能 
+			 * */ 
+			private function clearFormHandler():void 
+			{ 
+				// 清除所有的值 
+				telephoneInput.text == "";
+					applyStartDate.text == "";
+					applyEndDate.text == "";
+					applyTitleInput.text == "";
+					directionsArea.text == ""; 
+				
+				// 清除错误信息 
+					telephoneInput.errorString == "";
+					applyStartDate.errorString == "";
+					applyEndDate.errorString == "";
+					applyTitleInput.errorString == "";
+					directionsArea.errorString == ""; 
+				
+				// 标记为清空 
+				formIsEmpty = true; 
+				
+//				// 获取到焦点 
+//				resetFocus();                
+			} 
+			
+			
+			/**闪烁提示方法*/
+			private var fade:Fade;
+			private function showAndHideLabel(isshow:Boolean):void{
+				if (isshow){
+					lbBeforeSave.width=220;
+					lbBeforeSave.visible = true;
+					if (!fade){
+						fade = new Fade();
+						fade.target = lbBeforeSave;
+						fade.repeatCount=0;
+						fade.repeatDelay=100;
+						fade.alphaTo=0;
+					}
+					fade.play();
+				}else{
+					lbBeforeSave.width=0;
+					lbBeforeSave.visible = false;
+					if (fade){
+						fade.end();
+						fade.stop();
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+		<s:Scroller width="100%" height="100%">
+			<s:VGroup width="100%" height="100%">
+				
+				<mx:VDividedBox width="100%" height="100%">	
+				<s:VGroup width="100%" height="100%" minHeight="180">
+					
+					<s:HGroup width="100%" height="25">
+						<s:Button id="saveBtn" 
+								  icon="@Embed(source='assets/img/icon/save.png')"
+								  width="75" height="100%"
+								  label="保存"
+								  enabled="{formIsValid}"
+								  visible="{!isPutButtonView}"
+								  includeInLayout="{!isPutButtonView}"
+								  click="saveBtn_click_handler(event)"/>
+						<s:Button icon="@Embed(source='assets/img/icon/report.png')"
+								  id="putBtn" 
+								  width="75" height="100%" 
+								  label="呈报"
+								  enabled="{isPutButtonView}"
+								  click="putBtn_clickHandler(event)"/>
+						<s:Label id="lbBeforeSave" visible="false" width="13%" height="100%" color="red"
+								 filters="{filter}" text="↙值有更改,请先保存！"
+								 verticalAlign="top"/>
+					</s:HGroup>
+					
+				<s:HGroup width="100%" height="25"  gap="20" >
+					
+					<control:FormLabel width="16%" height="100%" text="报告人:"
+									   textAlign="right" verticalAlign="middle"/>
+					<bugmxml:BugFieldSelect id="sponsorInput" width="16%" height="100%"
+											armTitleWindow=
+											"com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+											isMultipleSelected="false"
+											sText="{userApply != null ? userApply.sponsor.userName : ''}"
+											textAlign="left"
+											enabled="true"
+											selectChange="sponsorInput_selectChangeHandler(event)"/>
+					
+					<control:FormLabel width="16%" height="100%" text="所属单位:" 
+									   textAlign="right" verticalAlign="middle"/>
+					<control:TextInputFl id="companyInput" width="16%" height="100%" enabled="false"
+										 text="{userApply != null ? userApply.company : ''}"/>
+					
+					<control:FormLabel width="16%" height="100%" text="所在部门:" 
+									   textAlign="right" verticalAlign="middle"/>
+					<control:TextInputFl id="departmentInput"  width="16%" height="100%" enabled="false"
+										 text="{userApply != null ? userApply.department : ''}"/>
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" gap="20" height="25">
+					
+					<control:FormLabel width="16%" height="100%" text="联系电话："
+									   textAlign="right" verticalAlign="middle"/>
+					<control:TextInputFl id="telephoneInput" width="16%" height="100%" enabled="true"
+										 text="{userApply != null ? userApply.telephone : ''}"
+										 change="validateForm(event);"/>
+					
+					<control:FormLabel width="16%" height="100%" text="报告时间:"
+									   textAlign="right" verticalAlign="middle"/>
+					<control:DateFieldFl id="applyStartDate" width="16%" height="100%"
+										 text="{userApply != null ? userApply.applyStartDate : ''}"
+										 textAlign="left"
+										 editable="false"
+										 formatString="YYYY-MM-DD" 
+										 change="validateForm(event);"/>
+					
+					<control:FormLabel width="16%" height="100%" text="期望解决时间:"
+									   textAlign="right" verticalAlign="middle"/>
+					<control:DateFieldFl id="applyEndDate" width="16%" height="100%"
+										 yearNavigationEnabled="true"   
+										 disabledRanges="{[ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+										 text="{userApply != null ? userApply.applyEndDate : ''}"
+										 editable="false"
+										 textAlign="left"
+										 formatString="YYYY-MM-DD" 
+										 change="validateForm(event);"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" gap="20" height="25">
+					
+					<control:FormLabel width="16%" height="100%" text="需求来源："
+									   textAlign="right" verticalAlign="middle" />
+					<s:ComboBox id="bugSource" width="16%" height="100%"
+									labelField="constDetailName"
+									textAlign="left"
+									click="bugSource_clickHandler(event)"
+									dataProvider="{getArrayListFromObject(userApply.applyOrigin)}"
+									requireSelection="true"
+									selectedIndex="0"/>
+					
+					<control:FormLabel width="16%" height="100%" text="重要程度:" 
+									   textAlign="right" verticalAlign="middle"/>
+					<s:ComboBox id="bugUrgent" width="16%" height="100%"
+									labelField="levelNameString"
+									textAlign="left"
+									click="bugUrgent_clickHandler(event)"
+									dataProvider="{getArrayListFromObject(userApply.urgent)}"
+									requireSelection="true"
+									selectedIndex="0"/>
+					
+					<control:FormLabel width="16%" height="100%" text="影响范围:"
+									   textAlign="right" verticalAlign="middle"/>
+					<s:ComboBox id="bugRange" width="16%" height="100%"
+									labelField="constDetailName" 
+									textAlign="left"
+									click="bugRange_clickHandler(event)"
+									dataProvider="{getArrayListFromObject(userApply.range)}"
+									requireSelection="true"
+									selectedIndex="0"/>
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" gap="20" height="25">
+					<control:FormLabel width="16%" height="100%" text="所属系统:" 
+									   textAlign="right" verticalAlign="middle"/>
+					<bugmxml:BugFieldSelect id="bugSystem" 
+											width="16%" height="100%"
+											armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+											isMultipleSelected="false"
+											selectChange="bugSystem_selectChangeHandler(event)"
+											textAlign="left"
+											sText="{userApply != null ? userApply.belongSystem.systemName : ''}"/>
+					
+					<control:FormLabel width="16%" height="100%" text="所属业务:"
+									   textAlign="right" verticalAlign="middle"/>
+					<bugmxml:BugFieldSelect id="bugModule" 
+											width="16%" height="100%"
+											armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectModule"
+											isMultipleSelected="false"
+											textAlign="left"
+										    selectChange="validateForm(event)"
+											parame="{systemID}"
+											sText="{userApply != null ? userApply.sysModule.moduleName : ''}"/>
+					
+					<!--<control:FormLabel required="true" width="20%" height="100%" label="计划解决时间：" textAlign="right"
+									   verticalAlign="middle"
+									   visible="{!isPutButtonView}"/>
+					<control:DateFieldFl id="planFinishDate" width="25%"
+										 editable="false"
+										 formatString="YYYY-MM-DD" 
+										 visible="{!isPutButtonView}"
+										 change="validateForm(event);"/>-->
+					
+					<!--<control:FormLabel width="20%"  text="责任人"
+									   textAlign="right" verticalAlign="middle"/>
+					<bugmxml:BugFieldSelect id="replyerInput" width="25%"
+											parame=""
+											armTitleWindow=
+											"com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+											isMultipleSelected="false"
+											selectObj=""
+											sText="{userApply != null ? userApply.replyer.userName : ''}"
+											textAlign="left"/>-->
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" gap="20" height="25">
+					<control:FormLabel width="16%" height="100%" text="主题摘要:"
+									   textAlign="right" verticalAlign="middle"/>
+					<control:TextInputFl id="applyTitleInput"  width="84%" height="100%" enabled="true"
+										 text="{userApply != null ? userApply.applyTitle : ''}" 
+										 change="validateForm(event);"/>
+				</s:HGroup>
+				
+				</s:VGroup>
+					
+				<s:VGroup id="bottomInfoP" width="100%" height="100%"
+						  gap="0" minHeight="220">
+					
+					<mx:TabNavigator id="infoList" 
+									 width="100%" height="100%" focusColor="#58F0C0"
+									 selectedIndex="1">
+						
+						<s:NavigatorContent id="bugDirBtn" 
+											width="100%" height="100%" 
+											label="需求描述：">
+							<s:TextArea id="directionsArea" left="10" right="10" top="0" bottom="10"
+										text="{userApply != null ? userApply.directions : ''}" 
+										textAlign="left"
+										verticalAlign="middle"
+										editable="true"
+									    change="validateForm(event);"/>
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="docBtn" width="100%" height="100%" label="文档附件">
+							
+							<s:VGroup left="10" right="10" bottom="10" height="100%">
+								
+								<container:GroupBox width="100%" height="100%" title="附件">
+									<mxml:UploadDocumentsInfo id="fileGrid" 
+															  height="100%" width="100%"
+															  attachMentsArr="{userApply.attachments}"
+															  deleteBtnEnable="false"
+															  uploadBtnEnable="true"
+															  busDataId="{billId}"
+															  busTableName="{applyTableName}"/>
+								</container:GroupBox>
+								
+							</s:VGroup>
+							
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="demandTypeBtn" width="100%" height="100%" label="提出理由">
+							<s:TextArea id="reasonArea" left="10" right="10" top="0" bottom="10"
+										change="validateForm(event);"
+										text="{userApply != null ? userApply.applyReason : ''}"
+										textAlign="left" verticalAlign="middle"
+										editable="true"/>
+						</s:NavigatorContent>
+						
+					</mx:TabNavigator>
+					
+				</s:VGroup>
+				
+				<s:VGroup width="100%" height="100%" minHeight="200">
+					<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="100%"/>
+				</s:VGroup>
+				
+				</mx:VDividedBox>
+					
+			</s:VGroup>
+			
+		</s:Scroller>
+	
+</s:Module>

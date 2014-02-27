@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:ns1="com.ccspm.view.base.*"
+			   xmlns:fieldselect="common.components.fieldselect.*"
+			   xmlns:components="common.components.*"
+			   width="500" height="342" close="closeMe();" creationComplete="onCreateOk();"
+			   mouseEnabled="true" title="流程查询" xmlns:base="com.itsm.flow.view.base.*" xmlns:base1="com.itsm.flow.base.*">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.view.view.searchFlowNodeInstencePanel;
+			import com.services.flow.FlowOprtTypeService;
+			
+			import common.components.fieldselect.FieldSelect;
+			import common.utils.FAppCoreUtil;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.XMLListCollection;
+			import mx.core.Application;
+			import mx.events.ItemClickEvent;
+			
+			private var FAppCore:GlobalUtil= GlobalUtil.getInstence();
+			
+			private function changeFromdate():void{
+				fromDate = fromtime.selectedDate;
+			}
+			private function changeTodate():void{
+				toDate = totime.selectedDate;
+			} 
+			
+			private var thisowner:searchFlowNodeInstencePanel;
+			private function onCreateOk():void{
+				if (this.owner is searchFlowNodeInstencePanel){
+					thisowner = owner as searchFlowNodeInstencePanel
+				}
+				//var typeXML:XMLList = flowDesigner.flowTypeXml.children();
+			}
+			private function closeMe():void{
+				setNull();
+				thisowner.HistoryListDG.enabled = true;
+				thisowner.currentState = 'start';
+			}
+			
+			//清空原选的数据
+			private function setNull():void{
+				userSelect.UserValue.text="";
+				txtTitle.text = "";
+				txtSuborBgnName.text="";
+				txtCustoemrName.text="";
+			}
+			
+			[Bindable]
+			private var toDate:Date = new Date();
+			[Bindable]
+			private var fromDate:Date = new Date(new Date().getFullYear(),new Date().getMonth(),new Date().date-7);
+			
+			private var resultSql:String ;
+			
+			private function search():void
+			{ 
+				var str:String = " 1=1 ";
+				resultSql =  str + " and  HandlerId =  '" + FAppCore.FCusUser.UserId + "' and HandleDate >= '" + fromDate.fullYear + "/" + (fromDate.getMonth() + 1) + "/" + fromDate.getDate() + "' and  HandleDate <= '" + toDate.fullYear + "/" + (toDate.getMonth() + 1) + "/" + toDate.getDate() + "  23:59 '" ;
+				var tempsql:String = "";
+				var temparr:Array = new Array();
+				var mySubmitArr:Array = new Array();
+				var mySubmitSql:String = "";
+				var hasOr:Boolean = false;
+				var senderSql:String="";
+				if (txtTitle.text!=""){
+					resultSql = resultSql + " and FlowTitle like '%" + txtTitle.text +"%' ";
+				}
+				if (txtSuborBgnName.text!=""){
+					resultSql = resultSql + " and SubOrBgnName like '%" + txtSuborBgnName.text +"%' ";
+				}
+				if (txtCustoemrName.text!=""){
+					resultSql = resultSql + " and CustomerName like '%" + txtCustoemrName.text +"%' ";
+				}
+				if (userSelect.UserValue.text!='' && userSelect.UserIDArr.length>0)
+				{
+					resultSql = resultSql + " and SenderId="+userSelect.UserIDArr[0].toString();
+				}
+				if (txtType.SelArr && txtType.SelArr.length>0)
+				{
+					var ws:String = "(0";
+					for each(var typewhere:Object in txtType.SelArr)
+					{
+						ws += ","+(typewhere.OprtTypeID==null?"0":typewhere.OprtTypeID.toString()); 
+					}
+					ws+=")";
+					resultSql = resultSql + " and OprtTypeID in "+ws;
+				}
+				if(	noCheckCb.selected){ 
+					temparr.push(142);
+				}
+				if(	agreeCb.selected){ 
+					temparr.push(145);
+				}
+				if(	noagreeCb.selected){ 
+					temparr.push(146);
+				}
+				if(checking.selected){
+					mySubmitArr.push(141);
+				}
+				if(checked.selected){
+					mySubmitArr.push(142);
+				}
+				if(FlowOk.selected){
+					mySubmitArr.push(145);
+				}
+				
+				if(temparr.length>0){
+					tempsql = "  and ( (NodeAttr = 0 or NodeAttr=5) and CheckState in ( 0,"+temparr.toString()+") )";
+				}else{
+					tempsql = "  and ( (NodeAttr = 0 or NodeAttr=5) and CheckState = 0 )";
+				}
+				if(mySubmitArr.length>0){
+					mySubmitSql = "  NodeAttr = -2 and  CheckState in ( 0,"+mySubmitArr.toString()+")";
+					if(FlowKill.selected){
+						mySubmitSql  = "and ("+mySubmitSql+ " or (NodeAttr = -3 and  CheckState = 142 ))";
+					}else{
+						mySubmitSql  = "and "+ mySubmitSql  ;
+					} 
+				}else{
+					if(FlowKill.selected){
+						mySubmitSql  =" and    (NodeAttr = -3 and  CheckState = 142 )";
+					} else{
+						mySubmitSql  = " and  (NodeAttr = -3 and  CheckState = 0 )";
+					}
+				} 
+				var tempresultSql:String;
+				if(searchType.selection.id== "myFlowtodo")
+				{
+					tempresultSql = resultSql +tempsql;
+				}
+				else if(searchType.selection.id== "mySubmit")
+				{
+					tempresultSql = resultSql +mySubmitSql;
+				}
+				
+				
+				thisowner.HistoryListDG.WhereStr= tempresultSql;
+				thisowner.HistoryListDG.SortAD = "HandleDate Desc";
+				thisowner.HistoryListDG.CurPage=0;
+				thisowner.HistoryListDG.reloaddata(); 
+				setTimeout(closeMe,1000);
+			}
+			[Bindable]
+			private var myFlowtodoEnable:Boolean = true;
+			[Bindable]
+			private var mySubmitEnable:Boolean = false;
+			private function changeevent(event:Event):void{
+				if( Object(event.target).id =="myFlowtodo"){
+					mySubmitEnable = false;
+					myFlowtodoEnable = true;
+					
+					checking.selected = false;
+					checked.selected = false;
+					FlowOk.selected = false;
+					FlowKill.selected = false; 
+					
+					
+				}else if( Object(event.target).id =="mySubmit"){
+					mySubmitEnable = true;
+					myFlowtodoEnable = false;
+					noCheckCb.selected = false;
+					agreeCb.selected = false;
+					noagreeCb.selected = false;
+				}
+				
+			}
+			
+			private function InitGridList(event:Event):void
+			{
+				var grid:FieldSelect = event.currentTarget as FieldSelect;
+				grid.GridisPage=false;
+				grid.GridMuliSel = true;
+				var headerArr:Array=new Array(
+					["业务类型", "OprtTypeName", 150, "", FAppCoreUtil.fcString, ""]
+				);
+				grid.GridRemoteService = new FlowOprtTypeService();
+				grid.GridheaderArr=headerArr; //显示字段
+				grid.GridRemoteDest="GenericDestination"; //远程目标
+				grid.GridRemoteSource="Ccspm.FlowOprtTypeBLL"; //远程源
+				grid.GridRemoteOperation="GetPageData"; //远程获取数据方法
+				grid.GridRemoteGetAllCount="GetAllCount"; //远程获取记录数
+				grid.Formwidth=200; //下拉框宽度
+				grid.ShowFieldName="OprtTypeName"; //对应显示字段
+				grid.ValueFieldName="OprtTypeID"; //对应字段值
+				//快速搜索
+				grid.setNewQuickSearch();
+			}
+			
+			protected function searchType_changeHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				if (searchType.selection==myFlowtodo){
+					noCheckCb.selected=true;
+				}else if (searchType.selection==mySubmit){
+					checking.selected=true;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:RadioButtonGroup id="searchType" change="searchType_changeHandler(event)"/>
+	</fx:Declarations>
+	
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5" cornerRadius="3">
+			<s:VGroup width="100%" height="100%" gap="1" paddingBottom="5" paddingLeft="5"
+					  paddingRight="5" paddingTop="5">
+				<s:HGroup width="100%" height="25" horizontalAlign="left" verticalAlign="middle">
+					<s:Label width="110" height="23" text="标题" textAlign="center"
+							 verticalAlign="middle"/>
+					<s:TextInput id="txtTitle" width="100%" height="23"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" horizontalAlign="left" verticalAlign="middle">
+					<s:Label width="110" height="23" text="呈报者" textAlign="center"
+							 verticalAlign="middle"/>
+					<base1:UserSelectInput id="userSelect" width="100%" height="23">
+					</base1:UserSelectInput>
+					<s:Label width="65" height="23" text="业务类型" textAlign="center"
+							 verticalAlign="middle"/>
+					<fieldselect:FieldSelect id="txtType" width="100%" height="23"
+											 FieldSelInit="InitGridList(event)"
+											 isClearDataForCancel="true"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" horizontalAlign="left" verticalAlign="middle">
+					<s:Label width="110" height="23" text="业务项目/合同名称" textAlign="center"
+							 verticalAlign="middle"/>
+					<s:TextInput id="txtSuborBgnName" width="100%" height="23"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" horizontalAlign="left" verticalAlign="middle">
+					<s:Label width="110" height="23" text="业务客商名称" textAlign="center"
+							 verticalAlign="middle"/>
+					<s:TextInput id="txtCustoemrName" width="100%" height="23"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" horizontalAlign="left">
+					<s:Label width="110" height="23" text="接收时间从" textAlign="center"
+							 verticalAlign="middle"/>
+					<components:DateField id="fromtime" width="100%" height="23"
+										  DateChange="changeFromdate()" selectedDate="{fromDate}"/>
+					<s:Label width="65" height="23" text="至" textAlign="center"
+							 verticalAlign="middle"/>
+					<components:DateField id="totime" width="100%" height="23"
+										  DateChange="changeTodate()" selectedDate="{toDate}"/> 
+				</s:HGroup>
+				<s:HGroup width="100%" height="100%" horizontalAlign="center">
+					<s:Spacer width="110"/>
+					<s:VGroup id="myFlowtodoFormItem" x="6" width="110" height="100%">
+						<s:RadioButton id="myFlowtodo" label="我的审批" change="changeevent(event)"
+									   groupName="searchType" selected="true"/>
+						<s:CheckBox id="noCheckCb" label="需要处理的审批" enabled="{myFlowtodoEnable}"
+									selected="true"/>
+						<s:CheckBox id="agreeCb" label="已经同意的审批" enabled="{myFlowtodoEnable}"/>
+						<s:CheckBox id="noagreeCb" label="被我否决的审批" enabled="{myFlowtodoEnable}"/>
+					</s:VGroup>
+					<s:Spacer width="100"/>
+					<s:VGroup id="mySubmitFormItem" height="100%" width="110">
+						<s:RadioButton id="mySubmit" label="我的呈报" change="changeevent(event)"
+									   groupName="searchType"/>
+						<s:CheckBox id="checking" label="正在审批" enabled="{mySubmitEnable}"/>
+						<s:CheckBox id="checked" label="审批完成" enabled="{mySubmitEnable}"/>
+						<s:CheckBox id="FlowOk" label="流程完成" enabled="{mySubmitEnable}"/>
+						<s:CheckBox id="FlowKill" label="流程退回" enabled="{mySubmitEnable}"/>
+					</s:VGroup>
+				</s:HGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:Group>
+	<s:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<components:IconButton label="搜索" click="search();" styleName="btnQry"/>
+		</s:HGroup>
+	</s:controlBarContent>
+</s:TitleWindow>

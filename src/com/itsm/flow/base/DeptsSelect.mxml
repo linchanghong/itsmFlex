@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		   xmlns:s="library://ns.adobe.com/flex/spark"
+		   xmlns:mx="library://ns.adobe.com/flex/mx"
+		   width="100%" height="100%" creationComplete="InitData()">
+
+	<!-- 声明本组件将抛出的事件 -->
+	<fx:Metadata>
+	[Event(name="SetSelDeptsData",type="flash.events.Event")]
+	[Event(name="DoubleSelDeptsData",type="flash.events.Event")]
+	</fx:Metadata>
+  
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.joshtynjala.controls.treeMapClasses.treemap_internal;
+			import com.services.IService;
+			import com.services.base.CusDepartmentService;
+			
+			import common.components.CheckTree;
+			import common.utils.ArrayToXML;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.events.TreeEvent;
+			import mx.rpc.AbstractOperation;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.remoting.mxml.RemoteObject; 
+		
+			[Bindable]
+            public var  selectedNode:XML;
+            public var  Check:Boolean = true;
+			public var  RoleSelDepts:String;     							//角色对应已经选择的部门
+			public var  AllOrEffective:Boolean = false;
+            public var DeptData:ArrayCollection;  
+                                     //部门目录数据
+			private var DeptService:RemoteObject;                           //部门目录树远程对象
+			private var DeptMethods:AbstractOperation;                      //得到部门数据源方法
+			private var XmlData:XML; 
+			
+			private var isLoad:Boolean=true;
+			private var HasSelDepts:String="";
+			 
+		    private var FAppCore:GlobalUtil=GlobalUtil.getInstence();   
+			
+			private var _SelDepts:String;
+		    public 	var _WhereStr:String=""; //设置部门条件
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			[Bindable]
+			public function get SelDepts():String
+			{
+				_SelDepts = GetSelDeptsStr();
+				return _SelDepts;
+			}
+ 
+			public function set SelDepts(value:String):void
+			{
+				_SelDepts = value;
+				LoadSelDepts(_SelDepts);
+			}
+
+			public function InitData():void
+			{
+				if (Check)
+				{
+					DeptTree.itemRenderer = switchCustomItem("CheckBox");
+				}
+				var argt:Object = new Object();
+					//var strWhere:String=" CompId="+FAppCore.FCusUser.CompId.toString();
+				
+				//var strWhere:String="org_id='"+FAppCore.FCusUser.CompId+"' or company_id='"+FAppCore.FCusUser.CompId+"'";
+					
+				var strWhere:String=FAppCore.FCusUser.CompId;
+				
+				if(_WhereStr.length>0)
+					strWhere =_WhereStr;
+					
+				argt = [strWhere,"org_code asc"];
+				var MethodStr:String;
+				if (AllOrEffective)
+					MethodStr = "GetAll";
+				else
+					MethodStr = "GetAllEffective";
+				var RemoteService:IService = new CusDepartmentService("flowData", "FlowData");
+				var func:Function = RemoteService[MethodStr];
+				func.apply(null, argt).addResultListener(receivedDeptRecords); 
+				/* sDataDeal.DataDeal_QueryToData("GenericDestination","Ccspm.CusDepartmentBLL",MethodStr,argt);
+				sDataDeal.RemoteMethods.addEventListener(ResultEvent.RESULT, receivedDeptRecords); */
+			}
+			
+			
+			
+			private function switchCustomItem(itemtype:String):ClassFactory
+		    {
+			 	// 判断内置单元格的组成，目前有CheckBox ，TextInput，Radio，以及默认的label
+			 	var inClass:ClassFactory;
+			 	switch(itemtype)
+			 	{
+			 		case   "CheckBox":  
+			 		{
+			 			inClass = new ClassFactory(CheckTree);
+			 			//inClass.
+			 			break;
+			 		}
+			 		case   "Label": inClass = new ClassFactory(mx.controls.Label) ;break;
+			 	}
+			 	return inClass;
+			 }
+
+			
+/* 			            //出错显示
+			public function gotError( fault:FaultEvent ):void
+			{
+				Alert.show("服务器错误：" + fault.fault.faultString, "提示" ); 
+			}
+ */
+			//远程值返回，当页数据
+			public function receivedDeptRecords( result:ResultEvent ):void
+			{
+				
+				//DeptData = new ArrayCollection( result.result as Array );
+				var json:String = result.result as String;
+				var obj:Object = JSON.parse(json);
+				DeptData = new ArrayCollection(obj as Array);
+				if (DeptData.length == 0) return;
+				var xml:ArrayToXML = new ArrayToXML();
+				//XmlData = xml.ArrayToTreeXmlData(DeptData,"LevelCode","DeptName","DeptId",Check,true);
+				var compid:String = "";
+				if(appCore.loginUser.isAdmin==0 || appCore.loginUser.isAdmin==1){
+					compid=appCore.loginUser.companyId;
+				}
+				XmlData = xml.transformToTree(compid, DeptData, "orgName", "id", Check);
+				//DeptTree.labelField  = "DeptName";
+//				trace(XmlData);
+				DeptTree.dataProvider = XmlData
+				//展开所有节点
+				DeptTree.validateNow();
+				DeptTree.expandChildrenOf(XmlData.node[0],true);
+				if (!isLoad){
+					LoadSelDepts(HasSelDepts);
+					isLoad = true;
+				}
+			}
+			
+			//提供装载进被选中部门ID字符串如"12,15,18"
+			public function LoadSelDepts(HasSelDepts:String):void
+			{
+				 /* if (HasSelDepts == "" || HasSelDepts == null)
+					return;  */
+				if (HasSelDepts == null) HasSelDepts="";
+				var xml:ArrayToXML = new ArrayToXML();
+				/* if (XmlData==null) setTimeout(Load,1000);
+				else Load();
+				function Load():void{ */
+				if (XmlData==null) {
+					isLoad = false;
+					this.HasSelDepts = HasSelDepts;
+					return;
+				}
+				xml.SelCheck(XmlData,HasSelDepts,"id");
+				DeptTree.dataProvider = XmlData;
+				//展开所有节点
+				DeptTree.validateNow();
+				DeptTree.expandChildrenOf(XmlData.node[0],true);
+				
+			}
+			
+			public function GetSelDeptsStr():String
+			{
+				var xml:ArrayToXML = new ArrayToXML();
+				var DeptsStr:String = xml.GetDeptsSel(XmlData,"id");
+				return DeptsStr;
+			}
+
+			public function GetSelDeptsNameStr():String
+			{
+				var xml:ArrayToXML = new ArrayToXML();
+				var DeptsNameStr:String = xml.GetDeptsSel(XmlData,"orgName");
+				return DeptsNameStr;
+			}
+
+            public function itemclick(event:Event):void 
+            {
+                selectedNode=Tree(event.target).selectedItem as XML;
+ 			    var event:Event = new Event("SetSelDeptsData");
+			    dispatchEvent(event);
+             }
+ 
+            public function dbclick(event:Event):void 
+            {
+                selectedNode=Tree(event.target).selectedItem as XML;
+ 			    var event:Event = new Event("DoubleSelDeptsData");
+			    dispatchEvent(event);
+             }
+ 			
+			
+		]]>
+	</fx:Script>
+			
+	<mx:Tree id="DeptTree" width="100%" height="100%" doubleClickEnabled="true" fontSize="12"
+			 itemClick="itemclick(event)" itemDoubleClick="dbclick(event)" labelField="@orgName"
+			 showRoot="false"></mx:Tree>
+	
+</s:Group>

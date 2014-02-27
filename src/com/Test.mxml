@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:launch="com.itsm.flow.base.launch.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:base="com.itsm.sys.base.*"
+		  xmlns:person="com.itsm.common.selectwindow.person.*"
+		  width="100%" height="100%" 
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:control="com.framelib.control.*"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  xmlns:base1="com.hr.psn.ryhmc.mxml.base.*" 
+		  xmlns:dept="com.itsm.common.selectwindow.dept.*" 
+		  xmlns:company="com.itsm.common.selectwindow.company.*" 
+		  xmlns:post="com.itsm.common.selectwindow.post.*" 
+		  xmlns:trainingCost="com.itsm.common.selectwindow.trainingCost.*">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[ 
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			
+			import org.hamcrest.text.StringContainsMatcher;
+			
+			import spark.components.TitleWindow;
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				var ac:ArrayCollection = new ArrayCollection();
+				for(var i:int=0; i<2; i++){
+					var obj:Object = new Object();
+					obj.userName = "jiang"+i;
+					obj.userCode ="wei"+i;
+					obj.isSelected = true;
+					ac.addItem(obj);
+				}
+				userManager_wfpDataGrid.dataProvider = ac;
+			}
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				var s:String = "新建子集信息先保存个人信息，是否保存?";
+				TAlert.show(s.length+" "+s);
+//				TAlert.show("新建子集信息先保存个人信息，是否保存?","提示", TAlert.YES | TAlert.NO, null, function(aEvent:CloseEvent):void
+//				{
+//					if(aEvent.detail==TAlert.YES){
+//						TAlert.show("YES");
+//					}else{
+//						return;
+//					}
+//					
+//				});
+			}
+			
+		]]>
+	</fx:Script>
+	<s:VGroup width="100%" height="100%">
+		
+		<s:Button label="查询" click="button1_clickHandler(event)"/>
+		<custom:CustomDataGrid id="userManager_wfpDataGrid" width="100%" height="100%"
+							   textAlign="center" isPaging="true" isCheckBox="true"
+							   isControlColumns="true" isRowNum="true">
+			<custom:columns>
+				<mx:DataGridColumn dataField="userName" headerText="用户名"/>
+				<mx:DataGridColumn dataField="userCode" headerText="登录账号" />
+			</custom:columns>
+		</custom:CustomDataGrid>
+	</s:VGroup>
+</s:Module>

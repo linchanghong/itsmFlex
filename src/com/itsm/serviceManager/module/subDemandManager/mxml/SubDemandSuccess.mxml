@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  xmlns:validator="com.itsm.serviceManager.module.bugManager.code.*"
+		  creationComplete="initSubDemandInfo(event)"
+		  width="100%" height="100%">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			import mx.rpc.events.ResultEvent;
+			
+			//流程挂载页面必需属性--用于存储业务id
+			[Bindable]
+			public var billId:String;
+			//流程模型
+			public var oprtTypeId:String;
+			//子需求单
+			[Bindable]
+			public var subDemandObj:Object;
+			//主需求业务单对象
+			[Bindable]
+			public var userApply:Object;
+			//子需求单的id
+			[Bindable]
+			public var subDemandID:String = "";
+			//子需求单业务存储表格
+			[Bindable]
+			public var subDemandTableName:String = "T_DEMANDS_PART";
+			
+			/**页面信息初始化*/
+			private function initSubDemandInfo(event:Event):void{
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","showSubDemandByID",
+					[billId], loadSubDemandInfo);
+			}
+			/**加载子需求单后处理数据*/
+			private function loadSubDemandInfo(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj != "0"){
+					subDemandID = billId;
+					fileGrid.refreshData();
+					subDemandObj = obj;
+				}
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","showDemand4FlowByID",
+					[subDemandObj.userApplyId], loadDemand4FlowInfoInfo);
+			}
+			/**初始化处理方法查询请求单后返回数据处理方法*/
+			private function loadDemand4FlowInfoInfo(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj != "0")
+					userApply = obj;
+				//加载该需求单的流程进度记录
+				AppHistoryGrid.gridMain.OnlyInit();
+				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Group width="100%" height="100%">
+		<s:Scroller width="100%" height="100%">
+			<s:VGroup left="1" right="1" top="1" bottom="1" width="100%" height="100%"
+					  horizontalAlign="center" paddingBottom="1" paddingLeft="1" paddingRight="1"
+					  paddingTop="1">
+				
+				<s:VGroup width="100%" height="100%" minHeight="700">
+					<s:VGroup id="topInfoP" width="100%" height="24%">
+						<s:HGroup width="100%" height="25">
+							<s:Label width="10%" height="100%" text="开发经理：" textAlign="right"/>
+							<s:TextInput id="developmentManagerInput"
+										 width="20%" height="100%" editable="false"
+										 text="{userApply!=null?userApply.developManager.userName:''}"
+										 textAlign="left"/>
+							
+							<s:Label width="10%" height="100%" text="计划完成时间："
+									 textAlign="right"/>
+							<s:TextInput width="20%" height="100%" editable="false"
+										 text="{userApply!=null?userApply.planFinishTime:''}"
+										 textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="10%" height="100%" text="子需求单总数："
+									 textAlign="right"/>
+							<s:TextInput id="subDemandCount" width="20%" height="100%"
+										 editable="false"
+										 text="{userApply!=null?userApply.subDemandCount+'':'0'}"/>
+							<s:Label width="10%" height="100%" text="子需求单完成数："
+									 textAlign="right"/>
+							<s:TextInput id="subDemandFinishedCount" width="20%"
+										 height="100%" editable="false"
+										 text="{subDemandCount.text!='0'?userApply.subDemandCompletedCount+'':'0'}"/>
+							<s:Label width="10%" height="100%" text="子需求单剩余数："
+									 textAlign="right"/>
+							<s:TextInput id="subDemandRemainingCount" width="20%"
+										 height="100%" editable="false"
+										 text="{subDemandCount.text=='0'?'0':userApply.subDemandCount-userApply.subDemandCompletedCount}"/>
+						</s:HGroup>
+					</s:VGroup>
+					
+					<s:VGroup id="centerInfoP" width="100%" height="50%">
+						<s:HGroup width="100%" height="25">
+							<s:Label width="20%" text="需求人员：" textAlign="right"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.analyst.userName : ''}" textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="重要程度："
+											   textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.urgent.replyLevelName : ''}" textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="影响范围："	
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.range.constDetailName : ''}" textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="20%" height="100%" text="所属系统："
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj.belongsSystem.systemName}" textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="所属业务："
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj.belongsBusiness.moduleName}" textAlign="left"/>
+							
+							<control:FormLabel width="20%" height="100%" label="预计需求分析完成时间：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.planAnalysisDate : ''}" textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<control:FormLabel width="20%" height="100%" label="预计开发完成时间：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.planDevelopDate : ''}" textAlign="left"/>
+							
+							<control:FormLabel width="20%" height="100%" label="预计单元测试完成时间：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.planUtestDate : ''}" textAlign="left"/>
+							
+							<control:FormLabel width="20%" height="100%" label="预计功能测试完成时间：" required="true"
+											   textAlign="right" verticalAlign="middle"/>
+							<s:TextInput width="25%" height="100%" editable="false"
+										 text="{subDemandObj != null ? subDemandObj.planFtestDate : ''}" textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">					
+							<s:Label width="20%" height="100%" text="实际开发完成时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="realDevelopDate" 
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.realDevelopDate : '')}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="实际单元测试完成时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="realUtestDate"
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.realUtestDate : '')}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="实际需求分析完成时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="realAnalysisDate"
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.realAnalysisDate : '')}" 
+										 textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25" >
+							<s:Label width="20%" height="100%" text="子需求发起时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="initDate"
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.initDate : '')}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="进入流程时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="assignedDate"
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.assignedDate : '')}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" height="100%" text="实际功能测试完成时间：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="realFtestDate" 
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{BugUtil.formateDate(subDemandObj != null ? subDemandObj.realFtestDate : '')}" 
+										 textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							
+							<s:Label width="20%" text="需求发起人：" textAlign="right"/>
+							<s:TextInput id="sponsor" 
+										 width="25%" height="100%"
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.sponsor.userName : ''}"  
+										 textAlign="left"/>
+							
+							<s:Label width="20%" text="开发经理：" textAlign="right"/>
+							<s:TextInput id="developManager" 
+										 width="25%" height="100%"
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.developManager.userName : ''}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" text="开发人员：" textAlign="right"/>
+							<s:TextInput id="developer" 
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.developer.userName : ''}"  
+										 textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="20%" text="单元测试人员：" textAlign="right"/>
+							<s:TextInput id="unitTester" 
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.unitTester.userName : ''}" 
+										 textAlign="left"/>
+							
+							<s:Label width="20%" text="功能测试人员：" textAlign="right"/>
+							<s:TextInput id="funcTester" 
+										 width="25%" height="100%"
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.funcTester.userName : ''}"
+										 textAlign="left"/>
+							
+							<s:Label width="20%" text="需求状态：" 
+									 textAlign="right" verticalAlign="middle"/>
+							<s:TextInput id="status" 
+										 width="25%" height="100%" 
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.status : ''}" 
+										 textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<control:FormLabel width="14.5%" height="100%" label="主题摘要：" required="true"/>
+							<s:TextInput id="demandTitle" 
+										 width="85.5%" height="100%" 
+										 editable="false"
+										 text="{subDemandObj != null ? subDemandObj.demandTitle : ''}" 
+										 textAlign="left"/>
+						</s:HGroup>
+					</s:VGroup>
+					
+					<s:VGroup id="bottomInfoP" width="100%" height="49%">
+						<mx:TabNavigator id="infoList" width="100%" height="100%"
+										 focusColor="#58F0C0" selectedIndex="0">
+							
+							<s:NavigatorContent id="bugDirBtn" width="100%" height="100%" label="需求描述">
+								<s:TextArea id="directions" 
+											left="10" right="10" top="0" bottom="10"
+											editable="false"
+											text="{subDemandObj != null ? subDemandObj.directions : ''}"
+											textAlign="left"
+											verticalAlign="middle"/>
+							</s:NavigatorContent>
+							
+							<s:NavigatorContent id="docBtn" width="100%" height="100%" label="文档附件">
+								<s:VGroup left="10" right="10" bottom="10" height="100%">
+									<container:GroupBox width="100%" height="100%" title="附件">
+										<mxml:UploadDocumentsInfo id="fileGrid" width="100%"
+																  height="100%"
+																  busDataId="{subDemandID}"
+																  busTableName="{subDemandTableName}"
+																  attachMentsArr="{subDemandObj.attachments}"/>
+									</container:GroupBox>
+								</s:VGroup>
+							</s:NavigatorContent>
+							
+						</mx:TabNavigator>
+					</s:VGroup>
+					<container:GroupBox width="100%" height="100%" title="客户需求单进度">
+						<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="100%"/>
+					</container:GroupBox>
+				</s:VGroup>
+				
+			</s:VGroup>
+		</s:Scroller>
+	</s:Group>
+</s:Module>

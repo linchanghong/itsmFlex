@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					width="100%" height="100%" creationComplete="init();" 
+					implements="com.itsm.common.as3.IModules"
+					xmlns:components="common.components.*">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.services.flow.FlowNodeInstenceService;
+			import com.vo.FlowNodeInstence;
+			
+			import common.managers.ModuleManger;
+			
+			import mx.controls.Label;
+			import mx.core.Application;
+			import mx.core.Container;
+			import mx.core.FlexGlobals;
+			import mx.rpc.events.ResultEvent;
+			
+			private var flowObj:*=null;
+			
+			[Bindable]
+			public var flowNodeInstence:Object = new FlowNodeInstence();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			public function setWindowObj(obj:Object):void{
+				this.flowNodeInstence = obj;
+			}
+			
+			private function closeme():void{
+				flowNodeInstence.checkState = 145;
+				var service:FlowNodeInstenceService = new FlowNodeInstenceService("flowGlobal", "FlowGlobal");
+				service.sendFlowTodo(flowNodeInstence,null,null).addResultListener(sendFlowTodoOk);
+				/* sDataDeal.DataDeal_QueryToData("GenericDestination", "Ccspm.FlowNodeInstenceBLL", "sendFlowTodo", [flowNodeInstence]);
+				sDataDeal.RemoteMethods.addEventListener(ResultEvent.RESULT, sendFlowTodoOk);	 */		
+			}
+			private function init():void
+			{			
+				var billid:Number=flowNodeInstence.billId;
+				if (billid==0){
+					FAppCore.sendSysInfo("未找到数据，请检查");
+					return;
+				}
+				var FISAfterFlowCommit:Boolean = false;
+				DealWithIdea.text =  "你的流程（"+ flowNodeInstence.flowTitle + "）已获得：" + flowNodeInstence.dealWithIdea;
+				var defineClass:Class=ModuleManger.getClass(flowNodeInstence.flowOprtModuleUrl);
+				if (defineClass==null) return;
+				var displayobj:* = new defineClass();
+				this.flowObj=displayobj;
+				//var displayobj:Container = FlowLoadPage.createFlowTodoPage(flowNodeInstence.ModuleCode.toString(), flowNodeInstence.BillId, FISAfterFlowCommit);
+				if(displayobj !=null){
+					if (flowNodeInstence){
+						if (displayobj.hasOwnProperty("FISAfterFlowCommit")) displayobj["FISAfterFlowCommit"]=true;
+						if (displayobj.hasOwnProperty("billId")) displayobj["billId"]=flowNodeInstence.billId;
+						if (displayobj.hasOwnProperty("FlowingFlag")) displayobj["FlowingFlag"]=flowNodeInstence.cpsFlowOprtModuleId;
+						if (displayobj.hasOwnProperty("oprtTypeId")) displayobj["oprtTypeId"]=flowNodeInstence.oprtTypeId;
+						//JMS
+						if (flowNodeInstence.systemId==2){
+							displayobj.initilize(flowNodeInstence.billId.toString());
+						}
+					}
+					BillContainer.addElement(displayobj);
+				}else{
+					var errorlabel:Label = new Label();
+					errorlabel.percentWidth = 100;
+					errorlabel.text = "没有此模块的页面，"; 
+					errorlabel.setStyle("textAlign","center");
+					BillContainer.addElement(errorlabel);
+				}
+			}
+			
+			private function sendFlowTodoOk(event:ResultEvent):void
+			{
+				/*  if(Application.application.FAppCore.FUrlParams.FlowInsId!=null) return;
+				Application.application.reloadFlowtodoData(this.name,this.label,true);
+				Application.application.FAppCore.sendSysInfo("流程审批完成"); */
+				var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this);
+				FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+				
+				this.flowObj.flowResult();
+				FAppCore.showInfotoLeftLowerCorner("流程审批完成");
+			}
+			
+		]]>
+	</fx:Script>
+	<s:BorderContainer width="100%" height="45">
+		<s:layout>
+			<s:HorizontalLayout verticalAlign="middle" paddingLeft="5" paddingTop="5" paddingRight="5" paddingBottom="5"/>
+		</s:layout>
+		<s:TextArea id="DealWithIdea" left="10" right="10" top="10" width="100%" height="80%"
+					editable="false" textAlign="left"/>
+		<components:IconButton bottom="0" label="确定" click="closeme();" horizontalCenter="0" styleName="submit"/>
+		
+	</s:BorderContainer>
+	<s:Group top="45" bottom="0"  width="100%" >
+		<s:BorderContainer left="5" right="5" bottom="5" top="5" id="BillContainer" height="100%" width="100%" borderVisible="false"
+						   cornerRadius="8" horizontalCenter="0">
+		</s:BorderContainer>
+	</s:Group>
+</s:Module>

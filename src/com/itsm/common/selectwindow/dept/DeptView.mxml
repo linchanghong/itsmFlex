@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009"  
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:mx="library://ns.adobe.com/flex/mx" title="选择部门" xmlns:container="com.framelib.container.*" width="350" height="300" creationComplete="init()" xmlns:mxml="com.itsm.common.mxml.*" >
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			private var appCore:AppCore = AppCore.getInstance();
+			public var sc:SelectDept;    //选择框组件对象；
+			
+			//确定选择
+			protected function btnEnter_clickHandler():void
+			{	
+				if(treeDept.selectedItem!=null){	
+					var orgParent:Object = treeDept.getParentItem(treeDept.selectedItem) as Object;
+					sc.dept=treeDept.selectedItem;
+					if(orgParent != null){
+						sc.dept.parentDeptName = orgParent.deptname;
+					}else{
+						sc.dept.parentDeptName = appCore.loginUser.companyId;
+					}
+					sc.txtDeptName.text=sc.dept.deptname;
+					btnCancel_clickHandler();
+					sc.dispatchEvent(new Event("SelectChange"));
+				}
+			}
+			
+			//取消选择
+			protected function btnCancel_clickHandler():void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			
+			//加载公司
+			private function init():void{			
+				var compId:String=null; 	//取得公司id
+				if(appCore.loginUser.isAdmin==0 || appCore.loginUser.isAdmin==1){  //0为普通用户 ，1为省公司管理员，2 为系统设置管理权限
+				   compId=appCore.loginUser.companyId;
+				   appCore.dataDeal.dataRemote("selectCompanyAPI","SelectCompanyAPI","getAllDeptInfo",[compId,"inner_Code asc"]);
+				   appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, bindCompanyData);
+				}				     
+			}
+			
+			private function bindCompanyData(event:ResultEvent):void{
+				var dept:String =event.result as String					
+				treeDept.dataProvider=new JSONDecoder().decode(dept);
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mxml:TreeFm   doubleClick="btnEnter_clickHandler()" doubleClickEnabled="true"  labelField="deptname" width="100%" height="100%" id="treeDept" idFiled="deptId" parentIdFiled="parentDept" />
+	
+	<container:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right" verticalAlign="contentJustify">
+			<s:Button id="btnEnter" label="确定" click="btnEnter_clickHandler()"
+						  icon="@Embed(source='assets/img/icon/sure.png')"/>
+			<s:Button id="btnCancel" label="取消" click="btnCancel_clickHandler()"
+						  icon="@Embed(source='assets/img/icon/cancel.png')"/>			
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

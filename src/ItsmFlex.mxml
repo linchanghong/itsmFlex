@@ -1,0 +1,1350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:c="http://www.c.sccl.com"
+			   xmlns:mccune="com.dougmccune.controls.*"
+			   xmlns:divider="com.framelib.container.divider.*"
+			   xmlns:controls="flexlib.controls.*"
+			   xmlns:containers="flexlib.containers.*"
+			   xmlns:control="com.framelib.control.*"
+			   minWidth="1024" minHeight="600"
+			   creationComplete="application1_creationCompleteHandler(event)" pageTitle="IT服务支撑平台"
+			   preinitialize="systemInit()" preloader="com.itsm.common.utils.PreLoader"
+			   viewSourceURL="srcview/index.html">
+	
+	<s:states>
+		<s:State name="login"/>
+		<s:State name="autoLogin"/>
+		<s:State enterState="stateEnter()" name="content"/>
+		<!--<s:State enterState="stateContentMain()" name="content_main"/>-->
+	</s:states>
+	
+	<fx:Style source="assets/css/default.css"/>
+	<fx:Style>
+		.aaa{
+			rollOverEffect: glowImage;
+			rollOutEffect: unglowImage;
+		}
+	</fx:Style>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<mx:Glow id="glowImage" alphaFrom="0" alphaTo="1.0" blurXFrom="0.0" blurXTo="10.0"
+				 blurYFrom="0.0" blurYTo="10.0" color="0xFFFFFF" duration="800" repeatCount="0"
+				 strength="4"/>
+		<mx:Glow id="unglowImage" alphaFrom="1.0" alphaTo="0" blurXFrom="10.0" blurXTo="0.0"
+				 blurYFrom="10.0" blurYTo="0.0" color="0xFFFFFF" duration="10"/>    
+		
+		<mx:Resize id="closeNavContainer" duration="400"
+				   effectEnd="closeNavContainer_effectEndHandler(event)" targets="{[leftVGroup]}"
+				   widthTo="0"/>
+		<mx:Resize id="openNavContainer" duration="400"
+				   effectEnd="openNavContainer_effectEndHandler(event)"
+				   effectStart="openNavContainer_effectStartHandler(event)" targets="{[leftVGroup]}"
+				   widthTo="180"/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.event.PopEvent;
+			import com.itsm.common.mxml.CustomMenuTree;
+			import com.itsm.common.mxml.LoadingAlert;
+			import com.itsm.common.mxml.PasswordChange;
+			import com.itsm.common.renders.MenusItemRender;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.base.ComApproveHistory;
+			import com.itsm.flow.base.launch.FlowMessageWindow;
+			import com.itsm.flow.base.launch.FlowTodoWindow;
+			import com.itsm.flow.events.FlowAdvancedatagridEvent;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.flow.events.ViewFlowEvent;
+			import com.framelib.container.divider.ButtonClickEvent;
+			import com.framelib.events.MenuClickEvent;
+			import com.framelib.utils.StaticMethods;
+			import com.framelib.utils.UserBehave;
+			import com.joshtynjala.events.BurningBitmapTileEvent;
+			import com.vo.CusUsers;
+			
+			import common.events.ModuleLoaderEvent;
+			import common.managers.ModuleManger;
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.containers.Accordion;
+			import mx.controls.Tree;
+			import mx.core.FlexGlobals;
+			import mx.core.IVisualElement;
+			import mx.events.DividerEvent;
+			import mx.events.DragEvent;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ModuleEvent;
+			import mx.formatters.DateFormatter;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectProxy;
+			import mx.utils.URLUtil;
+			import mx.utils.object_proxy;
+			
+			import rich.controls.tabBarClasses.SuperTab;
+			import rich.events.SuperTabEvent;
+			
+			import spark.components.Button;
+			import spark.components.NavigatorContent;
+			import spark.events.IndexChangeEvent;
+			import spark.events.TextOperationEvent;
+			import spark.layouts.VerticalLayout;
+			import spark.modules.Module;
+			import spark.modules.ModuleLoader;
+			
+			
+			[Bindable]
+			public var navContainerIsVisable:Boolean = true;
+			private var usersDataShareObj:SharedObject;//共享数据
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			public var df:DateFormatter; //日期格式
+			
+			[Embed(source="assets/img/icon/home.png")]
+			private var home_icon:Class;
+			[Embed(source="assets/img/tab/tab_icon.png")]
+			private var tab_icon:Class;
+			private var isFullScreen:Boolean=false;
+			public var rights:String = "";
+			
+			//自动登录的cookie值
+			private var ltpaToken:String;
+			
+			/** 大菜单数组 , dock菜单的数据源*/
+			[Bindable]
+			public var mainMenuArr:Array = new Array();
+			
+			[Bindable]
+			public var isAdmin:Boolean = false;
+			
+			[Embed(source="assets/img/bar/btnbglong.png")]
+			private var overIcon:Class;
+			
+			public var menuSelecdResult:Function = null;
+			/**
+			 * 系统初始化
+			 * */
+			private function systemInit():void
+			{
+				//在用户本地存放登录过的用户名，以便在登录的下拉列表中给予选择。
+				usersDataShareObj = SharedObject.getLocal("Users"); 
+				
+				Security.allowDomain("*");  
+				currentState = parameters.ltpaToken == null || parameters.ltpaToken == ""?'login':'autoLogin';
+			}
+			
+			protected function application1_creationCompleteHandler(event:FlexEvent):void
+			{
+				df = new DateFormatter();
+				df.formatString = "YYYY年M月D日";
+				
+				//为什么要隔一秒再调用？是FlexGlobals.topLevelApplication.loaderInfo还没准备好？
+				setTimeout(function ():void{getLoaderInfo();},1000,null);
+				
+				//监听大菜单点击事件
+				this.addEventListener(BurningBitmapTileEvent.BURNING_ICON_CLICK, burningIconClickHandler)
+			}
+			
+			private function burningIconClickHandler(event:BurningBitmapTileEvent):void
+			{
+				if(fisheye.selectedIndex > 0) {
+					mainMenuBar.selectedIndex = fisheye.selectedIndex - 1; 
+					
+					main_loader.visible = false;
+					main_loader.includeInLayout = false;
+					
+					navContainer.visible = true;
+					navContainer.includeInLayout = true;
+					navContainer.validateDisplayList();
+					
+					if(leftVGroup.width < 180) {
+						openNavContainer.play();
+						navContainerIsVisable=true;
+					}
+				} else if(fisheye.selectedIndex != -1) {
+					navContainer.visible = false;
+					navContainer.includeInLayout = false;
+					
+					main_loader.visible = true;
+					main_loader.includeInLayout = true;
+				}
+			}
+			
+			//获得登录信息
+			private function getLoaderInfo():void
+			{
+				appCore.appConfig.configs.fWebServerURL = "http://"+URLUtil.getServerNameWithPort(FlexGlobals.topLevelApplication.loaderInfo.url)+"/"+appCore.appConfig.configs.webAppName;
+				appCore.appConfig.configs.fWebChannelSet = appCore.appConfig.configs.fWebServerURL+"/messagebroker/amf";
+				
+				//读取数据库常量信息
+				appCore.readConstSetData();
+				
+				/* 从其它站点自动登录  */
+				if(currentState == "autoLogin") {
+					ltpaToken = parameters.ltpaToken;
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","autoLogin",[ltpaToken, appCore.appConfig.configs.ltpa3DESKey, appCore.appConfig.configs.ltpaPassword]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,autoLoginHandler);
+				}
+			}
+			
+			private function autoLoginHandler(event:ResultEvent):void
+			{
+				if(event.result != null) {
+					var reStr:String = event.result.toString();
+					if(reStr.substr(0,5) != "reMsg") {
+						var tmpArr:Array = reStr.split(",");
+						if(tmpArr.length != 2) {
+							currentState = "login";
+							txt_loginInfo.text = "自动登录失败，请手动登录";
+						}
+						
+						txt_userName.text = tmpArr[0];
+						txt_passWord.text = tmpArr[1];
+						
+						checkAndLoadData();
+					} else {
+						currentState = "login";
+						txt_loginInfo.text = reStr.substring(6);
+					}
+				}
+			}
+			
+			/**
+			 * 每次进入  content  状态时，加载个人主页。
+			 * */
+			private function stateEnter():void
+			{
+				createMenus();
+				
+				navContainer.visible = false;
+				navContainer.includeInLayout = false;
+				
+				main_loader.visible = true;
+				main_loader.includeInLayout = true;
+				main_loader.dispatchEvent(new FlexEvent(FlexEvent.SHOW));
+				
+				// 个人主页 选项卡一开始就有，并且不能关闭。
+				addTab("主页", "mainTab", "com/itsm/sys/HomePage", "", home_icon);
+				
+				callLater(initNonClosableTab);
+			}
+			
+			private function setInitialIndex(value:Object):void 
+			{
+				fisheye.selectedItem = value;
+			}
+			
+			protected function nav_tabCloseHandler(event:SuperTabEvent):void
+			{
+				var navigatorContent:NavigatorContent = nav.getChildAt(event.tabIndex) as NavigatorContent;
+				var element:IVisualElement=navigatorContent.getElementAt(0);
+				
+				if(element is ModuleLoader) {
+					(element as ModuleLoader).unloadModule();
+					callLater(invalidateNav);
+				}
+			}
+			
+			/**
+			 * 卸载 所有module  及  菜单
+			 * */
+			private function unLoaderAll():void
+			{
+				if(nav != null) {
+					for each (var nvc:NavigatorContent in nav.getChildren()) {
+						
+						var element:IVisualElement=nvc.getElementAt(0);
+						
+						if(element is ModuleLoader) {
+							(element as ModuleLoader).unloadModule();
+						}else{
+							nav.removeChild(nvc);
+						}
+						
+						//(nvc.getElementAt(0) as ModuleLoader).unloadModule();
+					}
+					
+					nav.removeAll();
+					callLater(invalidateNav);
+				}
+				
+				myViewStack.removeAll();
+			}
+			
+			private function initNonClosableTab():void
+			{
+				//设置第一个选项卡  --个人主页-- 不能关闭
+				nav.setClosePolicyForTab(0, SuperTab.CLOSE_NEVER);
+			}
+			
+			private function invalidateNav():void
+			{
+				nav.invalidateDisplayList();
+			}
+			
+			protected function menuClick_Handler(event:MenuClickEvent):void
+			{
+				// 改变list选项时，添加选项卡
+				addTab(event.menuLabel, event.menuClazz, event.menuClazz, event.menuId);
+				
+				//点击打开模块时，关闭左边菜单栏
+				//closeNavContainer.play();
+				//navContainerIsVisable = false;
+			}
+			
+			/**
+			 *添加选项卡函数
+			 * <p>如果预添加项已经打开，直接选择；最多同时打开6个选项卡，否则提示用户。</p>
+			 * 
+			 * @param label 选项卡 显卡的标题
+			 * @param name 选项卡 具有唯一性的名字，可以是 list的id加上选中项的index。
+			 * @param group 选项卡 的内容，一个UIComponent的子类，建议是Group类。
+			 * @param nav 选项卡 
+			 * @param icon 选项卡 显卡的标题旁边的图标
+			 * */
+			private function addTab(label:String,name:String, moduleUrl:String, ids:String, icon:Class=null):void
+			{
+				if (label == null || label == "") {
+					label = "(Untitled)";
+				}
+				
+				//如果已经打开，直接选择
+				//每一个NavigatorContent都取个名字，list的id加上选中项的index
+				if(nav.getChildByName(name)) {
+					nav.selectedIndex = nav.getChildIndex(nav.getChildByName(name));
+				} else { 
+					
+					UserBehave.MENU = label;
+					if(ids != "") {
+						UserBehave.IDS = ids;
+					}
+					
+					//最多同时打开7个tab
+					if(nav.numChildren>6) {
+						TAlert.show("最多只能同时打开7个模块，请先关闭至少一个。","提示");
+						return;
+					}
+					
+					var navContent:NavigatorContent = new NavigatorContent();
+					navContent.setStyle("closable", true);
+					navContent.label = label;
+					navContent.name = name;
+					navContent.percentHeight = 100;
+					navContent.percentWidth = 100;
+					if(icon) {
+						navContent.icon = icon;
+					} else {
+						navContent.icon = tab_icon;
+					}
+					
+					var mLoader:ModuleLoader = new ModuleLoader();
+					mLoader.top = 5;
+					mLoader.left = 5;
+					mLoader.right = 5;
+					mLoader.bottom = 5;
+					
+					//显示"正在加载....." 信息
+					var loadingAlert:LoadingAlert = new LoadingAlert();
+					//loadingAlert.loadingText = "正在加载......";
+					mLoader.addElementAt(loadingAlert,0);
+					
+					navContent.addElement(mLoader);
+					nav.addChildAt(navContent,nav.numChildren);
+					nav.selectedIndex = nav.numChildren - 1;
+					
+					//选项卡 先打开，  再去加载 module，这样tab不会闪动。。
+					mLoader.url = moduleUrl + ".swf";
+					mLoader.loadModule();
+					
+					mLoader.addEventListener(ModuleEvent.READY,loadReadyHandler);
+					mLoader.addEventListener(ModuleEvent.ERROR,loadErrorHandler);
+				}
+			}
+			
+			private function loadReadyHandler(event:ModuleEvent):void
+			{
+				(event.target as ModuleLoader).removeElementAt(0);
+				removeModuleLoaderEvent(event.target as ModuleLoader);
+			}
+			
+			private function loadErrorHandler(event:ModuleEvent):void
+			{
+				((event.target as ModuleLoader).getChildAt(0) as LoadingAlert).loadingText = "此模块正在开发中......";
+				removeModuleLoaderEvent(event.target as ModuleLoader);
+			} 
+			
+			/**移除ModuleLoader上的事件监听，以便彻底卸载***/
+			private function removeModuleLoaderEvent(md:ModuleLoader):void
+			{
+				md.removeEventListener(ModuleEvent.READY,loadReadyHandler);
+				md.removeEventListener(ModuleEvent.ERROR,loadErrorHandler);
+			}
+			
+			private function onFocusOut():void
+			{
+				if(idList.selectedItem!=null)  txt_userName.text = idList.selectedItem.toString();
+				idList.visible=false; 
+			}
+			
+			/**
+			 * 查找匹配的用户
+			 * */
+			private function readUsersDataFromShareObj(value:String):void
+			{
+				var usersArr:Array = new Array;
+				var usersShowArr:ArrayCollection = new ArrayCollection();
+				usersArr = usersDataShareObj.data.Users as Array;
+				
+				if(usersArr == null || value == "") {
+					idList.visible=false;
+					return;
+				}
+				for(var i:int=0;i<usersArr.length;i++) {
+					if(usersArr[i].toString().substr(0,value.length) == value) {
+						usersShowArr.addItem(usersArr[i]);
+					}
+				}
+				
+				if(usersShowArr.length>0) {
+					idList.dataProvider = usersShowArr;
+					idList.visible=true;
+					if(usersShowArr.getItemIndex(value)>=0) {
+						idList.visible=false;
+					}
+				} else {
+					idList.visible=false;
+				}
+			}
+			
+			
+			private function readAllUsersData():void
+			{			
+				var mUsersArr:Array = new Array();
+				
+				mUsersArr = usersDataShareObj.data.Users as Array;		     
+				if(mUsersArr == null) { 
+					idList.visible=false; 		       
+					return;
+				}
+				
+				if (mUsersArr.length>0) {
+					idList.dataProvider = new ArrayCollection(mUsersArr);
+					idList.visible=true; 
+				} else {
+					idList.visible=false; 
+				}			
+			}
+			
+			
+			/**   
+			 * 点击登录
+			 * */
+			protected function btn_login_clickHandler(event:MouseEvent):void
+			{
+				txt_loginInfo.text = "";
+				checkAndLoadData();
+			}
+			
+			/**   
+			 * 验证登录
+			 * */
+			private function checkAndLoadData():void
+			{
+				// 1.用户名和密码都不为空
+				if(txt_userName.text!="" && txt_passWord.text != "") {
+					var userCode:String = txt_userName.text;
+					var userPassword:String = txt_passWord.text;
+					
+					var msUser:Object = new Object();
+					msUser.userCode = userCode;
+					msUser.password = userPassword; 
+					
+					
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","userLogin",[new JSONEncoder().encode(msUser)]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,userLoginHandle);
+					appCore.showLoading();	 
+					
+				} else {
+					txt_loginInfo.text = "请输入用户名和密码";
+				}
+				
+			}
+			
+			/**
+			 * 登录处理
+			 * */
+			private function userLoginHandle(event:ResultEvent):void
+			{
+				appCore.closeLoading();
+				var objectProxy:ObjectProxy = event.result as ObjectProxy;
+				
+				if(objectProxy == null) {
+					txt_loginInfo.text = "登录失败，请联系管理员";
+					return;
+				}
+				
+				//登录者得验证状态
+				switch(objectProxy.msgState) {	
+					case"1"://登录成功
+						appCore.loginUser = objectProxy.msUser;//取出用户信息
+						appCore.loginDate = objectProxy.logindate as String;	//登录服务器端时间		
+						
+						saveUsersDataToShareObj(appCore.loginUser.userCode);
+						rights = objectProxy.rights as String;
+						var menuTreeObj:Object = new JSONDecoder().decode(objectProxy.menuButton as String);
+						appCore.menuData = menuTreeObj as ArrayCollection;
+						appCore.roleData = objectProxy.role as ArrayCollection;
+						appCore.manageOrgData = objectProxy.orgs as ArrayCollection;
+						if(appCore.loginUser.isAdmin == 2) { //管理员
+							isAdmin = true;
+							if(appCore.manageOrgData != null && appCore.manageOrgData.length != 0) {
+								var orgObj:Object = appCore.manageOrgData.getItemAt(0);
+								if(orgObj.orgType == 1) {
+									appCore.loginUser.companyId = orgObj.id;
+								} else {
+									appCore.loginUser.companyId = orgObj.companyId;
+								}
+							}
+						} else { //普通用户
+							if(appCore.loginUser.isAdmin == 1) {
+								isAdmin = true;
+							} else {
+								isAdmin = false;
+							}
+							if(appCore.loginUser.msPerson.organization.orgType == 1) {
+								appCore.loginUser.companyId = appCore.loginUser.msPerson.organization.id;
+							} else {
+								appCore.loginUser.companyId = appCore.loginUser.msPerson.organization.companyId;
+							}
+						}
+						
+						//根据用户权限 初始化菜单、按钮等
+						//切换状态会调用stateEnter() 方法
+						this.currentState = "content";
+						main_loader.loadModule("com/itsm/sys/FirstPage.swf");
+						
+						controlBarVisible = true;
+						
+						lblUserLoginInfo.text = appCore.loginUser.userName;
+						if(appCore.loginUser.isAdmin!=2)	savaFlowUser(appCore.loginUser);
+						break;
+					
+					
+					case"0"://登录失败
+						txt_loginInfo.text = objectProxy.msg as String;
+						break;
+				}
+			}
+			
+			public var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			/**
+			 * 转换流程用户信息
+			 **/ 
+			private function savaFlowUser(loginUser:Object):void{
+				FAppCore.FCusUser.UserId=loginUser.msPerson.id;
+				FAppCore.FCusUser.UserCode = loginUser.userCode;
+				FAppCore.FCusUser.UserName=loginUser.msPerson.personName;
+				FAppCore.FCusUser.DeptId=loginUser.msPerson.organization.id;
+				FAppCore.FCusUser.DeptName=loginUser.msPerson.organization.orgName;
+				FAppCore.FCusUser.DeptCode=loginUser.msPerson.organization.orgCode;
+				FAppCore.FCusUser.CompId=loginUser.companyId;
+				FAppCore.FCusUser.isAdmin=loginUser.isAdmin;
+				if(loginUser.isAdmin==1)
+					FAppCore.FIsProvinceCompay=true;
+			}
+			
+			/**
+			 * 记录用户名到ShareObject
+			 * */
+			private function saveUsersDataToShareObj(usreName:String):void
+			{
+				var usersDataArr:Array=new Array;
+				if(usersDataShareObj.data.Users!=null) {
+					usersDataArr=usersDataShareObj.data.Users;
+				}
+				if(usersDataArr.indexOf(usreName)<0) {
+					usersDataArr.push(usreName);
+				}
+				usersDataShareObj.data.Users=usersDataArr
+				//usersDataShareObj.flush();
+			}
+			
+			/**
+			 * 选择用户
+			 * */
+			protected function idList_clickHandler(event:MouseEvent):void
+			{
+				txt_userName.text = idList.selectedItem;
+				idList.visible=false;
+			}
+			
+			//全屏
+			private function fullScreen(event:Event):void
+			{  
+				if(isFullScreen) {
+					stage.displayState = StageDisplayState.NORMAL; 
+					//imgFullScreen.source="assets/img/mainheader/full_screen_icon.png";
+					//移除 全屏事件
+					stage.removeEventListener(FullScreenEvent.FULL_SCREEN,fullScreen);
+					isFullScreen=false;
+				} else {
+					//imgFullScreen.source="assets/img/mainheader/close_screen_icon.png";
+					stage.displayState = StageDisplayState.FULL_SCREEN;  
+					isFullScreen=true;
+					//监听 全屏事件-------用户可能ESC退出全屏
+					stage.addEventListener(FullScreenEvent.FULL_SCREEN,fullScreen);
+				}
+			}
+			
+			protected function imgLogout_clickHandler(event:MouseEvent):void
+			{
+				unLoaderAll();
+				main_loader.unloadModule();
+				this.currentState = "login";
+				controlBarVisible = false;
+				
+				appCore.reSet();
+				
+				mainMenuArr = new Array();
+				
+				txt_userName.text = "";
+				txt_passWord.text = "";
+				idList.selectedItem = null;
+				
+				FAppCore.FCusUser=new CusUsers();
+				FAppCore.FIsProvinceCompay=false;
+				
+				fisheye.removeEventListener(BurningBitmapTileEvent.BURNING_ICON_CLICK, menuSelecdResult);
+			}
+			
+			
+			/**
+			 * 创建菜单函数
+			 * 
+			 * <p>循环产生每个模块viewstack及viewstack里的所有内容</p>
+			 **/
+			private function createMenus():Boolean
+			{
+				myViewStack.removeAll();
+				
+				//有权限且parentId为0的大菜单
+				//--------menu---------\\
+				for(var i:int = 0; i < appCore.menuData.length; i++) {
+					var main_menu:Object = new Object();
+					main_menu = appCore.menuData.getItemAt(i);
+					//没有权限时，不用实例化
+					if(main_menu.id != 1) { //1是首页，首页不创建菜单
+						if(rights.search("," + main_menu.id.toString() + ",") == -1 
+							|| main_menu.parentId != 0)
+							continue;
+					}
+					
+					//管理员只加载系统管理，普通用户不加载系统管理
+					if(appCore.loginUser.isAdmin == 2) { 
+						if(main_menu.id != 2 && main_menu.id != 1) {continue;}
+					} else if(appCore.loginUser.isAdmin == 0) {
+						if(main_menu.id == 2) {continue;}
+					}
+					
+					//把大菜单加到mainMenuArr数组中。
+					mainMenuArr.push(main_menu);
+					//如果大菜单是首页，没有viewstack
+					if(main_menu.id == 1) {continue;}
+					
+					//ncVs 是viewstack里面的NavigatorContent
+					var ncVs:NavigatorContent = new NavigatorContent();
+					ncVs.label = main_menu.label; 
+					ncVs.layout = new VerticalLayout(); 
+					ncVs.percentHeight = 100;
+					ncVs.percentWidth = 100;
+					var accordion:Accordion = new Accordion();
+					accordion.percentHeight = 100;
+					accordion.percentWidth = 100;
+					var accordion_menu:Object = new Object();
+					var nvAc:NavigatorContent; 
+					
+					//-------accordion-------\\
+					var childrenMenuArr:ArrayCollection = new ArrayCollection();
+					childrenMenuArr = main_menu.children as ArrayCollection;
+					if(childrenMenuArr==null) continue;
+					for(var j:int = 0; j < childrenMenuArr.length; j++)  {
+						accordion_menu = childrenMenuArr.getItemAt(j);
+						if(rights.search("," + accordion_menu.id.toString() + ",") == -1 
+							|| accordion_menu.type != 1 )
+							continue;
+						
+						nvAc = new NavigatorContent();
+						nvAc.label = accordion_menu.label;
+						nvAc.percentHeight = 100;
+						nvAc.percentWidth = 100;
+						
+						var tree:CustomMenuTree = new CustomMenuTree();
+						tree.id = "tree" + i.toString() + j.toString(); 
+						tree.percentHeight = 100;
+						tree.percentWidth = 100;
+						tree.left = 1;
+						tree.dataProvider = copyFilterMenu(accordion_menu.children as ArrayCollection);
+						tree.addEventListener("menuClick", menuClick_Handler);
+						nvAc.addElement(tree);
+						
+						accordion.addElement(nvAc);
+					}
+					
+					ncVs.addElement(accordion);
+					myViewStack.addChild(ncVs);
+				} 
+				
+				//每次加载菜单时，都选择第一个大菜单。
+				if(myViewStack.length >= 1) {
+					myViewStack.selectedIndex = 0;
+					mainMenuBar.selectedIndex = 0;
+				}
+				
+				
+				//大菜单选到 第一个 首页
+				var timer:Timer = new Timer(500, 1);
+				timer.addEventListener(TimerEvent.TIMER_COMPLETE, timerComplete);
+				timer.start();
+				
+				return true;
+			}
+			
+			private function timerComplete(event:TimerEvent):void 
+			{
+				setInitialIndex(mainMenuArr[0]);
+			}
+			
+			private function copyFilterMenu(treeMenu:ArrayCollection):ArrayCollection
+			{
+				var reArr:ArrayCollection = new ArrayCollection();
+				
+				if(treeMenu==null) return reArr;
+				
+				reArr=StaticMethods.cloneArrayCollection(treeMenu);
+				
+				for each ( var item:Object in reArr ) {
+					filterMenuChildren(item);
+				}
+				
+				return reArr;
+			}
+			
+			private function filterMenuChildren(item:Object):void
+			{
+				if(item.children) {
+					// children中是否有模块按钮，只要有一个模块按钮就删除children属性
+					var hasModulButton:Boolean = false; 
+					// children中是否有菜单上按钮，只要有一个菜单上按钮就删除children属性，但还要取其下的模块按钮
+					var hasMenuUpButton:Boolean = false;
+					for each(var _item:Object in item.children.source) {
+						if(_item.type == 2) {
+							hasModulButton = true; 
+							if(rights.search("," + _item.id.toString() + ",")  != -1) {
+								appCore.userModuleButton.addItem(StaticMethods.clone(_item) ); //把所有的模块按钮加到模块按钮集中；
+							}
+						} else if(_item.type == 3) {
+							hasMenuUpButton = true;
+							if(rights.search("," + _item.id.toString() + ",")  != -1) {
+								appCore.userMenuUpButton.addItem(StaticMethods.clone(_item) ); //把所有的菜单上按钮加到菜单上按钮集中；
+							}
+						} else {
+							break;
+						}
+					}
+					
+					if(hasModulButton) {
+						item.children = null;
+					} else if(hasMenuUpButton) {
+						for each (var __item:Object in item.children.source) {
+							filterMenuChildren(__item);
+						}
+						item.children = null;
+					} else {
+						for each (var ___item:Object in item.children.source) {
+							filterMenuChildren(___item);
+						}
+					}
+				}
+			}
+			
+			protected function btn_restHandler(event:MouseEvent):void{
+				txt_userName.text="";
+				txt_passWord.text="";
+				txt_loginInfo.text = "";
+			}
+			
+			protected function txt_login_focusInHandler(event:FocusEvent):void
+			{
+				txt_loginInfo.text = "";
+			}
+			
+			protected function extendeddividedbox1_buttonClickHandler(event:ButtonClickEvent):void
+			{
+				if (navContainerIsVisable==true) {
+					closeNavContainer.play();
+					navContainerIsVisable=false;
+				} else {
+					openNavContainer.play();
+					navContainerIsVisable=true;
+				}
+			}
+			
+			protected function closeNavContainer_effectEndHandler(event:EffectEvent):void
+			{
+				leftVGroup.visible = false;
+				mainBody.paddingLeft = 0;
+			}
+			
+			protected function openNavContainer_effectEndHandler(event:EffectEvent):void
+			{
+				mainBody.paddingLeft = 8;
+			}
+			
+			protected function openNavContainer_effectStartHandler(event:EffectEvent):void
+			{
+				leftVGroup.visible = true;
+			}
+			
+			protected function navContainer_dividerDragHandler(event:DividerEvent):void
+			{
+				if(leftVGroup.width >0 ) {
+					leftVGroup.visible = true;
+					mainBody.paddingLeft = 8;
+				}
+			}
+			
+			protected function navContainer_overButtonHandler(event:MouseEvent):void
+			{
+				if(leftVGroup.width == 0 ) {
+					openNavContainer.play();
+					navContainerIsVisable=true;
+				}
+			}
+			
+			/* private function refreshRecursiveChildren(person:Person):void{
+			if(person.children){
+			//loop through each child and filter its children
+			for each(var _person:Person in person.children.source){
+			refreshRecursiveChildren(_person);
+			}
+			//reset each “children” ArrayCollection to its original unfiltered data
+			person.children = new ArrayCollection(person.children.source);
+			//set the filterfunction for the newly updated node
+			person.children.filterFunction = filterData;
+			//run the fitlerFunction
+			person.children.refresh();
+			}
+			}
+			
+			public function filterData(item:Object):Boolean{
+			//get the string to filter the nodes by
+			var searchString:String = iNameFilter.text;
+			//if string is found in node return true.
+			//since the recursive filtering takes place from bottom up, if
+			//a collection still has children after filtering, also return true
+			if(searchString.length == 0
+			|| item.name.toLowerCase().indexOf(searchString.toLowerCase()) >= 0)
+			return true;
+			else if(item.children != null && item.children.length > 0)
+			return true;
+			return false;
+			} */
+			
+			protected function fastFilterMenu_changeHandler(event:Event):void
+			{
+				/*//reset the root node to its original unfiltered data
+				people[0].children = new ArrayCollection(people[0].children.source);
+				//start the recursion at the root node
+				refreshRecursiveChildren(people.source[0]);
+				//update the Tree after the data has been filtered
+				personsTree.invalidateList(); */
+			}
+			
+			protected function currentOrg_cb_changeHandler(event:IndexChangeEvent):void
+			{
+				appCore.loginUser.companyId = currentOrg_cb.selectedItem.id;
+				appCore.orgData.removeAll();
+			}
+			
+			protected function imgUser_clickHandler(event:MouseEvent):void
+			{
+				var passwordChange:PasswordChange = PasswordChange(PopUpManager.createPopUp(this, PasswordChange, true));
+				PopUpManager.centerPopUp(passwordChange); 
+			}
+			
+			/**
+			 * 查看流程
+			 * */
+			public function viewFlow(event:ViewFlowEvent):void{
+				var flowNodeInstence:Object = event.flowNodeInstence;
+				if(!flowNodeInstence) return;
+				var history:ComApproveHistory = new ComApproveHistory();
+				history.getHistoryByFlowInsteceId(int(flowNodeInstence.flowID));
+				var navContent:NavigatorContent = new NavigatorContent();
+				navContent.addElement(history);
+				//insertTab(null, navContent, "viewflow-"+flowNodeInstence.billId.toString(),"流程运行状态");
+			}
+			
+			public function insertTab(defineClass:Class,displayObject:*,name:String,lable:String="",otherData:Object=null,limitsStr:String=""):void{
+				if (defineClass==null && displayObject==null) return;
+				for each(var element:* in nav.getChildren()){
+					if(element.name==name){
+						nav.selectedChild=element;
+						return;
+					}
+				}
+				if (defineClass!=null) displayObject= new defineClass()
+				if (displayObject==null) return;	
+				displayObject.name=name;
+				if(displayObject.hasOwnProperty("limits"))
+					displayObject.limits=limitsStr;
+				if (lable!=null && lable!=""&&displayObject.hasOwnProperty("label"))
+					displayObject.label=lable;
+				if (otherData){
+					if (displayObject.hasOwnProperty("fISAfterFlowCommit")) displayObject["fISAfterFlowCommit"]=true;
+					if (displayObject.hasOwnProperty("billId")) displayObject["billId"]=otherData["billId"]?otherData["billId"]:0;
+					if (displayObject.hasOwnProperty("flowingFlag")) displayObject["flowingFlag"]=otherData["cpsFlowOprtModuleId"]?otherData["cpsFlowOprtModuleId"]:-1;
+					if (displayObject.hasOwnProperty("flowNodeInstence")) displayObject["flowNodeInstence"] = otherData;
+					if (displayObject.hasOwnProperty("oprtTypeId")) displayObject["oprtTypeId"]=otherData["oprtTypeId"]?otherData["oprtTypeId"]:0;
+				}
+				
+				var navContent:NavigatorContent = new NavigatorContent();
+				navContent.setStyle("closable", true);
+				navContent.label = lable;
+				navContent.name = name;
+				navContent.percentHeight = 100;
+				navContent.percentWidth = 100;
+				
+				navContent.addElement(displayObject);
+				nav.addChildAt(navContent,nav.numChildren);
+				nav.selectedChild=navContent;
+			}
+			
+			/**
+			 *打开待办
+			 * */
+			public function onOpenFlowToWindow(event:FlowAdvancedatagridEvent):void{
+				this.currentState="content";
+				var flowinstence:Object = event.flowNodeinstence;
+				if (flowinstence.flowOprtModulePath!=null && flowinstence.flowOprtModulePath!="" 
+					&& flowinstence.flowOprtModuleUrl!=null && flowinstence.flowOprtModuleUrl!=""){
+					var moduleManager:ModuleManger=ModuleManger.getInstance();
+					moduleManager.loadModule(flowinstence.flowOprtModulePath,loadReturnHandlerFlow,flowinstence);
+					
+					fisheye.selectedIndex=1;
+					burningIconClickHandler(null);
+				}else
+					TAlert.show("未找到加载页面","系统提示");
+			}
+			
+			private function loadReturnHandlerFlow(event:ModuleLoaderEvent):void{
+				var moduleManager:ModuleManger=ModuleManger.getInstance();
+				var flowNodeInstence:Object = event.data;
+				var defineClass:Class=ModuleManger.getClass(flowNodeInstence.flowOprtModuleUrl);
+				if(defineClass!=null){
+					var resultWindow:*;
+					var name:String="";
+					var label:String="";
+					switch (flowNodeInstence.checkState)
+					{
+						case 141:
+							// 对那些尚未到来的， 可以先行浏览
+							resultWindow = new FlowTodoWindow();
+							(resultWindow as FlowTodoWindow).flowNodeInstence = flowNodeInstence;
+							(resultWindow as FlowTodoWindow).checkedEnable=false;
+							(resultWindow as FlowTodoWindow).checkedHeight=0;
+							insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"流程进度查看");
+							return;
+							/*resultWindow=Application.application.FAppCore.createWindow(FlowLaunchEnginer.launchFlow, flowNodeInstence.FlowTitle + " ");
+							FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence;  
+							FlowTodoWindow(resultWindow).checkedEnable = false;
+							FlowTodoWindow(resultWindow).checkedHeight = 0; */
+							break;
+						case 142:
+							switch(flowNodeInstence.nodeAttr){
+								case -3 : 
+									if(flowNodeInstence.systemId==2)
+									{
+										//										var onceFlow:OnceFlow = new OnceFlow();
+										//										onceFlow.flowNodeInstence = flowNodeInstence
+										//										addTab(null,onceFlow,flowNodeInstence.InstID.toString(),"再次呈报",flowNodeInstence);
+									}
+									else
+									{
+										insertTab(defineClass,null,flowNodeInstence.instId.toString(),"再次呈报",flowNodeInstence);
+									}
+									return;
+									//resultWindow = FlowLaunchEnginer.createReSubmitView(flowNodeInstence.ModuleCode,flowNodeInstence);
+									break;
+								case 0: 
+								case 5:
+									resultWindow = new FlowTodoWindow();
+									(resultWindow as FlowTodoWindow).flowNodeInstence = flowNodeInstence;
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"待办审批",flowNodeInstence);
+									return;
+									/*sdds = FlowLaunchEnginer.launchFlow;
+									resultWindow=Application.application.FAppCore.createWindow(FlowLaunchEnginer.launchFlow, flowNodeInstence.FlowTitle + " ");
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence;*/
+									break;
+								case -2: 
+									resultWindow = new FlowMessageWindow();
+									FlowMessageWindow(resultWindow).flowNodeInstence = flowNodeInstence; 
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"通过通知",flowNodeInstence);
+									return;
+									break;
+							}
+							break;
+						case 145:
+							// FAppCore.sendSysInfo("这是已经批准了的待办");
+							switch(flowNodeInstence.nodeAttr){
+								case -3 : 
+									resultWindow = new FlowTodoWindow();
+									(resultWindow as FlowTodoWindow).flowNodeInstence = flowNodeInstence;
+									(resultWindow as FlowTodoWindow).checkedEnable=false;
+									(resultWindow as FlowTodoWindow).checkedHeight=0;
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"流程进度查看",flowNodeInstence);
+									return;
+									/*	resultWindow=Application.application.FAppCore.createWindow(FlowLaunchEnginer.launchFlow, flowNodeInstence.FlowTitle + " ");
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence;  
+									FlowTodoWindow(resultWindow).checkedEnable = false;
+									FlowTodoWindow(resultWindow).checkedHeight = 0; 
+									break;*/
+								case 0 :
+								case 5 :
+									resultWindow = new FlowTodoWindow();
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence; 
+									FlowTodoWindow(resultWindow).dealWithIdea = flowNodeInstence.dealWithIdea;
+									FlowTodoWindow(resultWindow).agreeed = true;
+									FlowTodoWindow(resultWindow).checkedEnable = false;
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"流程进度查看",flowNodeInstence);
+									return;
+									/*resultWindow=Application.application.FAppCore.createWindow(FlowLaunchEnginer.launchFlow, flowNodeInstence.FlowTitle + " ");
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence; 
+									FlowTodoWindow(resultWindow).dealWithIdea = flowNodeInstence.DealWithIdea;
+									FlowTodoWindow(resultWindow).agreeed = true;
+									FlowTodoWindow(resultWindow).checkedEnable = false;*/
+									break;
+								case -2: 
+									resultWindow = new FlowMessageWindow();
+									FlowMessageWindow(resultWindow).flowNodeInstence = flowNodeInstence; 
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),"通过通知",flowNodeInstence);
+									return;
+									break;
+							}
+							break;
+						case 146:
+							//不同意
+							switch(flowNodeInstence.nodeAttr){
+								case -3 : 
+									//	resultWindow = FlowLaunchEnginer.createReSubmitView(flowNodeInstence.ModuleCode,flowNodeInstence);
+									break;
+								case 0 : 
+								case 5 :
+									resultWindow = new FlowTodoWindow();
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence; 
+									FlowTodoWindow(resultWindow).dealWithIdea = flowNodeInstence.dealWithIdea;
+									FlowTodoWindow(resultWindow).checkedEnable = false;
+									FlowTodoWindow(resultWindow).checkedHeight = 0;
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),flowNodeInstence.flowTitle,flowNodeInstence);
+									return;
+									/*sdds = FlowLaunchEnginer.launchFlow;
+									resultWindow=Application.application.FAppCore.createWindow(FlowLaunchEnginer.launchFlow, flowNodeInstence.FlowTitle + " ");
+									FlowTodoWindow(resultWindow).flowNodeInstence=flowNodeInstence;
+									FlowTodoWindow(resultWindow).checkedEnable = false;
+									FlowTodoWindow(resultWindow).checkedHeight = 0;*/ 
+									break;
+								case -2: 
+									resultWindow = new FlowMessageWindow();
+									FlowMessageWindow(resultWindow).flowNodeInstence = flowNodeInstence; 
+									insertTab(null,resultWindow,flowNodeInstence.instId.toString(),flowNodeInstence.flowTitle,flowNodeInstence);
+									return;
+									break;
+							}
+							break;
+						default : 
+							TAlert.show("无须处理", "系统提示");
+							return;
+							break;
+					}
+				}
+			}
+			
+			/**
+			 * 关闭页面
+			 * */
+			public function closeTab(displayObj:*, fun:Function):void{
+				if(displayObj==null || nav.contains(displayObj)){
+					
+					nav.removeChild(nav.selectedChild as DisplayObject);
+					FlexGlobals.topLevelApplication.removeEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, fun);
+				}
+			}
+			
+			/**图片获取焦点*/
+			protected function barImgMouseOverHandler(event:MouseEvent):void
+			{
+				var bc:BorderContainer = event.currentTarget.owner as BorderContainer;
+				bc.setStyle("backgroundAlpha", 1);
+			}
+			
+			/**图片失去焦点*/
+			protected function barImgMouseOutHandler(event:MouseEvent):void
+			{
+				var bc:BorderContainer = event.currentTarget.owner as BorderContainer;
+				bc.setStyle("backgroundAlpha", 0);
+				
+			}
+		]]>
+	</fx:Script>
+	
+	<!--登录界面-->
+	<s:BorderContainer id="login_state" includeIn="login,autoLogin" width="100%" height="100%"
+					   backgroundImageFillMode="scale" borderVisible="false">
+		<s:HGroup width="555" height="180" gap="20" horizontalCenter="-50" verticalAlign="middle"
+				  verticalCenter="20">
+			<s:BorderContainer id="loginGroup" width="310" height="140"
+							   backgroundImageFillMode="clip" borderVisible="false"/>
+			<s:BorderContainer id="line" width="1" height="100%" backgroundImageFillMode="repeat"
+							   borderVisible="false"/>
+			<s:BorderContainer width="100%" height="100%" backgroundAlpha="0" borderVisible="false">
+				<s:HGroup width="100%" horizontalCenter="0" verticalAlign="middle"
+						  verticalCenter="-70"
+						  horizontalCenter.login="0" verticalCenter.login="-50">
+					<control:FormLabel width="50" label="用户名：" color="#3E5D72" fontWeight="bold"/>
+					<s:TextInput id="txt_userName" width="150" height="22" borderVisible="false"
+								 change="readUsersDataFromShareObj(txt_userName.text)"
+								 click="{idList.visible=false;}" contentBackgroundAlpha="1"
+								 doubleClick="{readAllUsersData();}" doubleClickEnabled="true"
+								 focusIn="txt_login_focusInHandler(event)" 
+								 focusOut="{onFocusOut();}" horizontalCenter="0"
+								 imeMode="{IMEConversionMode.ALPHANUMERIC_HALF}"
+								 styleName="txtInput" verticalCenter="0"
+								 editable.autoLogin="false"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" horizontalCenter="0" verticalAlign="middle"
+						  verticalCenter="-10">
+					<control:FormLabel width="50" label="密  码：" color="#3E5D72" fontWeight="bold"/>
+					<s:TextInput id="txt_passWord" width="150" height="22" borderVisible="false"
+								 contentBackgroundAlpha="1" displayAsPassword="true"
+								 enter="{checkAndLoadData()}"
+								 focusIn="txt_login_focusInHandler(event)" horizontalCenter="32"
+								 imeMode="{IMEConversionMode.ALPHANUMERIC_HALF}" verticalCenter="15"
+								 editable.autoLogin="false"/>
+				</s:HGroup>
+				
+				<s:Label id="txt_loginInfo" width="100%" color="red" horizontalCenter="0"
+						 textAlign="center" verticalCenter="26"
+						 text.autoLogin="正在登录......"/>
+				
+				<s:HGroup gap="10" horizontalCenter="25" verticalCenter="60">
+					<mx:Button id="btn_rest" includeIn="login" width="73" height="34"
+							   buttonMode="true" click="btn_restHandler(event)" horizontalCenter="0"
+							   verticalCenter="80"/>
+					<mx:Button id="btn_login" includeIn="login" width="73" height="34"
+							   buttonMode="true" click="btn_login_clickHandler(event)"
+							   horizontalCenter="0" verticalCenter="80"/>
+				</s:HGroup>
+				
+				<s:List id="idList" visible="false" width="150" height="80"
+						click="idList_clickHandler(event)" horizontalCenter="28" verticalCenter="3"/>
+			</s:BorderContainer>
+		</s:HGroup>
+		
+		
+		<!--<s:VGroup horizontalAlign="center" horizontalCenter="0" verticalAlign="middle"
+		verticalCenter="156">
+		<s:BorderContainer id="login_corpright" width="260" height="28" backgroundImageFillMode="scale" borderVisible="false">
+		<s:Label id="EnrisingLogo" horizontalCenter="0" text="四川创立信息科技有限责任公司ⓒ 技术支撑" verticalCenter="0"/>
+		</s:BorderContainer>
+		</s:VGroup>-->
+	</s:BorderContainer>
+	
+	<!--主界面-->
+	<s:BorderContainer id="contentMain" includeIn="content" width="100%" height="100%">
+		<s:VGroup width="100%" height="100%">
+			<s:BorderContainer id="barbg" width="100%" height="76" backgroundImageFillMode="repeat"
+							   borderVisible="false">
+				<s:BorderContainer id="logobg" width="100%" height="100%"
+								   backgroundImageFillMode="clip" borderVisible="false">
+					<s:layout>
+						<s:HorizontalLayout gap="20" paddingLeft="5" verticalAlign="middle"/>
+					</s:layout>
+					<mx:Image width="399" height="53" source="assets/img/bar/logo.png"/>
+					<mx:Image width="2" height="76" source="assets/img/bar/line.png"/>
+					<s:HGroup width="100%" height="100%" verticalAlign="middle">
+						<mccune:BouncingFisheye id="fisheye" left="100" width="100%" height="72"
+												animationSpeed=".2" bounceDistance="0"
+												dataProvider="{mainMenuArr}" defaultScale="0.35"
+												defaultSpacing="0" defaultValue=""
+												hilightMaxScale="0.45" hilightScaleRadius="3"
+												hilightScaleSlope=".1" hilightSpacing="0"
+												horizontalAlign="left" rolloverValue="hilighted"
+												selectedValue="selected"
+												stateProperty="currentState" verticalAlign="bottom">
+							<mccune:itemRenderer>
+								<fx:Component>
+									<mccune:BouncingBurningTile buttonMode="true" styleName="aaa"
+																showLabel.hilighted="true"
+																burning.selected="true"
+																showLabel.selected="false">
+										<mccune:states>
+											<mx:State name="selected"/>
+											<mx:State name="hilighted"/>
+										</mccune:states>			
+									</mccune:BouncingBurningTile>
+								</fx:Component>
+							</mccune:itemRenderer>
+						</mccune:BouncingFisheye>
+						
+						<!--大菜单栏，本身不显示，通过BouncingFisheye操作-->
+						<mx:LinkBar id="mainMenuBar" visible="false" dataProvider="{myViewStack}"
+									includeInLayout="false"/>
+					</s:HGroup>
+				</s:BorderContainer>
+				
+				<s:BorderContainer right="0" width="154" height="100%"
+								   backgroundImage="@Embed(source='assets/img/bar/btnbg.png')"
+								   borderVisible="false">
+					<s:VGroup width="100%" height="100%" horizontalAlign="center"
+							  verticalAlign="middle">
+						<s:HGroup width="100%" height="20" gap="5" horizontalAlign="center"
+								  verticalAlign="middle">
+							<s:BorderContainer id="fscreen" width="77" height="23" borderVisible="false" backgroundAlpha="0"
+											   backgroundImage="@Embed(source='assets/img/bar/btnbglong.png')">
+								<s:layout>
+									<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle"/>
+								</s:layout>
+								<s:Image id="imgFullScreen" mouseOver="barImgMouseOverHandler(event)"
+										 mouseOut="barImgMouseOutHandler(event)"
+										 click="fullScreen(event)" buttonMode="true"
+										 source="assets/img/bar/fscreen.png" useHandCursor="true"/>
+							</s:BorderContainer>
+							
+							<s:BorderContainer width="48" height="23" borderVisible="false" backgroundAlpha="0"
+											   backgroundImage="@Embed(source='assets/img/bar/btnbgshort.png')">
+								<s:layout>
+									<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle"/>
+								</s:layout>
+								<s:Image id="imgHelp" buttonMode="true" source="assets/img/bar/help.png"
+										 mouseOver="barImgMouseOverHandler(event)"
+										 mouseOut="barImgMouseOutHandler(event)"
+										 useHandCursor="true"/>
+							</s:BorderContainer>
+						</s:HGroup>
+						<s:HGroup width="100%" height="20" gap="5" horizontalAlign="center"
+								  verticalAlign="middle">
+							<s:BorderContainer width="77" height="23" borderVisible="false" backgroundAlpha="0"
+											   backgroundImage="@Embed(source='assets/img/bar/btnbglong.png')">
+								<s:layout>
+									<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle"/>
+								</s:layout>
+								<s:Image id="imgUser" buttonMode="true"
+										 click="imgUser_clickHandler(event)"
+										 mouseOver="barImgMouseOverHandler(event)"
+										 mouseOut="barImgMouseOutHandler(event)"
+										 source="assets/img/bar/chgpwd.png" useHandCursor="true"/>
+							</s:BorderContainer>
+							
+							<s:BorderContainer width="48" height="23" borderVisible="false" backgroundAlpha="0"
+											   backgroundImage="@Embed(source='assets/img/bar/btnbgshort.png')">
+								<s:layout>
+									<s:HorizontalLayout horizontalAlign="center" verticalAlign="middle"/>
+								</s:layout>
+								<s:Image id="imgLogout" buttonMode="true"
+										 click="imgLogout_clickHandler(event)"
+										 mouseOver="barImgMouseOverHandler(event)"
+										 mouseOut="barImgMouseOutHandler(event)"
+										 source="assets/img/bar/quit.png" useHandCursor="true"/>
+							</s:BorderContainer>
+						</s:HGroup>
+					</s:VGroup>
+				</s:BorderContainer>
+			</s:BorderContainer>
+			
+			<s:HGroup id="mainBody" includeIn="content" width="100%" height="100%" gap="0"
+					  paddingBottom="-10" paddingLeft="8" paddingRight="8">
+				
+				<!--首页-->
+				<s:ModuleLoader id="main_loader" visible="true" width="100%" height="100%"
+								includeInLayout="true"/>
+				
+				<!--操作间-->
+				<divider:ExtendedDividedBox id="navContainer" visible="false" width="100%"
+											height="100%"
+											buttonClick="extendeddividedbox1_buttonClickHandler(event)"
+											direction="horizontal" dividerAlpha="0.4"
+											dividerDrag="navContainer_dividerDragHandler(event)"
+											includeInLayout="false" liveDragging="true"
+											overButton="navContainer_overButtonHandler(event)"
+											showButton="true" styleName="ExtendedDividerBoxButtonV">
+					
+					<s:VGroup id="leftVGroup" width="180" height="100%" minWidth="155">
+						<s:HGroup width="100%" horizontalAlign="left" paddingLeft="5"
+								  verticalAlign="middle">
+							<s:Label visible="{!isAdmin}" color="#ffffff"
+									 includeInLayout="{!isAdmin}" text="欢迎您，"/>
+							<s:Label id="lblUserLoginInfo" visible="{!isAdmin}" color="#ffffff"
+									 includeInLayout="{!isAdmin}" paddingLeft="-4"
+									 text="{appCore.loginUser.userName}"/>
+							<s:Label visible="{isAdmin}" color="#ffffff" includeInLayout="{isAdmin}"
+									 text="当前管理:"/>
+							<s:ComboBox id="currentOrg_cb" visible="{isAdmin}" width="100%"
+										borderAlpha="0" borderVisible="false"
+										change="currentOrg_cb_changeHandler(event)"
+										creationComplete="{currentOrg_cb.textInput.editable = false}"
+										dataProvider="{appCore.manageOrgData}"
+										includeInLayout="{isAdmin}" labelField="orgName"
+										selectedIndex="0" toolTip="切换管理公司"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" horizontalAlign="center" verticalAlign="middle">
+							<controls:PromptingTextArea id="fastFilterMenu" width="100%" height="24"
+														change="fastFilterMenu_changeHandler(event)"
+														prompt="菜单过滤" text="" wordWrap="false"/>
+						</s:HGroup>
+						
+						<s:Group width="100%" height="100%">
+							<mx:ViewStack id="myViewStack" width="100%" height="100%"
+										  backgroundColor="#ffffff" borderAlpha="0" paddingLeft="1"/>
+						</s:Group>
+					</s:VGroup>
+					
+					<c:SuperTabNavigator id="nav" width="100%" height="100%" minWidth="860"
+										 closePolicy="{SuperTab.CLOSE_ROLLOVER}"
+										 creationPolicy="all" dragEnabled="false" horizontalGap="1"
+										 tabClose="nav_tabCloseHandler(event)"/>
+					
+					
+				</divider:ExtendedDividedBox>
+			</s:HGroup>
+			
+			<!--bottom bar-->
+			<s:HGroup includeIn="content" width="100%" height="42" fontSize="12" gap="0"
+					  horizontalCenter="0">
+				<s:BorderContainer id="bottom_left" width="27" height="42" borderVisible="false"/>
+				<s:BorderContainer id="bottom_center" width="100%" height="42" borderVisible="false">
+					<s:HGroup width="100%" height="100%" verticalAlign="middle" verticalCenter="6">
+						<s:Label text="系统信息："/>
+						<s:Label id="lblSysInfo" width="100%" color="#ff3300" text="这是系统提示信息"/>
+						<s:Label text="版权所有:ⓒ 2010-2013四川创立信息有限责任公司"/>
+					</s:HGroup>
+				</s:BorderContainer>
+				
+				<s:BorderContainer id="bottom_right" width="27" height="42" borderVisible="false"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:BorderContainer>
+</s:Application>

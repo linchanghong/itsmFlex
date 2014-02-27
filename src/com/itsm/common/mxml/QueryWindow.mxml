@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:mx="library://ns.adobe.com/flex/mx" 
+						 xmlns:container="com.framelib.container.*"
+						 title="查询：直接点击“确定”按钮查询所有" 
+						 width="510" height="100%"
+						 creationComplete="richwindow1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.utils.AppCore;
+			import com.framelib.control.DateFieldFl;
+			import com.framelib.control.FormLabel;
+			import com.framelib.control.TextInputFl;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.IVisualElement;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import rich.containers.FormCell;
+			
+			import spark.components.TextInput;
+			
+			private var fAppCore:AppCore = AppCore.getInstance();
+			
+			
+			//要返回父窗体的数据集
+			private var queryInfoObj:Object = new Object();
+			
+			
+			
+			private var currHg:HGroup = new HGroup();
+			private var fieldArr:ArrayCollection = new ArrayCollection();
+			//排序字段的dataprivador
+			[Bindable]
+			private var columnsList:ArrayCollection = new ArrayCollection(
+				[
+					{label:"", data:-1}
+				]
+			);	
+			
+			private var cloumns:Array;
+			
+			
+			protected function richwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(cloumns != null && cloumns.length > 0) {
+					columnsList.removeAll();
+					columnsList.source = this.cloumns;
+					columnsList.addItemAt({label:"", data:-1},0);
+				}
+				
+				//单个控件占一列时，铺满整列
+				if(currHg.numElements == 1) {
+					group1.addElement(currHg);
+				}
+			}
+			
+			
+			/**
+			 * 需要排序对象，[ {label:"排序名", data:"返回值"}, {label:"排序名1", data:"返回值1"} ]
+			 */ 
+			public function set orderCloumns(value:Array):void
+			{
+				this.cloumns = value;
+			}
+			
+			/**
+			 * 通过一个命令字符串添加一个控件，建议添加<code>TextInput</code>与<code>InheritDateField</code>控件，其他控件不建议添加。
+			 * 命令格式：1，（不能有  "," ":" "/" 这3个字符出现在属性里面。其中需要5个属性，分别对应<code>addField()</code>方法里面的5个参数，
+			 * testOrder ->  id, name, className, agrName:agrValue/agrName1:agrValue1, returnName）.
+			 * 特殊DD包头（ClassName有 DD.DropDownList，参数可以设置data:value(下拉框数据源在TConfig里面的属性名)）
+			 * 
+			 * @param 姓名                        PSN_NAME,姓名,spark.components.TextInput,maxChars:10,text
+			 * @param 员工编码              STAFF_CODE,员工编号,spark.components.TextInput,restrict:0-9/maxChars:20,text
+			 * @param 日期                        DATE_ID,日期,com.wfm.flex.common.base.InheritDateField,,  
+			 * 
+			 */ 
+			public function addFieldByString(order:String, setId:String = ""):void
+			{
+				var orders:Array = order.split(",");
+				var id:String = orders[0];
+				var name:String = orders[1];
+				var className:String = orders[2];
+				var agr:String = orders[3];
+				var retName:String = orders[4];
+				if(setId != "")
+					id = setId;
+				
+				addField(id, name, className, getAgrs(agr), retName);
+			}
+			
+			
+			private function getAgrs(str:String):Array
+			{
+				var ret:Array = new Array();
+				if(str.length <= 0) {
+					return ret;
+				}
+				
+				var orders:Array = str.split("/");
+				
+				orders.forEach(
+					function(obj:Object, index:int, arr:Array):void {
+						ret[index] = (obj as String).split(":");
+					}
+				);
+				
+				return ret;
+			}
+			
+			/**
+			 * 往控件中添加一个任意选择控件
+			 * @param id 返回对象访问值的名字,比如  CORP_ID
+			 * @param name 前台显示Lable, 比如 公司
+			 * @param calssName 控件的ClassName, 比如  spark.components.TextInput
+			 * @param agr   控件的各个属性       [ [属性名,值],[属性名1,值1] ]
+			 * @param returnName  返回是访问控件那个属性  比如TextInput 需要返回 text，就填  text
+			 */ 
+			public function addField(id:String, name:String, calssName:String, agr:Array, returnName:String="data"):void
+			{
+				var fieldClass:Class= Class(getDefinitionByName(calssName));
+				if(fieldClass.toString() == "[class DateFieldFl]") {
+					addFieldDate(id, name);
+					return;
+				}
+				
+				var field:Object = new fieldClass();
+				field.width = 140;
+				field["id"] = id;
+				field["name"] = returnName;
+				agr.forEach(
+					function(obj:Object,index:int,arr:Array):void {
+						field[obj[0]]=obj[1];
+					}
+				);
+				fieldArr.addItem(field);
+				columnsList.addItem({label:name, data:id});
+				addElementToGroupOne(getNewFieldGroup(name, field as IVisualElement));
+			}
+			
+			
+			/**
+			 * 往控件中添加一个FieldSelect选择控件
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 * @param select armTitleWindow属性，ClassName
+			 * @param isMultiple 是否多选
+			 * @param only3 只选3家公司
+			 * @param forSelectData 一些选择参数
+			 * @param isAt0 是否往前面添加，否则往后面添加
+			 */ 
+			public function addFieldSelect(id:String, name:String, select:String,
+										   returnName:String = "data",  isAt0:Boolean = false):void
+			{
+				var field:FieldSelect = new FieldSelect();
+				field.id = id;
+				field.name = returnName;
+				field.width = 378;
+				field.height = 24;
+				field.armTitleWindow = Class(getDefinitionByName(select));
+				
+				fieldArr.addItem(field);
+				columnsList.addItem({label:name, data:id});
+				if(isAt0) {
+					group1.addElementAt(getNewFieldGroup(name,field),0);
+				} else {
+					group1.addElement(getNewFieldGroup(name,field));
+				}
+			}
+			
+			
+			/**
+			 * 往控件中添加一个公司选择控件
+			 * @param id 返回对象访问值的名字
+			 * @param isMultiple 是否多选
+			 * @param only3 只选择省公司
+			 */ 
+			public function addFieldCorpSelect(id:String="CORP_ID", isMultiple:Boolean=true, only3:Boolean=false):void
+			{
+				addFieldSelect(id, "公司", "com.wfm.flex.common.base.SelectCorp", "CORP_ID", true);
+			}
+			
+			/**
+			 * 往控件中添加一个数字选择
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 * @param length 文本长度
+			 */ 
+			public function addFieldNumber(id:String,name:String,length:int=20):void{
+				addFieldText(id,name,length,"0-9."); 
+			}
+			/**
+			 * 往控件中添加一个字符串选择
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 * @param length 文本长度
+			 */
+			public function addFieldString(id:String,name:String,length:int=20):void{
+				addFieldText(id,name,length); 
+			}
+			/**
+			 * 往控件中添加一个输入框选择
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 * @param length 文本长度
+			 * @param restrict 文本限制条件
+			 */ 
+			
+			public function addFieldText(id:String, name:String, length:int, restrict:String=null):void
+			{
+				var field:TextInput=new TextInput();
+				field.id=id;
+				field.name="text";
+				field.width=140;
+				field.maxChars=length;
+				field.restrict=restrict;
+				fieldArr.addItem(field);
+				columnsList.addItem({label:name, data:id});
+				addElementToGroupOne(getNewFieldGroup(name,field));
+			}
+			
+			/**
+			 * 往控件中添加一个下拉选择
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 * @param selectArr 下拉框内容
+			 */
+			public function addFieldDropDownList( id:String, name:String, selectArr:ArrayCollection):void
+			{ 
+				var field:DropDownList = new DropDownList();
+				field.id = id;
+				field.name = "selectedItem.data";
+				field.width = 140;
+				field.dataProvider = selectArr;
+				fieldArr.addItem(field);
+				columnsList.addItem({label:name, data:id});
+				addElementToGroupOne(getNewFieldGroup(name,field));
+			}
+			
+			private function addElementToGroupOne(element:IVisualElement):void
+			{
+				if(currHg.numElements < 2) {				
+					currHg.addElement(element);
+					if(currHg.numElements == 2) {
+						group1.addElement(currHg);
+					}
+				} else {
+					currHg = new HGroup();
+					
+					currHg.addElement(element);
+				}
+			}
+			/**
+			 * 往控件中添加一个日期选择
+			 * @param id 返回对象访问值的名字
+			 * @param name 前台显示Lable
+			 */
+			public function addFieldDate(id:String, name:String):void 
+			{
+				var field:HGroup = new HGroup();
+				field.id = id;
+				field.verticalAlign = "middle";
+				
+				var fieldS:DateFieldFl = new DateFieldFl();
+				var fieldE:DateFieldFl = new DateFieldFl();
+				fieldS.formatString = "YYYY-MM-DD";
+				fieldS.width = 140;
+				fieldS.id = id + "Start"; 
+				fieldS.name = "text";
+				fieldE.formatString = "YYYY-MM-DD";
+				fieldE.name = "text";
+				fieldE.width = 140;
+				fieldE.id = id + "End";
+				
+				//添加field
+				fieldArr.addItem(field);
+				columnsList.addItem({label:name, data:id});
+				
+				field.addElement(getNewFieldGroup(name,fieldS));
+				field.addElement(getNewFieldGroup("至",fieldE));
+				
+				group1.addElement(field);
+			}
+			
+			private function  getNewFieldGroup(name:String, field:IVisualElement):HGroup
+			{
+				var lable:FormLabel = new FormLabel();
+				lable.label = name;
+				lable.setStyle("verticalAlign", "middle");
+				
+				var ret:HGroup = new HGroup();
+				ret.verticalAlign = "middle";
+				
+				ret.addElement(lable);
+				ret.addElement(field);
+				
+				return	ret;
+			}
+			
+			
+			private function getValue(disPlay:Object):Object
+			{
+				if(disPlay is DropDownList) {
+					var DD:DropDownList = disPlay as DropDownList;
+					if(DD.selectedIndex != -1) {
+						return DD.selectedItem.data;
+					} else {
+						return -1;
+					}
+					
+				} else if(disPlay is FieldSelect) {
+					var fs:FieldSelect = disPlay as FieldSelect;
+					return fs.selectObj[fs.name].toString();
+					
+				} else if(disPlay is TextInput){
+					if(disPlay.text != "") {
+						return disPlay.text;
+					} else {
+						return -1;
+					}
+				}else{
+					return getParameters(disPlay);
+				}
+			}
+			
+			
+			
+			private function getParameters(obj:Object):Object
+			{
+				if(obj == null) {
+					return -1;
+				}
+				
+				var nameArr:Array = String(obj.name).split(".");
+				var objRet:Object = obj[nameArr[0]];
+				
+				for( var i:int = 1; i < nameArr.length; i++) {
+					objRet = objRet[nameArr[i]];
+				}
+				
+				if(objRet.toString() == "") {
+					return -1;
+				}
+				
+				return objRet;
+			}
+			
+			
+			protected function btnSure_clickHandler(event:MouseEvent):void
+			{
+				for each(var child2:Object in fieldArr) {
+					//控件占两列
+					if(child2 is HGroup) {
+						var disPlay:Object = new Object(); 
+						disPlay = ((child2 as HGroup).getChildAt(0) as HGroup).getChildAt(1);
+						queryInfoObj[disPlay.id] = getValue(disPlay);
+						
+						disPlay = ((child2 as HGroup).getChildAt(1) as HGroup).getChildAt(1);
+						queryInfoObj[disPlay.id] = getValue(disPlay);
+						//控件只占一列
+					} else {
+						queryInfoObj[child2.id] = getValue(child2);
+					} 
+				} 
+				
+				//排序字段
+				if(columnsDDL.selectedIndex != -1) {
+					queryInfoObj.columns = columnsDDL.selectedItem.data;
+				} else {
+					queryInfoObj.columns = -1;
+				}
+				
+				(this.owner as IModules).setWindowObj(queryInfoObj);
+				//分派事件
+				this.dispatchEvent(new Event("QueryConfirmEvent"));
+				
+				closeHandler(event);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:VGroup width="100%" height="100%" minHeight="30" id="group1" paddingTop="5">
+		
+		
+	</s:VGroup>
+	
+	<container:controlBarContent>
+		<s:HGroup width="70%" id="columnsHG" horizontalAlign="left" verticalAlign="middle" visible="true">
+			<s:Label text="排序字段" paddingLeft="9"/>
+			<s:DropDownList id="columnsDDL" width="140" dataProvider="{columnsList}" selectedIndex="0"/>
+		</s:HGroup>
+		
+		<s:HGroup width="30%" horizontalAlign="right">
+			<s:Button id="btnSure" label="确定" click="btnSure_clickHandler(event)"
+					  styleName="submit"/>
+			<s:Button id="btnCancel" label="取消" click="closeHandler(event)"
+					  styleName="cancel"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

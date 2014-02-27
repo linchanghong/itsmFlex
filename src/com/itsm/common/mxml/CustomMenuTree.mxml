@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Tree xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 itemClick="tree1_itemClickHandler(event)"
+		 itemRenderer="com.itsm.common.renders.MenusItemRender"
+		 creationComplete="tree1_creationCompleteHandler(event)">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="menuClick",type="com.framelib.events.MenuClickEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.framelib.events.MenuClickEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+
+			protected function tree1_itemClickHandler(event:ListEvent):void
+			{
+				var item:Object = event.currentTarget.selectedItem;
+				//叶子节点 、有编辑、查询按钮的菜单都不能选中；
+				if ( this.dataDescriptor.isBranch(item) || item.editClazz != null || item.queryClazz != null ) {
+					this.selectedItem = null;
+				} else {
+					var clazz:String = item.clazz==null?"no/clazz":item.clazz;
+					dispatchEvent(new MenuClickEvent("menuClick", item.id, item.label, clazz));
+				}
+			}
+			
+			protected function tree1_creationCompleteHandler(event:FlexEvent):void
+			{
+				this.addEventListener("EditEvent", editEventHandler);
+				this.addEventListener("QueryEvent", queryEventHandler);
+			}
+			
+			protected function editEventHandler(event:MouseEvent):void
+			{
+				var item:Object = event.currentTarget.selectedItem;
+				dispatchEvent(new MenuClickEvent("menuClick", item.editId, item.editLabel, item.editClazz));
+			}
+			
+			protected function queryEventHandler(event:MouseEvent):void
+			{
+				var item:Object = event.currentTarget.selectedItem;
+				dispatchEvent(new MenuClickEvent("menuClick", item.queryId, item.queryLabel, item.queryClazz));
+			}
+			
+		]]>
+	</fx:Script>
+</mx:Tree>

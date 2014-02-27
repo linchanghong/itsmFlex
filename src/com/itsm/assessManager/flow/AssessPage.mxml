@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:flow="com.itsm.flow.base.*"
+		  width="100%" height="100%" 
+		  creationComplete="creationCompleteHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			//默认情况下选择不同意(发布事件)
+			[Bindable]
+			private var FlowBillModi:Event;
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			public var billId:String;
+			public var oprtTypeId:String;
+			public var IsSave:Boolean;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				var schemeId:String=billId;
+				appCore.dealData("assessManagerAPI", "AssessManagerAPI", "findAssessSchemeById",[schemeId],loadFlowData);
+				FlowBillModi = new Event("FlowBillModi");
+				this.dispatchEvent(FlowBillModi);
+			}
+			/**
+			 * 读取数据
+			 * */
+			private var schemeObj:Object;
+			private function loadFlowData(event:ResultEvent):void {
+				schemeObj=appCore.jsonDecoder.decode(event.result as String);
+				schemeName.text=schemeObj.schemeName;
+				schemeCode.text=schemeObj.schemeCode;
+				startDate.text=schemeObj.period.startDate;
+				endDate.text=schemeObj.period.endDate;
+				
+				AppHistoryGrid.gridMain.OnlyInit();
+				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+			
+			//保存按钮点击事件
+			public function saveBtn_clickHandler(event:MouseEvent):void{
+				var assessArry:ArrayCollection=assess_Grid.dataProvider as ArrayCollection;
+				if(assessArry!=null && assessArry.length>0){
+					var reg:RegExp=new RegExp("^\\d+(\\.\\d\\d)?$");
+					var objArry:Array=new Array();
+					for each(var assessObj:Object in assessArry){
+						var flags:Boolean=reg.exec(assessObj.score);
+						if (!flags)
+						{
+							TAlert.show("考核分数只能是整数或者2位小数", "提示");
+							return ;
+						}
+						if ((Number(assessObj.score)) < 0)
+						{
+							TAlert.show("考核分数不能是负数", "提示");
+							return ;
+						}
+						var obj:Object=assessObj;
+						obj.scheme=schemeObj;
+						objArry.push(obj);
+					}
+					if(objArry.length==assessArry.length){
+						appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","updateAssesses", [appCore.jsonEncoder.encode(objArry)]);
+						appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveBtn_clickHandle);
+					}
+				}
+			}
+			private function saveBtn_clickHandle(event:ResultEvent):void{
+				var resultStr:String=(event.result).toString();
+				if(resultStr=="-2"){
+					TAlert.show("保存失败！", "系统提示");
+					return;
+				}else{
+					var FlowBillSave:Event = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillSave);
+				}
+			}
+			//数据验证
+			/* private function verification():Boolean{
+				return false;
+			} */
+			
+			public function flowResult():void{
+				
+			}
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Scroller width="100%" height="100%">	
+		<s:VGroup width="100%" height="100%">
+			<mx:VDividedBox width="100%" height="100%" minHeight="550" creationPolicy="all">
+				<s:Scroller width="100%" height="50%">
+					<s:VGroup width="100%" height="100%" paddingRight="4">
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<s:Button id="saveBtn" label="保存" styleName="save" click="saveBtn_clickHandler(event)"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="方案名称：" verticalAlign="middle" required="true" width="110"/>
+							<control:TextInputFl id="schemeName" width="50%" enabled="false"/>
+							<control:FormLabel label="方案编码：" verticalAlign="middle" required="true" width="110"/>
+							<control:TextInputFl id="schemeCode" width="50%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="28" verticalAlign="middle">
+							<control:FormLabel label="开始日期：" verticalAlign="middle" width="110"/>
+							<control:TextInputFl id="startDate" width="50%" enabled="false"/>
+							<control:FormLabel label="截止日期：" verticalAlign="middle" width="110"/>
+							<control:TextInputFl id="endDate" width="50%" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="100%" verticalAlign="middle">
+							<custom:CustomDataGrid id="assess_Grid" width="100%" height="100%"
+												   dataProvider="{['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessPage', [' and p.scheme_id='+billId+ 'and p.examiner='+appCore.loginUser.id]]}"
+												   textAlign="center" isPaging="true" isCheckBox="false" editable="true"
+												   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on">
+								<custom:columns>
+									<mx:DataGridColumn dataField="id" headerText="主键" width="0" visible="false"/>
+									<mx:DataGridColumn dataField="assessObj.userName" headerText="考核对象" />
+									<mx:DataGridColumn dataField="dailyCount" headerText="日报完成"/>
+									<mx:DataGridColumn dataField="weeklyCount" headerText="周报完成"/>
+									<mx:DataGridColumn dataField="troubleCount" headerText="问题处理"/>
+									<mx:DataGridColumn dataField="bugCount" headerText="bug处理"/>
+									<mx:DataGridColumn dataField="demandCount" headerText="需求处理"/>
+									<mx:DataGridColumn dataField="score" headerText="考评得分" editable="true"/>
+									<mx:DataGridColumn dataField="examiner.userName" headerText="考评人"/>
+									<mx:DataGridColumn dataField="directions" headerText="评分说明" editable="true"/>
+								</custom:columns>
+							</custom:CustomDataGrid>
+						</s:HGroup>
+						
+					</s:VGroup>
+				</s:Scroller>
+				<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="50%"/>
+			</mx:VDividedBox>
+		</s:VGroup>
+	</s:Scroller>
+	
+</s:Module>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009"
+						 xmlns:s="library://ns.adobe.com/flex/spark"
+						 xmlns:mx="library://ns.adobe.com/flex/mx"
+						 xmlns:container="com.framelib.container.*"
+						 xmlns:control="com.framelib.control.*"
+						 width="100%" height="100%"
+						 title="预警设置">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<container:layout>
+		<s:VerticalLayout gap="5" paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5"/>
+	</container:layout>
+	
+	<s:HGroup width="100%">
+		<control:FormLabel width="50" label="SQL标准:"/>
+		<s:List width="100%" minWidth="500">
+			<s:ArrayList>
+				<fx:String>1、select col1 as type, col2 as condition, col3 as isWarning from table</fx:String>
+			</s:ArrayList>	
+		</s:List>
+	</s:HGroup>
+	
+	<s:HGroup width="100%">
+		<control:FormLabel width="50" height="100%" label="预警SQL:"/>
+		<control:TextAreaFl width="100%" height="100"/>
+	</s:HGroup>
+	
+	<s:HGroup width="100%" horizontalAlign="right">
+		<s:Button label="确定"/>
+		<s:Button label="取消" styleName="cancel" click="closeHandler(event)"/>
+	</s:HGroup>
+</container:TitleWindowFl>

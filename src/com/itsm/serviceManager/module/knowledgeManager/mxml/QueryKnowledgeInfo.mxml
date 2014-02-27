@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:mx="library://ns.adobe.com/flex/mx"
+						 xmlns:container="com.framelib.container.*"
+						 title="查询"
+						 width="475" height="180"
+						 creationComplete="init(event)" 
+						 close="closeHandler(event);"
+						 xmlns:mxml="com.itsm.common.mxml.*"
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:company="com.itsm.common.selectwindow.company.*">
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.framelib.utils.StaticMethods;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.FlowTools;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.events.IndexChangeEvent;
+			[Bindable]
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			//所属系统
+			[Bindable]
+			public var systems:ArrayCollection;
+			
+			//所属系统的业务模块
+			[Bindable]
+			public var modules:ArrayCollection;
+			
+			private var sqlWhere:String="";      //查询条件
+			
+			//			父窗体
+			public var parWindow:KnowledgeManager=null;
+			
+			/* 初始化调用 
+			*/
+			private function init(event:FlexEvent):void
+			{
+				
+			}
+			//将远程服务器返回的数据进行处理
+			private function getResultObj(event:ResultEvent):Object{
+				var resultStr:String = event.result.toString();	
+				return appCore.jsonDecoder.decode(resultStr);
+			}
+			//所属系统下拉列表创建完成时调用
+			protected function dList_System_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(systems == null){
+					appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","initSupportSystems", []);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,dList_System_BindHandle);
+				}else{
+					dList_System.dataProvider = systems;
+					//dList_Module.dataProvider = modules;
+				}
+			}
+			//点击修改界面的所属系统下拉列表后从后台传入的数据的处理
+			private function dList_System_BindHandle(event:ResultEvent):void{
+				systems = getResultObj(event) as ArrayCollection;
+				modules = systems.getItemAt(0) as ArrayCollection;
+				
+				dList_System.dataProvider = systems;
+			}
+			private function dList_System_changeHandler(event:IndexChangeEvent):void{
+				var sysID:int = dList_System.selectedItem.systemID;
+				appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","initSystemModules", [sysID]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,dList_SystemChangeResultHandle);
+			}
+			private function dList_SystemChangeResultHandle(event:ResultEvent):void{
+				modules = getResultObj(event) as ArrayCollection;
+			}
+			
+			
+			protected function queryButton_clickHandler(event:MouseEvent):void
+			{
+				if(konwledgeTitle.text!=null&&konwledgeTitle.text!="")
+				{
+					sqlWhere+=" and p.knowledge_title like '%"+konwledgeTitle.text+"%'";
+				}
+				if(dList_System.selectedIndex!=-1||dList_System.selectedItem!=null)
+				{
+					sqlWhere+=" and p.knowledge_type="+dList_System.selectedItem.systemID;
+				}
+				if(dList_Module.selectedIndex!=-1||dList_Module.selectedItem!=null)
+				{
+					sqlWhere+=" and p.belongs_business="+dList_Module.selectedItem.moduleID;
+				}
+				parWindow.knowledge_Grid.dataProvider = ['knowledgeManagerAPI', 'KnowledgeManagerAPI', 'findAllKnowledgeInfoPage', [sqlWhere]];
+				PopUpManager.removePopUp(this);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:BorderContainer width="100%" height="100%">
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingLeft="5" paddingTop="5" paddingBottom="5" paddingRight="5"/>
+		</s:layout>
+		<s:HGroup width="100%">
+			<control:FormLabel text="知识标题" width="60" textAlign="right"/>
+			<control:TextInputFl id="konwledgeTitle" width="100%" text=""/>	
+		</s:HGroup>
+		
+		<s:HGroup width="100%">
+			<control:FormLabel label="所属系统：" verticalAlign="middle" required="true"/>
+			<s:DropDownList id="dList_System" width="100%" height="25"
+							labelField="systemName" 
+							textAlign="left" creationComplete="dList_System_creationCompleteHandler(event)"
+							change="dList_System_changeHandler(event)"/>
+		</s:HGroup>
+		<s:HGroup width="100%">
+			<control:FormLabel label="关联业务：" verticalAlign="middle" required="true"/>
+			<s:DropDownList id="dList_Module" width="100%" height="25" dataProvider="{modules}"
+							labelField="moduleName" textAlign="left"
+							enabled="true"/>
+		</s:HGroup>
+	</s:BorderContainer>
+	<container:controlBarContent>
+		<s:HGroup width="100%"  horizontalAlign="right" verticalAlign="middle">
+			<s:Button label="确定" styleName="submit" click="queryButton_clickHandler(event)" toolTip="执行查询" />
+			<s:Button label="取消" styleName="cancel" click="closeHandler(event);" toolTip="关闭查询窗口"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  width="100%" height="100%"
+		  creationComplete="initPage(event)">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			
+			import mx.rpc.events.ResultEvent;
+			
+			
+			//流程挂载页面必需属性--用于存储业务id
+			[Bindable]
+			public var billId:String;
+			//流程模型
+			public var oprtTypeId:String;
+			//子需求单业务存储表格
+			[Bindable]
+			public var subDemandTableName:String = "T_USER_APPLY";
+			//主需求业务单对象
+			[Bindable]
+			public var userApply:Object;
+			
+			//子需求单
+			[Bindable]
+			public var subDemandObj:Object;
+			
+			/**页面加载成功后初始化数据*/
+			private function initPage(event:Event):void{
+				BugUtil.handle_server_method("bugManagerAPI","BugManagerAPI","showUserApllyByID",
+					[billId], loadDemand4FlowInfoInfo);
+			}
+			/**初始化处理方法查询请求单后返回数据处理方法*/
+			private function loadDemand4FlowInfoInfo(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj != "0")
+					userApply = obj;
+				//加载该需求单的流程进度记录
+//				AppHistoryGrid.gridMain.OnlyInit();
+//				AppHistoryGrid.getApproveHistory(oprtTypeId, billId);
+			}
+			
+			
+			/**流程挂载页面=======================================================*/
+			/**将要同意*/
+			public function doWillAgreeeEventHandle(event:Event):void{}
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+				
+			}
+			private function flowHanelResult(event:ResultEvent):void {
+//				TAlert.show("数据生效");
+			}
+			/**
+			 * 同意处理前调用
+			 */
+			public function agreeBefore():void{}
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{}
+			/**流程挂载页面=======================================================*/
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+			<s:VGroup left="1" right="1" top="1" bottom="1" width="100%" height="100%"
+					  horizontalAlign="center" paddingBottom="1" paddingLeft="1" paddingRight="1"
+					  paddingTop="1">
+				
+				<s:VGroup width="100%" height="100%">
+					<s:VGroup id="topInfoP" width="100%" height="37%">
+						<s:HGroup width="100%" height="25" paddingTop="2">
+							<s:Label width="15%" height="100%" text="需求发起人：" textAlign="right"/>
+							<s:TextInput id="sponsor" width="15%" height="100%" editable="false"
+										 text="{userApply!=null?userApply.sponsor.userName:''}"
+										 textAlign="left"/>
+							
+							<s:Label width="15%" height="100%" text="所属单位：" textAlign="right"/>
+							<s:TextInput id="company" width="15%" height="100%" editable="false" text="{userApply!=null?userApply.company:''}" textAlign="left"/>
+							
+							<s:Label text="所属部门：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="department" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.department:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label text="联系电话：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="telephone" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.telephone:''}"/>
+							
+							<s:Label text="报告时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="applyStartDate" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.applyStartDate:''}"/>
+							
+							<s:Label text="期望解决时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="applyEndDate" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.applyEndDate:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label text="需求来源：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="applyOrigin" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.applyOrigin.constDetailName:''}"/>
+							
+							<s:Label text="重要程度：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="urgent" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.urgent.levelNameString:''}"/>
+							
+							<s:Label text="影响范围：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="range" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.range.constDetailName:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label text="所属系统：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="belongSystem" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.belongSystem.systemName:''}"/>
+							
+							<s:Label text="所属业务：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="sysModule" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.sysModule.moduleName:''}"/>
+							
+							<s:Label text="需求受理时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="replyTime" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.replyTime:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label text="责任人：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="replyer" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.replyer.userName:''}"/>
+							
+							<s:Label text="计划解决时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="planFinishTime" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.planFinishTime:''}"/>
+							
+							<s:Label text="实际解决时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="realFinishTime" width="15%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.realFinishTime:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="15%" height="100%" text="主题摘要：" textAlign="right"/>
+							<s:TextInput id="applyTitle" width="77%" height="100%" editable="false" textAlign="left" text="{userApply!=null?userApply.applyTitle:''}"/>
+						</s:HGroup>
+					</s:VGroup>
+					
+					<s:VGroup id="bottomInfoP" width="100%" height="50%">
+						<s:HGroup width="100%" height="50%">
+							<s:Label width="15%" height="100%" text="需求描述：" textAlign="right"/>
+							<s:TextArea id="directions" width="77%" height="100%"
+										editable="false"
+										text="{userApply!=null?userApply.directions:''}"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="50%">
+							<s:Label width="15%" height="100%" text="提出理由：" textAlign="right"/>
+							<s:TextArea id="applyReason" width="77%" height="100%"
+										editable="false"
+										text="{userApply!=null?userApply.applyReason:''}"/>
+						</s:HGroup>
+					</s:VGroup>
+				</s:VGroup>
+				
+			</s:VGroup>
+	</s:Group>
+</s:Module>

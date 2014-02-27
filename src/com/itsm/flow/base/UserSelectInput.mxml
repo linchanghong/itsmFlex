@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:Base="Com.Base.*"
+		 xmlns:components="common.components.*"
+		 width="100%" height="25" fontSize="12">
+	
+	<fx:Metadata>
+		[Event(name="DataChange",type="flash.events.Event")]
+	</fx:Metadata>
+	
+	<fx:Script> 
+		<![CDATA[		
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.events.view.EventUserSelClose;
+			import com.services.base.CusUsersService;
+			import com.vo.CusUsers;
+			
+			import flash.events.Event;
+			
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			import mx.core.IFlexDisplayObject;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			[Bindable]
+			public var SelButtonEnable:Boolean=true;;
+			
+			public var UserValuedata:int = -1;			//use for UserValue.data
+			public var MuliSel:Boolean = false;									//是否多选
+			public var hasSelUsersArr:Array = new Array();						//选中人员数据集
+			public var UserIDArr:Array = new Array();							//选择人员ID集
+			public var UserNameArr:Array = new Array();							//选择人员名称集
+			public var includeEffective:Boolean= false;								//是否包含禁用人员
+			public var _WhereStr:String=""; //设置条件变量，比如公司Id
+			/**格式：1=1 and */
+			public var _WhereStrUserIds:String = ""; //
+			[Bindable]
+			private var _hasSelUserId:int;
+			
+			public var customSel:CusUserSelForm;
+			
+			public var FAppCore:AppCore = AppCore.getInstance();
+			
+			[Bindable]
+			public function get hasSelUserId():int
+			{
+				return _hasSelUserId;
+			}
+			
+			public function set hasSelUserId(value:int):void
+			{
+				_hasSelUserId = value;
+				SetDefaultValue(value.toString());
+			}
+			
+			public function setNull():void
+			{
+				hasSelUsersArr = new Array();
+				UserIDArr = new Array();
+				UserNameArr = new Array();
+				UserValue.text = "";
+				hasSelUserId = 0;
+			}
+			
+			public function SetDefaultID(Users:Object,isDispatchEvent:Boolean=false):void
+			{
+				hasSelUsersArr = [{UserId:String((Users as CusUsers).UserId),
+					UserCode:String((Users as CusUsers).UserCode),
+					UserName:String((Users as CusUsers).UserName),
+					Password:String((Users as CusUsers).Password),
+					RoleTable:String((Users as CusUsers).RoleTable),
+					CODE:String((Users as CusUsers).CODE),
+					CompId:(Users as CusUsers).CompId,
+					DeptId:(Users as CusUsers).DeptId,
+					DeptName:String((Users as CusUsers).DeptName),
+					Effective:(Users as CusUsers).Effective,
+					CreateTime:(Users as CusUsers).CreateTime,
+					State:(Users as CusUsers).State}];
+				
+				UserIDArr = new Array();
+				UserIDArr.push(String((Users as CusUsers).UserId));
+				UserNameArr = new Array();
+				UserNameArr.push(String((Users as CusUsers).UserName));
+				UserValue.text = UserNameArr.toString();
+				if (isDispatchEvent){
+					var e:Event = new Event("DataChange");
+					dispatchEvent(e);
+				}
+			}
+			
+			
+			//设置默认选择的值
+			public function SetDefaultValue(UserIds:String):void
+			{
+				var sql:String = " person_id in (" + UserIds + ") and dr = 0 ";
+				var server:CusUsersService = new CusUsersService("flowData", "FlowData");
+				server.GetPageData(sql, " person_id asc").addResultListener(receivedRecords);
+			}
+			
+			
+			
+			//数据库中查询的对应数据集
+			private function receivedRecords( result:ResultEvent ):void
+			{
+				//hasSelUsersArr = result.result as Array;
+				var json:String = result.result as String;
+				hasSelUsersArr = JSON.parse(json) as Array;
+				UserIDArr = new Array();
+				UserNameArr = new Array();
+				hasSelUserId = hasSelUsersArr.length>0?hasSelUsersArr[0]["personId"]:null;
+				for (var X:int=0; X<hasSelUsersArr.length;X++)
+				{
+					UserIDArr.push(hasSelUsersArr[X].personId);
+					UserNameArr.push(hasSelUsersArr[X].personName);
+				}
+				UserValue.text = UserNameArr.toString();
+			}		
+			
+			//选择按钮，弹出选择窗口
+			private function selClick(event:Event):void
+			{
+				var aParent:DisplayObject = DisplayObject(FlexGlobals.topLevelApplication);
+				customSel= CusUserSelForm(PopUpManager.createPopUp(aParent,CusUserSelForm,true));
+				if(_WhereStr.length>0)
+				{
+					customSel.customUserSel._WhereStr=_WhereStr;
+					customSel.customUserSel.DeptSel._WhereStr = _WhereStr;
+					customSel.customUserSel.DeptSel.InitData();				
+					
+					var WhereStr:String=" Type=3 and "+ _WhereStr
+					if (!includeEffective) WhereStr += " and Effective=1 ";
+					
+					customSel.customUserSel.GridSel.WhereStr=_WhereStrUserIds+WhereStr;
+					customSel.customUserSel.GridSel.GridLoadData();
+				}	 
+				customSel.customUserSel._WhereStrUserIds = _WhereStrUserIds;
+				customSel.MuliSel = MuliSel;  
+				customSel.includeEffective = includeEffective;
+				customSel.addEventListener(EventUserSelClose.USERSELCLOSE,onColumnEditComplete);
+				PopUpManager.centerPopUp(customSel);
+			}
+			
+			//弹出窗口返回值
+			private function onColumnEditComplete(event:EventUserSelClose):void
+			{
+				this.hasSelUsersArr = customSel.hasSelUsersArr;
+				this.UserIDArr = customSel.UserIDArr;
+				this.UserNameArr = customSel.UserNameArr;
+				UserValue.text = UserNameArr.toString();
+				var e:Event = new Event("DataChange");
+				dispatchEvent(e);
+			}
+			
+		]]>
+	</fx:Script>	
+	
+	<s:HGroup left="0" top="0" width="100%" height="25" gap="{SelBtn.enabled?2:0}"
+			  horizontalAlign="right" verticalAlign="middle">
+		<s:TextInput id="UserValue" width="100%" editable="false"/>
+		<components:IconButton id="SelBtn" enabled="{SelButtonEnable}" visible="{SelBtn.enabled}" width="{SelBtn.enabled?18:0}"
+							   height="18" click="selClick(event)"
+							   icon="@Embed(source='assets/img/icon/find.png')" toolTip="选择"/>
+	</s:HGroup>
+</s:Group>

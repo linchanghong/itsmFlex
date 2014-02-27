@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:DataGrid xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:mx="library://ns.adobe.com/flex/mx"
+			 creationComplete="datagrid1_creationCompleteHandler(event)">
+	
+	
+	<fx:Metadata>
+	</fx:Metadata>
+	
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	
+	<fx:Script>
+		<![CDATA[  
+			import com.framelib.renderer.CheckBoxHeaderRenderer;
+			import com.framelib.renderer.CheckBoxItemRenderer;
+			import com.framelib.utils.StaticMethods;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.CheckBox;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.listClasses.IListItemRenderer;
+			import mx.events.FlexEvent;
+			
+			private var _isRowNum:Boolean = false;
+			private var init_rowNum:Boolean = false;
+			private var _isCheckBox:Boolean = false;
+			private var init_checkBox:Boolean = false;
+			private var _isMutipleSelete:Boolean = false;
+			
+			/**
+			 * 要合计的列的dataFied，用逗号隔开。
+			 * 
+			 * 第一列不能合计
+			 **/
+			public var sumFields:String = "";
+			
+			
+			/**
+			 * true表示有分页，false表示单页
+			 * 
+			 * 默认是单页
+			 * 
+			 * 如果是分页的，要手动提供汇总数据
+			 **/
+			public var isPaging:Boolean = false;
+			
+			
+			/**
+			 * 分页汇总下，需要手动提供的汇总数据
+			 * 
+			 * sql查询出的数据源的汇总
+			 **/
+			public var sumDataArr:ArrayCollection;
+			
+			/**
+			 * 合计行的对象
+			 **/
+			public var sumRowObj:Object;
+			
+			/**
+			 * 数据源的一个拷贝，不改变原有数据源
+			 **/
+			private var gridDataCopy:ArrayCollection;
+			
+			/**
+			 * 当显示CheckBox列时，checkbox是多选还是单选
+			 * 
+			 * true表示多选，false表示单选
+			 * 
+			 * 默认是false
+			 **/
+			public function get isMutipleSelete():Boolean
+			{
+				return _isMutipleSelete;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isMutipleSelete(value:Boolean):void
+			{
+				_isMutipleSelete = value;
+				this.isCheckBox = _isCheckBox;
+			}
+			
+			/**
+			 * 是否显示CheckBox列
+			 * 
+			 * true表示显示，false表示不显示
+			 * 
+			 * 默认是false
+			 **/
+			public function get isCheckBox():Boolean
+			{
+				return _isCheckBox;
+			}
+			
+			/**
+			 * 
+			 * 设置checkbox列
+			 * 
+			 * @private
+			 */
+			public function set isCheckBox(value:Boolean):void
+			{
+				var tmp_columns:Array;
+				
+				//如果datagrid还没有列，保存下要设置的值先返回，到datagrid创建完成时，再用此值来设置checkbox列。
+				if(this.columns.length == 0){
+					init_checkBox = value;
+					return;
+				}
+				
+				//现在要checkbox列
+				if(value){
+					tmp_columns = new Array();
+					tmp_columns = this.columns;
+					
+					//以前有checkbox列，现在先移除，再新加一列.
+					if(_isCheckBox){
+						tmp_columns.shift();
+					}
+					
+					tmp_columns.unshift(getNewCheckBoxColumn());
+					this.columns = tmp_columns;
+				}else{
+					//如果以前有checkbox列，移除
+					if(_isCheckBox){
+						tmp_columns = new Array();
+						tmp_columns = this.columns;
+						tmp_columns.shift();
+						this.columns = tmp_columns;
+					}
+				}
+				
+				_isCheckBox = value;
+			}
+			
+			/**
+			 * 是否显示行号
+			 **/
+			public function get isRowNum():Boolean
+			{
+				return _isRowNum;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set isRowNum(value:Boolean):void
+			{
+				var tmp_columns:Array;
+				
+				if(this.columns.length == 0)
+				{
+					init_rowNum = value;
+					return;
+				}
+				
+				if(value)
+				{
+					if(!_isRowNum)
+					{
+						var rowNumColumn:DataGridColumn = new DataGridColumn("序号");
+						rowNumColumn.labelFunction = rowNumFun;
+						rowNumColumn.width = 40;
+						
+						rowNumColumn.sortable = false;
+						rowNumColumn.draggable = false;
+						rowNumColumn.editable = false;
+						
+						tmp_columns = new Array();
+						tmp_columns = this.columns;
+						if(!_isCheckBox)//如果没有checkbox列，rowNum列就是第一列
+							tmp_columns.unshift(rowNumColumn);
+						else
+							tmp_columns.splice(1,1,rowNumColumn);
+						this.columns = tmp_columns;
+					}
+				}
+				else
+				{
+					if(_isRowNum)
+					{
+						tmp_columns = new Array();
+						tmp_columns = this.columns;
+						if(!_isCheckBox)
+							tmp_columns.shift();
+						else
+							tmp_columns.splice(1,1);
+						this.columns = tmp_columns;
+					}
+				}
+				
+				_isRowNum = value;
+			}
+			
+			
+			
+			/**
+			 * 创建一列新的checkbox列
+			 * 
+			 * */
+			private function getNewCheckBoxColumn():DataGridColumn
+			{
+				var checkBoxColumn:DataGridColumn = new DataGridColumn();
+				checkBoxColumn.width = 30;
+				
+				checkBoxColumn.sortable = false;
+				checkBoxColumn.draggable = false;
+				checkBoxColumn.editable = false;
+				checkBoxColumn.dataField="isSelected";
+				checkBoxColumn.headerText="";
+				
+				//如果单选，就不用显示headerRenderer了。
+				if(isMutipleSelete){
+					checkBoxColumn.headerRenderer = new ClassFactory(CheckBoxHeaderRenderer);
+				}
+				
+				checkBoxColumn.itemRenderer = new ClassFactory(CheckBoxItemRenderer);
+				
+				return checkBoxColumn;
+			}
+			
+			override public function set dataProvider(gridData:Object):void 
+			{
+				gridDataCopy = StaticMethods.clone(gridData) as ArrayCollection;
+				
+				//没有合计，数据集为0 退出
+				if (sumFields == "" || gridDataCopy.length == 0)
+				{
+					super.dataProvider = gridData; 
+					return;
+				}
+				
+				//拷贝出一个合计行，
+				sumRowObj =  StaticMethods.clone(this.rowMap) as Object; 
+				
+				//清空汇总行的所有数据
+				for each(var colItem_1:DataGridColumn in this.columns)
+				sumRowObj[colItem_1.dataField] = null;
+				
+				//要汇总的列的数组
+				var sumFieldsArr:Array = sumFields.split(",");
+				
+				//第一列汇总行  为  合计  二字
+				if(!isRowNum)
+					sumRowObj[(this.columns[0] as DataGridColumn).dataField] = "合计:";
+				
+				if (isPaging)//分页方式的合计数
+				{
+					if (gridDataCopy.length > 0)
+					{
+						for each(var colItem_2:DataGridColumn in this.columns)
+						{
+							//如果没显示行号，第一列不能汇总
+							if(!isRowNum && this.columns.indexOf(colItem_2) == 0)
+								continue;
+							
+							//将汇总数据 赋值给 汇总行
+							if(sumFieldsArr.indexOf(colItem_2.dataField) >= 0)
+							{
+								if (sumDataArr[0][colItem_2.dataField] != null)
+								{
+									sumRowObj[colItem_2.dataField] = sumDataArr[0][colItem_2.dataField];
+								} 
+							}
+						}
+					}
+				}
+				else//单页合计数
+				{
+					for each(var gridDataCopyItem:Object in gridDataCopy) 
+					{
+						for each(var colItem_3:DataGridColumn in this.columns)
+						{
+							//如果没显示行号，第一列不能汇总
+							if(!isRowNum && this.columns.indexOf(colItem_3) == 0)
+								continue;
+							
+							//汇总
+							if(sumFieldsArr.indexOf(colItem_3.dataField) >= 0)
+							{
+								if(!isNaN(Number(gridDataCopyItem[colItem_3.dataField])))
+								{ 
+									if(isNaN(sumRowObj[colItem_3.dataField])) 
+									{ 
+										sumRowObj[colItem_3.dataField] = Number(gridDataCopyItem[colItem_3.dataField]); 
+									} 
+									else 
+									{ 
+										sumRowObj[colItem_3.dataField] += Number(gridDataCopyItem[colItem_3.dataField]); 
+									} 
+								}
+							}
+						}
+					} 				
+				}
+				
+				gridDataCopy.addItemAt(sumRowObj,0);
+				super.dataProvider = gridDataCopy; 
+			}  
+			
+			override protected function selectItem(item:IListItemRenderer,
+												   shiftKey:Boolean, ctrlKey:Boolean,
+												   transition:Boolean = true):Boolean
+			{
+				// 如果有checkBox列，就只能用checkBox来选择
+				if(isCheckBox)
+				{
+					if (item is CheckBox)
+						return super.selectItem(item, false, true, transition);
+					else
+						return false;
+				}
+				else
+				{
+					return super.selectItem(item, shiftKey, ctrlKey, transition);
+				}
+			}
+			
+			// 如果有checkBox列，点某行时，没有选中的效果
+			override protected function drawSelectionIndicator(
+				indicator:Sprite, x:Number, y:Number, width:Number, height:Number, 
+								  color:uint, itemRenderer:IListItemRenderer):void
+			{
+				if(!isCheckBox)
+				{
+					super.drawSelectionIndicator(indicator,x,y,width,height,color,itemRenderer);
+				}
+			}
+			
+			// whenever we draw the renderer, make sure we re-eval the checked state
+			override protected function drawItem(item:IListItemRenderer,
+												 selected:Boolean = false,
+												 highlighted:Boolean = false,
+												 caret:Boolean = false,
+												 transition:Boolean = false):void
+			{
+				if(isCheckBox)
+				{
+					if (item is CheckBox)
+						CheckBox(item).invalidateProperties();
+				}
+				super.drawItem(item, selected, highlighted, caret, transition);
+			}
+			
+			// 如果有checkbox列，就不允许ctrl和shift键 多选
+			override protected function keyDownHandler(event:KeyboardEvent):void
+			{
+				if(isCheckBox)
+				{
+					event.ctrlKey = true;
+					event.shiftKey = false;
+				}
+				super.keyDownHandler(event);
+			}
+			
+			//汇总行不参加 
+			override protected  function collectionChangeHandler(event:Event):void 
+			{
+				if ((sumFields != null) && (sumFields != "") && (!isPaging) && (sumRowObj != null))
+				{
+					var sumIndex:int = (this.dataProvider as ArrayCollection).getItemIndex(sumRowObj);
+					var currdata:ArrayCollection = new ArrayCollection();
+					if (sumIndex > 0)
+					{
+						for (var i:int =0;i<(this.dataProvider as ArrayCollection).length;i++)
+						{
+							if (i != sumIndex)
+								currdata.addItem((this.dataProvider as ArrayCollection).getItemAt(i));
+						}
+						this.dataProvider = currdata;
+					} 
+				} 
+				super.collectionChangeHandler(event); 
+			}
+			
+			/**
+			 * 返回除去 汇总行 的数据源 
+			 * */
+			public function getNoSumData():ArrayCollection
+			{
+				var result:ArrayCollection = new ArrayCollection();
+				if ((sumFields != null) && (sumFields != "") && (sumRowObj != null))
+				{ 
+					var sumIndex:int = (this.dataProvider as ArrayCollection).getItemIndex(sumRowObj);
+					if (sumIndex > 0)
+					{
+						for (var i:int =0;i<(this.dataProvider as ArrayCollection).length;i++)
+						{
+							if (i != sumIndex)
+								result.addItem((this.dataProvider as ArrayCollection).getItemAt(i));
+						}
+					}
+				}
+				else
+				{
+					result = this.dataProvider as ArrayCollection;
+				}
+				return result;
+			}
+			
+			protected function datagrid1_creationCompleteHandler(event:FlexEvent):void
+			{
+				this.isRowNum = init_rowNum;
+				this.isCheckBox = init_checkBox;
+				//var tmp_columns:Array ;
+				
+				//暂不支持排序
+				//this.sortableColumns = false;
+				
+				//添加序号列
+				/* if(isRowNum)
+				{
+				var rowNumColumn:DataGridColumn = new DataGridColumn("序号");
+				rowNumColumn.labelFunction = rowNumFun;
+				rowNumColumn.width = 40;
+				
+				rowNumColumn.sortable = false;
+				rowNumColumn.draggable = false;
+				rowNumColumn.editable = false;
+				
+				tmp_columns = new Array();
+				tmp_columns = this.columns;
+				tmp_columns.unshift(rowNumColumn);
+				this.columns = tmp_columns;
+				} */
+				
+				//添加checkbox列
+				/* if(isCheckBox)
+				{
+				var checkBoxColumn:DataGridColumn = new DataGridColumn();
+				checkBoxColumn.width = 20;
+				
+				checkBoxColumn.sortable = false;
+				checkBoxColumn.draggable = false;
+				checkBoxColumn.editable = false;
+				
+				//如果单选，就不用显示headerRenderer了。
+				if(isMutipleSelete)
+				checkBoxColumn.headerRenderer = new ClassFactory(CheckBoxHeaderRenderer);
+				
+				checkBoxColumn.itemRenderer = new ClassFactory(CheckBoxItemRenderer);
+				
+				tmp_columns = new Array();
+				tmp_columns = this.columns;
+				tmp_columns.unshift(checkBoxColumn);
+				this.columns = tmp_columns;
+				} */
+			}
+			
+			/**
+			 * datagrid显示行号 
+			 * */
+			private function rowNumFun(item:Object, column:DataGridColumn):String
+			{
+				var reStr:String;
+				var iIndex:int;
+				
+				if (sumFields == "")
+				{
+					iIndex = (this.dataProvider as ArrayCollection).getItemIndex(item) + 1;
+					
+					reStr = String(iIndex);
+				}
+				else
+				{
+					iIndex = (this.dataProvider as ArrayCollection).getItemIndex(item);
+					
+					//在显示行号的情况下，合计 这两字就放到行号列来
+					if(iIndex == 0)
+						reStr = "合计:";
+					else
+						reStr = String(iIndex);
+				}
+				
+				return reStr;
+			}
+			
+		]]>
+	</fx:Script>
+</mx:DataGrid>

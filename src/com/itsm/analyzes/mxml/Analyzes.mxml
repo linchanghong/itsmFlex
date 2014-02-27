@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  width="100%" height="100%"
+		  creationComplete="init()" xmlns:bugDataGrid="com.itsm.serviceManager.component.bugDataGrid.*">
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script source="../code/Analyzes.as"/>
+	
+	<mx:TabNavigator id="analyze" 
+					 width="100%" height="100%" 
+					 focusColor="#58F0C0"
+					 selectedIndex="0">
+		
+		<s:NavigatorContent id="workload" 
+							width="100%" height="100%" 
+							label="工作量统计">
+			
+			<s:VGroup width="100%" height="100%"
+					  left="10" right="10" bottom="10"
+					  horizontalAlign="center">
+				
+				<s:Label text="工作量统计表"
+						 fontSize="20" fontWeight="bold"/>
+				
+				<s:VGroup width="100%"
+						  horizontalAlign="right">
+					
+					<s:Label id="workloadLab" text="2013/06/01--2013/06/30"/>
+					<mx:HRule width="100%"/>
+					
+					<s:HGroup width="100%" horizontalAlign="right">
+						<s:Button label="上一月" 
+								  id="workloadPrevious"
+								  name="workloadPreviousClick"
+								  click="buttonClick(event)" 
+								  cornerRadius="2" 
+								  toolTip="上一月" />
+						<s:Button label="下一月"
+								  id="workloadNext"
+								  name="workloadNextClick"
+								  click="buttonClick(event)"
+								  cornerRadius="2" 
+								  toolTip="下一月" />
+					</s:HGroup>
+					
+				</s:VGroup>
+				
+				<bugDataGrid:BugDataGrid id="statistic4workload" 
+								  width="50%" height="68%"
+								  allowMultipleSelection="false"
+								  editable="false" 
+								  horizontalScrollPolicy="on"
+								  dataProvider="{workloadsGridArray}"
+								  isCheckBox="false"
+								  isControlColumns="true" 
+								  isPaging="true" 
+								  isRowNum="true"
+								  textAlign="center"
+								  pageCountSelectIndex="0">
+					<bugDataGrid:columns>
+						<mx:DataGridColumn dataField="employeeName" headerText="员工姓名"/>
+						<mx:DataGridColumn dataField="bugCount" headerText="bug处理量"/>
+						<mx:DataGridColumn dataField="problemCount" headerText="问题处理量"/>
+					</bugDataGrid:columns>
+				</bugDataGrid:BugDataGrid>
+				
+			</s:VGroup>
+			
+		</s:NavigatorContent>
+		
+		<s:NavigatorContent id="problem" 
+							width="100%" height="100%"
+							label="问题处理统计">
+			
+			<s:VGroup width="100%" height="100%"
+					  left="10" right="10" bottom="10"
+					  horizontalAlign="center">
+				
+				<s:Label text="问题处理情况统计"
+						 fontSize="20" fontWeight="bold"/>
+				
+				<s:VGroup width="100%"
+						  horizontalAlign="right">
+					
+					<s:Label id="problemLab" text="2013/06/01--2013/06/30"/>
+					<mx:HRule width="100%"/>
+					
+					<s:HGroup width="100%" horizontalAlign="right">
+						<s:Button label="上一月" 
+								  id="problemPrevious" 
+								  name="problemPreviousClick"
+								  click="buttonClick(event)"
+								  cornerRadius="2" 
+								  toolTip="上一月" />
+						<s:Button label="下一月"
+								  id="problemNext" 
+								  name="problemNextClick"
+								  click="buttonClick(event)"
+								  cornerRadius="2" 
+								  toolTip="下一月" />
+					</s:HGroup>
+					
+				</s:VGroup>
+				
+				<bugDataGrid:BugDataGrid id="statistic4problem" 
+								  width="50%" height="68%"
+								  allowMultipleSelection="false"
+								  editable="false" 
+								  dataProvider="{problemsGridArray}"
+								  horizontalScrollPolicy="on" 
+								  isCheckBox="false"
+								  isControlColumns="true" 
+								  isPaging="true" 
+								  isRowNum="true"
+								  textAlign="center"
+								  pageCountSelectIndex="0">
+					<bugDataGrid:columns>
+						<mx:DataGridColumn dataField="sysName" headerText="所属系统"/>
+						<mx:DataGridColumn dataField="submitCount" headerText="问题提交数"/>
+						<mx:DataGridColumn dataField="acceptCount" headerText="受理数"/>
+						<mx:DataGridColumn dataField="completedCount" headerText="已解决数"/>
+					</bugDataGrid:columns>
+				</bugDataGrid:BugDataGrid>
+				
+			</s:VGroup>
+			
+		</s:NavigatorContent>
+		
+	</mx:TabNavigator>
+	
+</s:Module>

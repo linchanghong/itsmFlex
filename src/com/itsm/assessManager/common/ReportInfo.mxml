@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:control="com.framelib.control.*"
+		 xmlns:custom="com.itsm.common.custom.*"
+		 creationComplete="creationCompleteHandler(event)"
+		 width="100%" height="100%" xmlns:mxml="com.itsm.common.mxml.*">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			[Bindable]
+			public var reportType:int=1;       //报告类型，1：个人日报，2：个人周报，3：项目周报，4：项目月报
+			
+			private var FLOW_TYPE:String="";   //流程业务类型
+			
+			//所属系统
+			[Bindable]
+			public var systems:ArrayCollection;
+			
+			private var sqlWhere:String="";      //查询条件
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				if(reportType==1||reportType==2||reportType==6){
+					FLOW_TYPE="7";
+				}
+				if(reportType==3||reportType==4){
+					FLOW_TYPE="8";
+				}
+				sqlWhere = " and p.report_type="+reportType;
+				reportInfo_Grid.dataProvider=['workReportManagerAPI', 'WorkReportManagerAPI', 'findAllWorkReportPage', [sqlWhere]];
+			}
+			private function resetReportInfo():void{
+				var dateNowStr:String=DateField.dateToString(new Date(),"YYYY年MM月DD日");
+				reportDate.text=dateNowStr;
+				reporter.text=appCore.loginUser.userName;
+				if(reportType==1){
+					typeName.text="个人日报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人日报";
+					plan_group.visible=false;
+					plan_group.height=0;
+				}
+				if(reportType==2){
+					typeName.text="个人周报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人周报";
+				}
+				if(reportType==3){
+					typeName.text="项目周报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"项目周报";
+				}
+				if(reportType==4){
+					typeName.text="项目月报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"项目月报";
+				}
+				if(reportType==6){
+					typeName.text="个人月报";
+					reportTitle.text=appCore.loginUser.userName+dateNowStr+"个人月报";
+				}
+			}
+			//下拉列表创建完成事件
+			protected function dList_System_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(systems == null){
+					appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","initSupportSystems", []);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,dList_System_BindHandle);
+				}else{
+					dList_System.dataProvider = systems;
+				}
+			}
+			private function dList_System_BindHandle(event:ResultEvent):void{
+				var resultStr:String = event.result.toString();	
+				systems = appCore.jsonDecoder.decode(resultStr) as ArrayCollection;
+				dList_System.dataProvider = systems;
+				bindDropDownList();
+			}
+			
+			//查看按钮点击事件		
+			public function btn_view_clickHandler(event:MouseEvent):void{
+				
+			}
+			//新增按钮点击事件	
+			public function btn_add_clickHandler(event:MouseEvent):void{
+				this.currentState="add";
+				resetReportInfo();
+			}
+			//编辑按钮点击事件	
+			public function btn_edit_clickHandler(event:MouseEvent):void{
+				if(reportInfo_Grid.selectedIndex!=-1){
+					if(reportInfo_Grid.selectedItem.status!="0"){
+						TAlert.show("只能编辑未呈报的数据！","系统提示");
+						return;
+					}
+					if(reportInfo_Grid.selectedItem.reporter.id==appCore.loginUser.id){
+						this.currentState="modify";
+						reportTitle.text=reportInfo_Grid.selectedItem.title;
+						bindDropDownList();
+						text_content.text=reportInfo_Grid.selectedItem.content;
+						startDate.text=reportInfo_Grid.selectedItem.startDate;
+						endDate.text=reportInfo_Grid.selectedItem.endDate;
+						finish.value=Number(reportInfo_Grid.selectedItem.planFinish);
+						plan_content.text=reportInfo_Grid.selectedItem.plancontent;
+						resetReportInfo();
+					}else{
+						TAlert.show("不能编辑他人的数据！","系统提示");
+					}
+				}else{
+					TAlert.show("请选择需要编辑的数据！","系统提示");
+				}
+			}
+			//删除按钮点击事件	
+			public function btn_delete_clickHandler(event:MouseEvent):void{
+				if(reportInfo_Grid.selectedIndex!=-1){
+					if(reportInfo_Grid.selectedItem.status!="0"){
+						TAlert.show("只能删除未呈报的数据！","系统提示");
+						return;
+					}
+					TAlert.show("你确定要删除选中的数据？","系统提示", TAlert.YES | TAlert.NO, null, 
+						function(ent:CloseEvent):void{
+							if (ent.detail == TAlert.YES){
+								var reportId:String=reportInfo_Grid.selectedItem.id;
+								appCore.dataDeal.dataRemote("workReportManagerAPI","WorkReportManagerAPI","deleteWorkReport", [reportId]);
+								appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,
+									function(evt:ResultEvent):void{
+										if(evt.result as String=="0"){
+											TAlert.show("删除失败！", "系统提示");
+											return;
+										}
+										reportInfo_Grid.dataProvider=['workReportManagerAPI', 'WorkReportManagerAPI', 'findAllWorkReportPage', [sqlWhere]];
+									}
+								);
+							}
+						});
+				}else{
+					TAlert.show("请选择需要删除的数据！","系统提示");
+				}
+			}
+			//呈报按钮点击事件	
+			private var workReport:Object;
+			public function btn_submit_clickHandler(event:MouseEvent):void{
+				var item:Object = reportInfo_Grid.selectedItem;
+				if(item==null)
+					TAlert.show("请选择要呈报的数据！", "温馨提示");
+				else{
+					if(item.status!="0"){
+						TAlert.show("已呈报过！","系统提示");
+						return;
+					}
+					if(item.id > 0){
+						workReport=reportInfo_Grid.selectedItem;
+						var arr:Array = new  Array();
+						var Oitem:String= "department:"+FAppCore.FCusUser.DeptId;
+						arr.push(Oitem);
+						
+						var sender:Object = new Object();
+						sender.id=FAppCore.FCusUser.UserId;
+						sender.personName=FAppCore.FCusUser.UserName;
+						FAppCore.StartFlowInstence(sender, sender.id, FLOW_TYPE, item.id, arr, false, submitResult);
+					}else{
+						TAlert.show("系统繁忙,稍后再试!","温馨提示");
+					}
+				}
+			}
+			private function  submitResult(event:ResultEvent):void{
+				var workReportId:String=(workReport.id).toString();
+				appCore.dealData("workReportManagerAPI", "WorkReportManagerAPI", "statusWorkReport",[workReportId,"1"], statusWorkReportResult);	
+			}
+			private function  statusWorkReportResult(event:ResultEvent):void{
+				reportInfo_Grid.dataProvider=['workReportManagerAPI', 'WorkReportManagerAPI', 'findAllWorkReportPage', [sqlWhere]];
+			}
+			//查询按钮点击事件		
+			public function btn_query_clickHandler(event:MouseEvent):void{
+				
+			}
+			//保存按钮点击事件
+			public function addSureBtn_clickHandler(event:MouseEvent):void{
+				if(!verification()){
+					return;
+				}
+				var workReportInof:Object=new Object();
+				workReportInof.title=reportTitle.text;                               //报告标题
+				workReportInof.content=text_content.text;                            //报告内容
+				workReportInof.belongsSystem=dList_System.selectedItem;              //所属支撑团队
+				workReportInof.belongsSystem.systemID=dList_System.selectedItem.systemID;
+				workReportInof.type=reportType;           //报告类型，1：个人日报，2：个人周报，3：项目周报，4：项目月报
+				
+				var user:Object = new Object();
+				user.id = appCore.loginUser.id;
+				user.personId = appCore.loginUser.msPerson.id;
+				user.companyID = appCore.loginUser.companyId;
+				workReportInof.reporter=user;                   //填报人
+				workReportInof.dr=0;                            //删除标志 0:未删除,1:删除
+				workReportInof.status=0;                        //报告状态,0:未呈报,1:流程中,2:已审批
+				
+				workReportInof.startDate=startDate.text;        //开始日期
+				workReportInof.endDate=endDate.text;            //截止日期
+				workReportInof.planFinish=finish.value;         //计划完成情况，0：未完成，1~100：完成度
+				workReportInof.plancontent=plan_content.text;   //计划内容
+				
+				var df:DateFormatter = new DateFormatter();
+				df.formatString="YYYY-MM-DD JJ:NN:SS";
+				workReportInof.reportDate = df.format(new Date());     //填报时间
+				
+				var method:String = "addWorkReport";
+				if(this.currentState == "modify"){
+					method = "updateWorkReport";
+					workReportInof.id = reportInfo_Grid.selectedItem.id;
+				}else if(this.currentState == "add"){
+					method = "addWorkReport";
+				}
+				appCore.dataDeal.dataRemote("workReportManagerAPI","WorkReportManagerAPI",method, [appCore.jsonEncoder.encode(workReportInof)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveBtn_clickHandle);
+			}
+			private function saveBtn_clickHandle(event:ResultEvent):void{
+				if(this.currentState == "modify"){
+					var resultStr:String=(event.result).toString();
+					if(resultStr=="0"){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}
+				}else{
+					var json:String = event.result as String;
+					var obj:Object = JSON.parse(json) as Object;
+					if(obj.type>=1) {
+						cancelKnowledge();
+						this.currentState="normal";
+						reportInfo_Grid.dataProvider=['workReportManagerAPI', 'WorkReportManagerAPI', 'findAllWorkReportPage', [sqlWhere]];
+					}
+					else if(obj.type==-2){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}
+					else if(obj.type==-1){
+						TAlert.show("后台异常！", "系统提示");
+						return;
+					}
+					else if(obj.type==0){
+						TAlert.show("请建Model！", "系统提示");
+						return;
+					}
+				}
+			}
+			//取消按钮点击事件
+			public function addCancelBtn_clickHandler(event:MouseEvent):void{
+				cancelKnowledge();
+				this.currentState="normal";
+			}
+			//清除表单数据
+			private function cancelKnowledge():void{
+				reportTitle.text="";
+				typeName.text="";
+				reportDate.text="";
+				typeName.text="";
+				reporter.text="";
+				startDate.text="";
+				endDate.text="";
+				dList_System.selectedIndex=-1;
+				text_content.text="";
+				plan_content.text="";
+			}
+			//反绑定下拉列表
+			private function bindDropDownList():void{
+				if((this.currentState=="modify"||this.currentState=="query")&&reportInfo_Grid.selectedIndex!=-1){
+					if(dList_System.dataProvider==null){
+						return;
+					}
+					dList_System.selectedIndex=setDropDownListSelectedIndex(dList_System.dataProvider as ArrayCollection,"systemID",reportInfo_Grid.selectedItem.belongsSystem.systemID);
+				}
+			}
+			//DropDownList数据绑定
+			private function setDropDownListSelectedIndex(dataArray:ArrayCollection,keyData:String,selectObj:Object):int{
+				for(var i:int=0;i<dataArray.length;i++){
+					if(dataArray.getItemAt(i)[keyData]==selectObj){
+						return i;
+					}
+				}
+				return 0;
+			}
+			//数据验证
+			private function verification():Boolean{
+				if(reportTitle.text==null||reportTitle.text==""){
+					TAlert.show("请填写报告标题！","系统提示");
+					return false;
+				}
+				if(dList_System.selectedIndex==-1||dList_System.selectedItem==null){
+					TAlert.show("请选择所属支撑团队！","系统提示");
+					return false;
+				}
+				if(text_content.text==null||text_content.text==""){
+					TAlert.show("请填写报告内容！","系统提示");
+					return false;
+				}else{
+					return true;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="modify"/>
+		<s:State name="query"/>
+	</s:states>
+	
+	<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" includeIn="normal" verticalAlign="middle">
+		<s:Button id="btn_view" styleName="view" label="查看"
+				  click="btn_view_clickHandler(event)"/>
+		
+		<s:Button id="btn_edit" styleName="modify" label="修改"
+				  click="btn_edit_clickHandler(event)"/>
+		
+		<s:Button id="btn_add" styleName="add" label="新增"
+				  click="btn_add_clickHandler(event)"/>
+		
+		<s:Button id="btn_delete" styleName="delete" label="删除"
+				  click="btn_delete_clickHandler(event)"/>
+		
+		<s:Button id="btn_submit" styleName="report" label="呈报"
+				  click="btn_submit_clickHandler(event)"/>
+		
+		<s:Button id="btn_query" styleName="query" label="查询"
+				  click="btn_query_clickHandler(event)"/>
+	</s:HGroup>
+	<s:VGroup width="100%" height="100%" includeIn="normal">
+		<custom:CustomDataGrid id="reportInfo_Grid" width="100%" height="100%" 
+							   textAlign="center" isPaging="true" isCheckBox="false"
+							   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on">
+			<custom:columns>
+				<mx:DataGridColumn dataField="id" headerText="主键" width="0" visible="false"/>
+				<mx:DataGridColumn dataField="title" headerText="报告标题" />
+				<mx:DataGridColumn dataField="typeName" headerText="报告类型" />
+				<mx:DataGridColumn dataField="reporter.userName" headerText="填报人" />
+				<mx:DataGridColumn dataField="reportDate" headerText="填报日期" />
+				<mx:DataGridColumn dataField="belongsSystem.systemName" headerText="支撑团队"/>
+				<mx:DataGridColumn dataField="startDate" headerText="报告开始时间" />
+				<mx:DataGridColumn dataField="endDate" headerText="报告截止时间" />
+				<mx:DataGridColumn dataField="status" headerText="状态" width="0" visible="false"/>
+				<mx:DataGridColumn dataField="statusName" headerText="状态" />
+				<mx:DataGridColumn dataField="content" headerText="报告内容" width="0" visible="false"/>
+				<mx:DataGridColumn dataField="planFinish" headerText="计划完成情况" width="0" visible="false"/>
+				<mx:DataGridColumn dataField="plancontent" headerText="计划内容" width="0" visible="false"/>
+			</custom:columns>
+		</custom:CustomDataGrid>
+	</s:VGroup>
+	
+	<s:VGroup width="100%" height="100%" includeIn="add,modify,query">
+		<s:HGroup id="add_btn_hg"  width="100%" horizontalAlign="left" verticalAlign="middle">
+			<s:Button id="addSureBtn" label="保存" styleName="save" click="addSureBtn_clickHandler(event)" includeIn="add,modify"/>
+			<s:Button id="addCancelBtn" label="取消" styleName="cancel" click="addCancelBtn_clickHandler(event)" includeIn="add,modify,query"/>
+		</s:HGroup>
+		<s:VGroup width="100%" height="100%">
+			<s:HGroup width="100%" height="28" verticalAlign="middle">
+				<control:FormLabel label="报告标题：" verticalAlign="middle" required="true" width="110"/>
+				<control:TextInputFl id="reportTitle" width="100%"/>
+			</s:HGroup>
+			<s:HGroup width="100%" height="28" verticalAlign="middle">
+				<control:FormLabel label="报告类型：" verticalAlign="middle" width="110"/>
+				<control:TextInputFl id="typeName" width="50%" enabled="false"/>
+				<control:FormLabel label="填报时间：" verticalAlign="middle" width="110"/>
+				<control:TextInputFl id="reportDate" width="50%" enabled="false"/>
+			</s:HGroup>
+			<s:HGroup width="100%" height="28" verticalAlign="middle">
+				<control:FormLabel label="支撑团队：" verticalAlign="middle" required="true" width="110"/>
+				<s:DropDownList id="dList_System" width="50%" height="25"
+								labelField="systemName" 
+								textAlign="left" creationComplete="dList_System_creationCompleteHandler(event)"/>
+				<control:FormLabel label="填报人：" verticalAlign="middle" width="110"/>
+				<control:TextInputFl id="reporter" width="50%" enabled="false"/>
+			</s:HGroup>
+			<s:HGroup width="100%" height="28" verticalAlign="middle">
+				<control:FormLabel label="报告开始时间：" verticalAlign="middle" required="true" width="110"/>
+				<control:DateFieldFl id="startDate" width="50%" 
+									 formatString="YYYY-MM-DD"
+									 textAlign="left"/>
+				<control:FormLabel label="报告截止时间：" verticalAlign="middle" required="true"  width="110"/>
+				<control:DateFieldFl id="endDate" width="50%" 
+									 formatString="YYYY-MM-DD"
+									 textAlign="left"/>
+			</s:HGroup>
+			<s:HGroup id="content_group" width="100%" height="100%" verticalAlign="middle">
+				<control:FormLabel label="报告内容：" verticalAlign="middle" required="true" width="110"/>
+				<s:TextArea id="text_content" width="100%" height="100%"/>
+			</s:HGroup>
+			<s:HGroup id="plan_group" width="100%" height="100%" verticalAlign="middle">
+				<s:VGroup width="100%" height="100%">
+					<s:HGroup width="100%" height="28">
+						<control:FormLabel label="计划完成情况：" verticalAlign="middle" required="false"  width="110"/>
+						<mx:NumericStepper id="finish" value="0" stepSize="1" maximum="100" minimum="0"/>
+						<s:Label text=" %" fontSize="15" verticalAlign="middle" height="100%"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="100%">
+						<control:FormLabel label="计划内容：" verticalAlign="middle" required="false" width="110"/>
+						<s:TextArea id="plan_content" width="100%" height="100%"/>
+					</s:HGroup>
+				</s:VGroup>
+			</s:HGroup>
+		</s:VGroup>
+	</s:VGroup>
+</s:VGroup>

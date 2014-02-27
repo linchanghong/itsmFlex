@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:MXTreeItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					  xmlns:s="library://ns.adobe.com/flex/spark" 
+					  xmlns:mx="library://ns.adobe.com/flex/mx"
+					  creationComplete="mxtreeitemrenderer1_creationCompleteHandler(event)">
+	
+	<fx:Metadata>
+		<!-- 声明本组件将抛出的事件 -->
+		[Event(name="EditEvent",type="flash.events.MouseEvent")]
+		[Event(name="QueryEvent",type="flash.events.MouseEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			
+			import mx.events.FlexEvent;
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			protected function query_clickHandler(event:MouseEvent):void
+			{
+				// 
+				dispatchEvent(new MouseEvent("QueryEvent", true, true));
+			}
+			
+			protected function edit_clickHandler(event:MouseEvent):void
+			{
+				// 
+				dispatchEvent(new MouseEvent("EditEvent", true, true));
+			}
+			
+			protected function mxtreeitemrenderer1_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(appCore.userMenuUpButton != null && appCore.userMenuUpButton.length != 0) {
+					for each (var menuUpButton:Object in appCore.userMenuUpButton) {
+						if(menuUpButton.parentId == treeListData.item.id ) { 
+							if(menuUpButton.orderNum == 1) {
+								edit.visible = true;
+								edit.includeInLayout = true;
+								
+								treeListData.item.editId = menuUpButton.id;
+								treeListData.item.editLabel = menuUpButton.label;
+								treeListData.item.editClazz = menuUpButton.clazz;
+							} else if(menuUpButton.orderNum == 2) {
+								query.visible = true;
+								query.includeInLayout = true;
+								
+								treeListData.item.queryId = menuUpButton.id;
+								treeListData.item.queryLabel = menuUpButton.label;
+								treeListData.item.queryClazz = menuUpButton.clazz;
+							}
+						}
+					}
+				}
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal" />            
+		<s:State name="hovered" />
+		<s:State name="selected" />
+	</s:states>
+	
+	<s:HGroup left="0" right="0" top="0" bottom="0" verticalAlign="middle">
+		<s:Rect id="indentationSpacer" width="{treeListData.indent}" percentHeight="100" alpha="0">
+			<s:fill>
+				<s:SolidColor color="0xFFFFFF" />
+			</s:fill>
+		</s:Rect>
+		
+		<s:Group id="disclosureGroup">
+			<s:BitmapImage source="{treeListData.disclosureIcon}" visible="{treeListData.hasChildren}" />
+		</s:Group>
+		
+		<s:BitmapImage source="{treeListData.icon}" />
+		
+		<s:Label id="labelField" text="{treeListData.label}" paddingTop="2"/>
+		
+		<s:HGroup id="btn_gp" visible.normal="false" visible.hovered="true" visible.selected="true">
+			<mx:LinkButton id="edit" label="编辑" click="edit_clickHandler(event)"  fontSize="12" color="#ff33cc"
+						   paddingRight="-3" paddingLeft="-3" 
+						   visible="false" includeInLayout="false"/>
+			<mx:LinkButton id="query" label="查询" click="query_clickHandler(event)" fontSize="12" color="#ff33cc"
+						   paddingRight="-3" paddingLeft="-3"  
+						   visible="false" includeInLayout="false"/>
+		</s:HGroup>
+	</s:HGroup>
+</s:MXTreeItemRenderer>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items>
+	<!-- 项目名 -->
+	<webAppName>itsm</webAppName>
+	
+	<!-- 论坛地址 -->
+	<forumUrl>http://10.206.1.22:8080/</forumUrl>
+	
+	<!-- 省公司所管的公司id -->
+	<proComs>29,31,33</proComs>
+	
+	<!-- 正常退休年龄 和 特殊退休年龄 -->
+	<normalTireAge>60,55</normalTireAge>
+	<specialTireAge>55,50</specialTireAge>
+	
+	 	后台验证是否登录的方法 
+	<remoteDest>framAPI</remoteDest>
+	<remoteSource>FramAPI</remoteSource>
+	<remoteOperation>isLogin</remoteOperation>
+	
+	
+	<SecPolicyDoc>crossdomain.xml</SecPolicyDoc>
+	<DocsUrl>http://localhost/Docs/</DocsUrl>	
+	<DocsPath>Documents/Private</DocsPath>
+	<ImportPath>E:\PAM\PAM-Model\Docs</ImportPath>
+	<ExportUrl>http://localhost:8080/WFM/ExcelExport.jsp</ExportUrl>
+	<BaseInsurTD>2000,8000</BaseInsurTD>  
+	
+	<!-- 从门户登录的密钥       -->
+	<ltpa3DESKey>JbTLYxEygDbofQxkrq/qyBBw0rP5lG8c3sYXM1WgYjc\\=</ltpa3DESKey>
+	<ltpaPassword>password@123</ltpaPassword>
+</items>

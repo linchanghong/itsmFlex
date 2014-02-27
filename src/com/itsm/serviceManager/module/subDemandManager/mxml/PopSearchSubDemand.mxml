@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						 xmlns:s="library://ns.adobe.com/flex/spark" 
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:mx="library://ns.adobe.com/flex/mx" 
+						 xmlns:container="com.framelib.container.*" 
+						 xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+						 title="请求单查询"
+						 creationComplete="creationCompleteHandler()" 
+						 width="100%" height="100%" xmlns:ns="http://www.c.sccl.com">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<mx:StringValidator id="themeV" minLength="1" property="text"
+							requiredFieldError="主题摘要不少于一字！" source="{theme}"/>
+		<mx:StringValidator id="startDateV" property="text" required="true"
+							minLength="10" maxLength="19"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{startDate}"/> 
+		<mx:StringValidator id="endDateV" property="text" required="true"
+							minLength="10" maxLength="19"
+							requiredFieldError="日期格式：YYYY-MM-DD" source="{endDate}"/> 
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			import com.itsm.serviceManager.module.bugManager.vo.ConstDetailVO;
+			import com.itsm.serviceManager.module.bugManager.vo.ReplyLevelVO;
+			import com.itsm.serviceManager.module.bugManager.vo.SupportSystemVO;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import flash.events.Event;
+			import mx.managers.PopUpManager;
+			import mx.utils.StringUtil;
+			import mx.formatters.DateFormatter;
+			
+			import org.alivepdf.encoding.IntList;
+			
+			[Bindable]public var mainApp:Object = null;
+			[Bindable]public var callbackFunction:Function;  //回调函数
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			//系统
+			public var systems:ArrayCollection = null;
+			//重要程度
+			public var degrees:ArrayCollection = null;
+			//影响范围
+			public var ranges:ArrayCollection = null;
+			//状态
+			public var statusLst:ArrayCollection = null;
+			//种类
+			public var flag:int = 2;
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject; 
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = false;
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+				
+			private static const ERROR_NUM:int = -1;
+			
+			/**
+			 * 初始化弹出窗体
+			 */
+			public function creationCompleteHandler():void
+			{
+//				this.system.dataProvider = systems;
+				this.degree.dataProvider = degrees;
+				this.range.dataProvider = ranges;
+				this.status.dataProvider = statusLst;
+			}
+			
+			/**确定按钮*/
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				if(formIsValid){
+					SubDemandManager(mainApp).mainGrid.curPage = 1;
+					SubDemandManager(mainApp).mainGridArray = 
+						["demandManagerAPI","DemandManagerAPI", "findSubDemandsByQueryWindow", 
+							[appCore.jsonEncoder.encode(buildSearchInfo())],"search"];
+					button2_clickHandler(null);
+				}else{
+					TAlert.show("请至少输入一个查询条件!","温馨提示");
+				}
+			}
+			/**取消按钮事件*/
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**判断用户有没有输入数据,只要flag大于0就说明用户有输入数据,可以进行下一步*/
+			private function judgeInputInfo(event:Event):void{
+				var flag:int = 0;
+				
+				if(this.degree.selectedItem != undefined)
+					flag++;
+				if(this.range.selectedItem != undefined)
+					flag++;
+				if(BugUtil.myTrim(this.sponsor.text) != "")
+					flag++;
+				if(BugUtil.myTrim(this.theme.text) != "")
+					flag++;
+				if(this.status.selectedItem != undefined)
+					flag++;
+				if(this.system.selectObj.hasOwnProperty("systemID"))
+					flag++;
+				if(flag > 0)
+					formIsValid = true;
+				
+				if(this.startDate.selectedDate != null && 
+					this.endDate.selectedDate != null){
+					if(this.startDate.selectedDate <= this.endDate.selectedDate){
+						flag++;
+						formIsValid = true;
+					}
+					else{
+						msg.text = "起始时间应早于等于截止时间！";
+						formIsValid = false;
+					}
+				}else{
+					if(this.startDate.selectedDate != null && 
+						this.endDate.selectedDate == null){
+						msg.text = "请选择截止时间！";
+						formIsValid = false;
+					}
+					if(this.startDate.selectedDate == null && 
+						this.endDate.selectedDate != null){
+						formIsValid = false;
+						msg.text = "请选择起始时间！";
+					}
+				}
+				msg.visible = true;
+			}
+//			/**判断表单是否有效*/
+//			private function judgeFormIsValid():void{
+//				var flag:Boolean = this.startDate.selectedDate != null && 
+//					this.endDate.selectedDate != null 
+//					? this.startDate.selectedDate <= this.endDate.selectedDate : false;
+//				formIsValid = flag && 
+//					this.degree.selectedItem != undefined && 
+//					this.range.selectedItem != undefined && 
+//					BugUtil.myTrim(this.sponsor.text) != "" && 
+//					this.status.selectedItem != undefined && 
+//					this.system.selectedItem != undefined && 
+//					BugUtil.myTrim(this.theme.text) != "";
+//			}
+//			/**判断表单是否为空：任一为空即为空*/
+//			private function judgeFormIsEmpty():void{
+//				//子需求发起时间查询起止时间
+//				formIsEmpty = this.startDate.selectedDate == null || 
+//				this.endDate.selectedDate == null || 
+//				this.degree.selectedItem == undefined || 
+//				this.range.selectedItem == undefined || 
+//				this.sponsor.text == "" || 
+//				this.status.selectedItem == undefined || 
+//				this.system.selectedItem == undefined || 
+//				this.theme.text == "";
+//			}
+			
+			/**得到用户输入的查询信息*/
+			public function buildSearchInfo():Object{
+				var searchObj:Object = new Object();
+				
+				//子需求发起时间查询起止时间
+				if(this.startDate.selectedDate != null 
+					&& this.endDate.selectedDate != null){
+					var df:DateFormatter = new DateFormatter();
+					df.formatString="YYYY-MM-DD";
+					
+					searchObj.startDate = df.format(this.startDate.selectedDate);
+					searchObj.endDate = df.format(this.endDate.selectedDate);
+				}
+				//重要程度
+				searchObj.degree = 
+					this.degree.selectedItem != undefined ? this.degree.selectedItem.replyLevelId : ERROR_NUM;
+				//范围
+				searchObj.range = 
+					this.range.selectedItem != undefined ? this.range.selectedItem.id : ERROR_NUM;
+				//项目经理
+				searchObj.sponsor = myTrim(this.sponsor.text);
+				//状态
+				searchObj.status = this.status.selectedItem != undefined ? this.status.selectedItem.id : ERROR_NUM;
+				//系统
+				searchObj.system = 
+					this.system.selectObj.hasOwnProperty("systemID") ? this.system.selectObj.systemID : ERROR_NUM;
+				//主题摘要
+				searchObj.theme = myTrim(this.theme.text);
+				
+				return searchObj;
+			}
+			
+			/**字符串截首尾空格*/
+			private function myTrim(str:String):String{
+				return StringUtil.trim(str);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer width="100%" >
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingBottom="5" paddingTop="5" paddingLeft="5" paddingRight="5"/>
+		</s:layout>
+		
+		<ns:GroupBox width="100%" title="发起时间">
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="起始时间："  width="80"/>
+				<control:DateFieldFl id="startDate" 
+									 width="160" height="100%"
+									 formatString="YYYY-MM-DD"
+									 textAlign="left"
+									 editable="false"
+									 change="judgeInputInfo(event)"
+									 yearNavigationEnabled="true"/>
+				
+				<control:FormLabel label="截止时间："  width="80"/>
+				<control:DateFieldFl id="endDate" 
+									 width="160" height="100%"
+									 formatString="YYYY-MM-DD"
+									 textAlign="left"
+									 editable="false"
+									 change="judgeInputInfo(event)"
+									 yearNavigationEnabled="true"/>
+			</s:HGroup>
+		</ns:GroupBox>
+		
+		<s:HGroup width="100%" verticalAlign="middle">
+			<control:FormLabel label="主题摘要："  width="80"/>
+			<control:TextInputFl id="theme" 
+								 change="judgeInputInfo(event)"
+								 width="160" height="100%"/>
+			
+			<control:FormLabel label="项目经理："  width="80"/>
+			<control:TextInputFl id="sponsor"
+								 change="judgeInputInfo(event)"
+								 width="160" height="100%"/>
+		</s:HGroup>
+		
+		<s:HGroup width="100%" verticalAlign="middle">
+			<control:FormLabel label="影响范围："  width="80"/>
+			<s:DropDownList id="range" width="160" 
+							labelField="constDetailName"
+							change="judgeInputInfo(event)"
+							selectedIndex="-1"/>
+			
+			<control:FormLabel label="所属系统："  width="80"/>
+			<bugmxml:BugFieldSelect id="system" 
+									width="160" 
+									armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+									isMultipleSelected="false"
+									textAlign="left"
+									selectChange="judgeInputInfo(event)"
+									selectObj="" sText=""/>
+			<!--<s:DropDownList id="system" width="160" 
+							labelField="systemName"
+							change="judgeInputInfo(event)"
+							selectedIndex="-1"/>-->
+		</s:HGroup>
+		
+		<s:HGroup width="100%" verticalAlign="middle">
+			<control:FormLabel label="状态："  width="80"/>
+			<s:DropDownList id="status" 
+							width="160" 
+							labelField="describe"
+							change="judgeInputInfo(event)"
+							selectedIndex="-1"/>
+			
+			<control:FormLabel label="重要程度："  width="80"/>
+			<s:DropDownList id="degree" 
+							width="160" height="100%" 
+							labelField="levelNameString"
+							change="judgeInputInfo(event)"
+							selectedIndex="-1"/>
+		</s:HGroup>
+		
+	</s:BorderContainer>
+	<container:controlBarContent>
+		<s:HGroup width="100%" height="30" horizontalAlign="right" verticalAlign="middle">
+			<s:Label id="msg" 
+					 width="70%"
+					 text="可以提交！" 
+					 visible="{formIsValid}"
+					 textAlign="right"
+					 color="red" fontWeight="bold"/>
+			<s:Button label="确定" 
+					  width="15%" 
+					  styleName="submit" 
+					  enabled="{formIsValid}"
+					  click="button1_clickHandler(event)"/>
+			<s:Button label="取消" 
+					  width="15%" 
+					  styleName="cancel" 
+					  click="button2_clickHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+	
+</container:TitleWindowFl>

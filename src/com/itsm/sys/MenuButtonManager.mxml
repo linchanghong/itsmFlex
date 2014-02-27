@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  initialize="module1_initializeHandler(event)"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.mxml.AddMenuButtonLeaf;
+			import com.itsm.common.renders.MenuTreeItemRender;
+			import com.itsm.common.utils.AppCore;
+			import com.framelib.utils.StaticMethods;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.core.IFlexDisplayObject;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.components.Group;
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			[Bindable]
+			private var menuData:ArrayCollection;
+			private var theParent:Object = new Object();
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_initializeHandler(event:FlexEvent):void
+			{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+				
+				var rootMenu:Object = new Object();
+				rootMenu.id = 0;
+				rootMenu.type = 1;
+				rootMenu.label = "所有菜单";
+				rootMenu.parentPath = ",";
+				rootMenu.children = StaticMethods.cloneArrayCollection(appCore.menuData);
+				menuData = new ArrayCollection();
+				menuData.addItem(rootMenu);
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				menuTree.addEventListener("AddLeafEvent", addLeafEventHandler);
+				menuTree.addEventListener("EditLeafEvent", editLeafEventHandler);
+				menuTree.addEventListener("DeleteLeafEvent", deleteLeafEventHandler);
+			}
+			
+			/**
+			 * 删除菜单
+			 * */
+			protected function deleteLeafEventHandler(event:MouseEvent):void
+			{
+				if(menuTree.selectedItem.children != null) {
+					TAlert.show("删除菜单 "+ menuTree.selectedItem.label +" ？对应的子菜单也将一并删除！", "提示", TAlert.NO|TAlert.YES, this, deleteParentMenu);
+				} else {
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteMenuById",[menuTree.selectedItem.id.toString()]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, deleteMenuByIdHandler);
+				}
+			}
+			
+			private function deleteParentMenu(event:CloseEvent):void
+			{
+				if (event.detail == TAlert.YES) {
+					var ids:Array = getSeleteItemIds(menuTree.selectedItem);
+					
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteMenuByIds",[new JSONEncoder().encode(ids)]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, deleteMenuByIdHandler);
+				}
+			}
+			
+			private function getSeleteItemIds(item:Object):Array
+			{
+				var ids:Array = new Array();
+				ids.push(item.id);
+				if(item.children != null) {
+					var childArr:ArrayCollection = item.children;
+					for each(var menu:Object in childArr) {
+						ids = ids.concat(getSeleteItemIds(menu));
+					}
+				}
+				return ids;
+			}
+			
+			private function deleteMenuByIdHandler(event:ResultEvent):void
+			{
+				if(event.result != null && event.result.toString() != "0") {
+					var children1:ArrayCollection = (menuTree.getParentItem(menuTree.selectedItem) as Object).children as ArrayCollection;
+					for(var i:Number=0; i < children1.length; i++) {
+						if( children1[i].id == menuTree.selectedItem.id ) {
+							children1.removeItemAt(i);
+							break; 
+						}
+					}
+				} else {
+					TAlert.show("删除菜单失败","提示");
+					return;
+				}
+			}
+			
+			/**
+			 * 修改菜单
+			 * */
+			protected function editLeafEventHandler(event:MouseEvent):void
+			{
+				var popwindow:AddMenuButtonLeaf = AddMenuButtonLeaf(PopUpManager.createPopUp(this, AddMenuButtonLeaf, true));
+				popwindow.owner = this;
+				popwindow.parentMenu = menuTree.getParentItem(menuTree.selectedItem);
+				popwindow.meMenu = menuTree.selectedItem;
+				PopUpManager.centerPopUp(popwindow);
+				popwindow.addEventListener("UpdateConfirmEvent", updateConfirmHandler);
+			}
+			
+			protected function updateConfirmHandler(event:MouseEvent):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateMenuButton",[new JSONEncoder().encode(windowObj)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, updateMenuButtonHandler);
+			}
+			
+			private function updateMenuButtonHandler(event:ResultEvent):void
+			{
+				if(event.result != null && event.result.toString() != "0") {
+					menuTree.selectedItem.type = windowObj.type;
+					menuTree.selectedItem.label = windowObj.label;
+					menuTree.selectedItem.clazz = windowObj.clazz;
+					menuTree.selectedItem.btnId = windowObj.btnId;
+					menuTree.selectedItem.groupId = windowObj.groupId;
+					menuTree.selectedItem.state = windowObj.state;
+					menuTree.selectedItem.parentId = windowObj.parentId;
+					menuTree.selectedItem.orderNum = windowObj.orderNum;
+					menuTree.selectedItem.classId = windowObj.classId;
+					menuTree.selectedItem.id= windowObj.id;
+				} else {
+					TAlert.show("修改菜单失败","提示");
+					return;
+				}
+			}
+			
+			/**
+			 * 添加子菜单
+			 * */
+			protected function addLeafEventHandler(event:MouseEvent):void
+			{
+				 var popwindow:AddMenuButtonLeaf = AddMenuButtonLeaf(PopUpManager.createPopUp(this, AddMenuButtonLeaf, true));
+				popwindow.owner = this;
+				popwindow.parentMenu = menuTree.selectedItem;
+				PopUpManager.centerPopUp(popwindow);
+				popwindow.addEventListener("AddConfirmEvent",addConfirmHandler);
+			}
+			
+			protected function addConfirmHandler(event:MouseEvent):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","addMenuButton",[new JSONEncoder().encode(windowObj)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, addMenuButtonHandler);
+			}
+			
+			private function addMenuButtonHandler(event:ResultEvent):void
+			{
+				//新加的子结点
+				var leaf:Object = new Object();
+				if(event.result != null && event.result.toString() != "0") {
+					leaf = new JSONDecoder().decode(event.result.toString());
+				} else {
+					TAlert.show("新建菜单失败","提示");
+					return;
+				}
+				
+				//父结点
+				var parent:Object = menuTree.selectedItem as Object; 
+				if(parent.children != null) {
+					parent.children.addItem(leaf);
+				} else {
+					parent.children = new ArrayCollection();
+					parent.children.addItem(leaf);
+				}
+				
+				//打开父节点，并选中新加的子节点
+				menuTree.validateNow();
+				menuTree.expandChildrenOf(parent, true);
+				menuTree.selectedItem = leaf;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:VGroup width="100%" height="100%" 
+			  paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10">
+		<s:HGroup id="btn_hg" width="100%" />
+		<mx:Tree id="menuTree" width="100%" height="100%" dataProvider="{menuData}"
+				 itemRenderer="com.itsm.common.renders.MenusTreeItemRender" >
+			
+		</mx:Tree>
+	</s:VGroup>
+</s:Module>

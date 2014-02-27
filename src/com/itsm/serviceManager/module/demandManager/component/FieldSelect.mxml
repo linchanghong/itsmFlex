@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="25" initialize="initInput()" >
+<!--  选择下拉框
+	增加方法：FieldSelInit
+	
+	private function initFieldsel():void
+	{
+		var headerArr:Array = new Array(["用户ID", "UserId", 0, "", FAppCore.fcInteger, ""], 
+				["用户名称", "UserName", 100, "", FAppCore.fcString, ""], 
+				["部门ID", "DeptId", 0, "", FAppCore.fcLookup, ""], 
+				["部门名称", "DeptName", 0, "", FAppCore.fcString, ""], 
+				["用户编号", "UserCode", 0, "", FAppCore.fcString, ""], 
+				["创建时间", "CreateTime", 0, "", FAppCore.fcDate, ""]); 
+		fieldsel.GridheaderArr = headerArr;                   //显示字段
+	    fieldsel.GridRemoteDest = "GenericDestination";       //远程目标
+	    fieldsel.GridRemoteSource = "PAM.CusUsersBLL";      //远程源
+	    fieldsel.GridRemoteOperation = "GetAllEffective";     //远程获取数据方法
+		fieldsel.GridCustomColumnsModuleName="CusUserSel";    //本模块名称，用于字段显示自定义
+		fieldsel.GridShowUpGuide=true;                        //显示上面的操作栏
+		fieldsel.GridShowDownGuide=false;                     //显示下面的操作栏
+		fieldsel.GridMuliSel = true;						  //多选
+		//**********该属性需从主窗体获取
+	    fieldsel.GridUserID = FAppCore.FCusUser.UserId;       //当前用户ID
+	    //****************************
+		fieldsel.GridisPage = true;                           //多页或单页
+ 	    fieldsel.GridRemoteGetAllCount = "GetAllEffectiveCount";       //远程获取记录数
+	    fieldsel.GridisMulPage = true;                        //多页取数或多页一次取数
+	    fieldsel.GridPageCount = 20;                          //每页显示数据
+	    
+ 	    fieldsel.GridShowHeader = false;					  //是否显示表头
+ 		fieldsel.GridShowNumber = false;                      //是否显示行号
+ 		//fieldsel.Formwidth = 330;                           //下拉框宽度
+	    fieldsel.ShowFieldName = "UserName";                  //对应显示字段
+	    fieldsel.ValueFieldName = "UserId";                   //对应字段值
+	}
+	
+	设置Where条件和排序条件
+	GridWhereStr：Where条件
+	GridSortAD：排序条件
+
+    返回值：
+    SelArr：选择行数据
+    SelShowArr：显示行数组
+    SelValueArr：选择值数组
+    
+    返回触发事件：FieldSelGetValue
+    
+    设置默认值： SetDefaultValue（ID号，调用的方法），只提供两个参数，where orderby
+
+
+-->
+
+<mx:Metadata>
+    [Event(name="FieldSelInit",type="flash.events.Event")]
+    [Event(name="FieldSelGetValue",type="flash.events.Event")]
+</mx:Metadata>
+
+<mx:Script>
+<![CDATA[
+	import common.util.DataDeal;
+	import mx.rpc.events.ResultEvent;	
+	import mx.core.Application;
+	import mx.managers.PopUpManager;		
+	public var GridheaderArr:Array;
+	public var GridRemoteDest:String;
+	public var GridRemoteSource:String;
+	public var GridRemoteOperation:String;
+	public var GridCustomColumnsModuleName:String;
+	public var GridUserID:String;
+	public var GridShowUpGuide:Boolean = false;
+	public var GridShowDownGuide:Boolean = true;
+	public var GridisPage:Boolean=false;
+	public var GridRemoteGetAllCount:String;
+	public var GridisMulPage:Boolean = true;
+	public var GridPageCount:int = 20;
+	public var GridMuliSel:Boolean = false;
+	public var GridShowHeader:Boolean = true;
+	public var GridShowNumber:Boolean = true;
+	public var GridWhereStr:String;
+	public var GridSortAD:String;
+	public var GridShowWait:Boolean = false;
+	public var Formwidth:Number = 0;
+	public var Formheigth:Number = 280;
+	public var ShowFieldName:String;
+	public var ValueFieldName:String;
+	public var SelArr:Array = new Array();
+	public var SelShowArr:Array = new Array();
+	public var SelValueArr:Array = new Array();
+	public var isInput:Boolean = false;
+	
+		
+		
+	private var fieldselForm:FieldSelectForm;
+	private var sDataDeal:DataDeal = new DataDeal();
+	private var OldSelArr:Array = new Array();
+	
+	private function initInput():void
+	{
+		var e:Event = new Event("FieldSelInit");
+	    dispatchEvent(e);
+		if (isInput)
+			SelValueInput.editable = true;
+		else
+			SelValueInput.editable = false;
+		
+	}
+
+	private function OpenDataWind():void
+	{
+		OldSelArr = SelArr;
+		var awidth:Number = Application.application.width;
+		var aheight:Number = Application.application.height;
+		var pt:Point = new Point(0, 25);
+		pt = this.localToGlobal(pt);
+		var xPoint:Number = pt.x;
+		var yPoint:Number = pt.y;
+		if ((GridisPage) && (Formwidth<350))
+			Formwidth = 350;
+		var aFormWidth:Number;
+		if (Formwidth == 0)
+			aFormWidth = this.width;
+		else
+			aFormWidth = Formwidth;
+		var ToltalWid:Number = Formwidth + xPoint;
+		var ToltalHig:Number = Formheigth + yPoint;
+		var aParent:DisplayObject = DisplayObject(Application.application);
+		if ((ToltalWid > awidth) || (ToltalHig > aheight))
+			fieldselForm= FieldSelectForm(PopUpManager.createPopUp(aParent,FieldSelectForm,true));
+		else
+		    fieldselForm = FieldSelectForm(PopUpManager.createPopUp(this,FieldSelectForm,true));
+	    Fieldforminit();
+	    fieldselForm.Grid.OnlyInit();
+	    fieldselForm.addEventListener("FieldSelClick",onclickComplete);
+	    fieldselForm.addEventListener("FieldSelDoubleClick",ondbclickComplete);
+	    fieldselForm.addEventListener("FieldFormOK",onOKClick);
+	    fieldselForm.addEventListener("FieldFormCancel",oncancelClick);
+		fieldselForm.width = aFormWidth;
+		fieldselForm.height =  Formheigth;
+		if ((ToltalWid > awidth) || (ToltalHig > aheight))
+			PopUpManager.centerPopUp(fieldselForm);
+		else
+	    	fieldselForm.move(xPoint,yPoint);
+	}
+	
+	public function Fieldforminit():void
+	{
+		fieldselForm.GridheaderArr = this.GridheaderArr;
+		fieldselForm.GridRemoteDest = this.GridRemoteDest;
+		fieldselForm.GridRemoteSource = this.GridRemoteSource;
+		fieldselForm.GridRemoteOperation = this.GridRemoteOperation;
+		fieldselForm.GridCustomColumnsModuleName = this.GridCustomColumnsModuleName;
+		fieldselForm.GridUserID = this.GridUserID;
+		fieldselForm.GridShowUpGuide = this.GridShowUpGuide;
+		fieldselForm.GridShowDownGuide = this.GridShowDownGuide;
+		fieldselForm.GridisPage = this.GridisPage;
+		fieldselForm.GridRemoteGetAllCount = this.GridRemoteGetAllCount;
+		fieldselForm.GridisMulPage = this.GridisMulPage;
+		fieldselForm.GridPageCount = this.GridPageCount;
+		fieldselForm.GridMuliSel = this.GridMuliSel;
+		fieldselForm.GridShowHeader = this.GridShowHeader;
+		fieldselForm.GridShowNumber = this.GridShowNumber;
+		fieldselForm.GridWhereStr = this.GridWhereStr;
+		fieldselForm.GridSortAD = this.GridSortAD;
+		fieldselForm.GridShowWait = this.GridShowWait;
+	}
+	
+	
+	
+	private function setInputText(arr:Array):void
+	{
+		SelArr = arr;
+		SelShowArr = new Array();
+		SelValueArr = new Array();
+		for (var i:int = 0; i<SelArr.length; i++)
+		{
+			var showStr:String = Object(SelArr[i][ShowFieldName]) as String;
+			var ValueStr:String = Object(SelArr[i][ValueFieldName]).toString();
+			SelShowArr.push(showStr);
+			SelValueArr.push(ValueStr);
+		}
+		SelValueInput.text = SelShowArr.toString();
+	}
+	
+	private function onclickComplete(event:Event):void
+	{
+		setInputText(fieldselForm.GridSelData);
+	}
+	
+	private function ondbclickComplete(event:Event):void
+	{
+		setInputText(fieldselForm.GridSelData);
+		var e:Event = new Event("FieldSelGetValue");
+	    dispatchEvent(e);
+		PopUpManager.removePopUp(fieldselForm);
+	}
+	
+	private function onOKClick(event:Event):void
+	{
+		PopUpManager.removePopUp(fieldselForm);
+		var e:Event = new Event("FieldSelGetValue");
+	    dispatchEvent(e);
+	}
+
+
+	private function oncancelClick(event:Event):void
+	{
+		setInputText(OldSelArr);
+		PopUpManager.removePopUp(fieldselForm);
+	}
+	
+	public function SetDefaultArr(arr:Array):void
+	{
+		if (arr == null)
+		{
+			SelValueInput.text = "";
+			SelShowArr = new Array();
+			SelValueArr = new Array();
+		}
+		else
+			setInputText(arr);
+		var e:Event = new Event("FieldSelGetValue");
+	    dispatchEvent(e);
+	}
+	
+	public function SetDefaultValue(fieldIds:String,DefaultValueOperation:String):void
+	{
+ 		var argt:Object = new Object();
+		var sql:String = ValueFieldName + " in (" + fieldIds + ")";
+		argt = [sql,null];
+		sDataDeal.DataDeal_QueryToData(GridRemoteDest,GridRemoteSource,DefaultValueOperation,argt,false);
+		sDataDeal.RemoteMethods.addEventListener(ResultEvent.RESULT,receivedRecords);
+	}
+	
+	//数据库中查询的对应数据集
+	private function receivedRecords( result:ResultEvent):void
+	{
+ 		SelArr = result.result as Array;
+		SelShowArr = new Array();
+		SelValueArr = new Array();
+		if(SelArr==null) return;
+		for (var X:int=0; X<SelArr.length;X++)
+		{
+			SelValueArr.push(SelArr[X][ValueFieldName]);
+			SelShowArr.push(SelArr[X][ShowFieldName]);
+		}
+		SelValueInput.text = SelShowArr.toString();
+		//FAppCore.closeLoading();
+		//var e:Event = new Event("FieldSelGetValue");
+	    //dispatchEvent(e);
+ 	}
+ 	
+ 	public function removeFieldselForm():void
+    {
+    	setInputText(OldSelArr);
+		PopUpManager.removePopUp(fieldselForm);
+    } 	
+	
+]]>
+</mx:Script>
+	<mx:HBox width="100%" height="100%" verticalAlign="middle" horizontalAlign="right" horizontalGap="2" id="Selbox">
+		<mx:TextInput width="100%" height="100%" id="SelValueInput" fontSize="12"/>
+		<mx:Button id="SelButton" click="OpenDataWind()" height="18" icon="@Embed(source='assets/img/png/find.png')" width="18" toolTip="选择" />
+	</mx:HBox>
+</mx:Canvas>

@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  initialize="module1_initializeHandler(event)"
+		  xmlns:ns="com.framelib.container.*" >
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONDecoder;
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.utils.AppCore;
+			import com.framelib.utils.StaticMethods;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.CollectionEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+		
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			[Bindable]
+			public var constType:ArrayCollection = new ArrayCollection();
+			[Bindable]
+			private var constDetails:ArrayCollection = new ArrayCollection();
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_initializeHandler(event:FlexEvent):void
+			{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				constType = appCore.constTreeArr;
+				typeFilter();
+			}
+			
+			protected function constTypeDg_itemClickHandler(event:ListEvent):void
+			{
+				typeNameTxt.text = constTypeDg.selectedItem.constTypeName;
+				typeRemarkTxt.text = constTypeDg.selectedItem.remark;
+				
+				constDetails = constTypeDg.selectedItem.children as ArrayCollection;
+				detail_ti.text = ''; 
+				detailFilter();
+			}
+			
+			
+			//datagrid显示行号
+			private function rowNumFun(item:Object, column:DataGridColumn):String
+			{
+				var iIndex:int = constType.getItemIndex(item) + 1;
+				return String(iIndex);
+			}
+			
+			//datagrid显示行号
+			private function rowNumFun2(item:Object, column:DataGridColumn):String
+			{
+				var iIndex:int = constDetails.getItemIndex(item) + 1;
+				return String(iIndex);
+			}
+			
+			protected function constDetailsDg_itemClickHandler(event:ListEvent):void
+			{
+				detailNameTxt.text = constDetailsDg.selectedItem.constDetailName;
+				detailEnableCB.selected = Boolean(constDetailsDg.selectedItem.enabled);
+				detailRemarkTxt.text = constDetailsDg.selectedItem.remark;
+			}
+			
+			public function btnModifyType_clickHandler(event:MouseEvent):void
+			{
+				if(constTypeDg.selectedItem == null) {
+					TAlert.show("请先选择常量类型","提示");
+					return;
+				}
+				
+				if(constTypeDg.selectedItem.constTypeName != StringUtil.trim(typeNameTxt.text)) {
+					if( !isTypeNameRepeate()) {
+						modifyType();
+					} else {
+						TAlert.show("类型名称不能重复","提示");
+					}
+				} else {
+					modifyType();
+				}
+			}
+			
+			private function modifyType():void
+			{
+				constTypeDg.selectedItem.constTypeName = typeNameTxt.text ;
+				constTypeDg.selectedItem.remark = typeRemarkTxt.text;
+				
+				var typeObj:Object = new Object();
+				typeObj.id = constTypeDg.selectedItem.id;
+				typeObj.constTypeName = constTypeDg.selectedItem.constTypeName;
+				typeObj.constTypeCode = constTypeDg.selectedItem.constTypeCode;
+				typeObj.remark = constTypeDg.selectedItem.remark;
+				
+				updateConstType(typeObj);
+			}
+			
+			private function updateConstType(constType:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateConstType",[new JSONEncoder().encode(constType)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,updateConstTypeHandler);	
+			}
+			
+			private function updateConstTypeHandler(event:ResultEvent):void
+			{
+				if(event.result.toString() != "1") {
+					TAlert.show("操作失败！","提示");
+				} 
+			}
+			
+			public function btnAddType_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(typeNameTxt.text) ==  "") {
+					TAlert.show("请先输入常量类型名称","提示");
+					return;
+				}
+				
+				if(!isTypeNameRepeate()) {
+					var typeObj:Object = new Object();
+					typeObj.constTypeName = typeNameTxt.text ;
+					typeObj.remark = typeRemarkTxt.text;
+					typeObj.constTypeCode = constType.length.toString().length==3?constType.length+1:(constType.length.toString().length==2?"0"+constType.length+1:"00"+constType.length+1);
+					
+					addConstType(typeObj);
+				} else {
+					TAlert.show("类型名称不能重复","提示");
+				}
+			}
+			
+			private function addConstType(constType:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","addConstType",[new JSONEncoder().encode(constType)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,addConstTypeHandler);	
+			}
+			
+			private function addConstTypeHandler(event:ResultEvent):void
+			{
+				var re:String = "";
+				if(event.result != null) {
+					re = event.result.toString();
+					
+					if(re != "0") {
+						var typeObj:Object = new JSONDecoder().decode(re);
+						typeObj.children = new ArrayCollection();
+						constType.addItem(typeObj);
+						
+						type_ti.text = typeObj.constTypeName;
+						typeFilter();
+						
+						constTypeDg.selectedItem = typeObj;
+						constDetails = typeObj.children;
+						
+						TAlert.show("请继续添加常量明细。","成功");
+					} else {
+						TAlert.show("常量类型没有添加成功","提示");
+					}
+				} else {
+					TAlert.show("常量类型没有添加成功","提示");
+				}
+			}
+			
+			public function btnDeleteType_clickHandler(event:MouseEvent):void
+			{
+				if(constTypeDg.selectedItem == null) {
+					TAlert.show("请先选择常量类型","提示");
+					return;
+				}
+				
+				TAlert.show("删除常量类型 "+constTypeDg.selectedItem.constTypeName+" ？对应的常量明细也将一并删除！", "提示", TAlert.NO|TAlert.YES, this,deleteType);
+			}
+			
+			private function deleteType(event:CloseEvent):void 
+			{
+				if (event.detail == TAlert.YES)
+				{
+					deleteConstType();
+				}
+			}
+			
+			private function deleteConstType():void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteConstByTypeId",[constTypeDg.selectedItem.id.toString()]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,deleteConstByTypeIdHandler);	
+			}
+			
+			private function deleteConstByTypeIdHandler(event:ResultEvent):void
+			{
+				if(event.result.toString() == "1") {
+					constType.removeItemAt(constType.getItemIndex(constTypeDg.selectedItem));
+					constDetails = new ArrayCollection();
+					reSet("type");
+				} else {
+					TAlert.show("操作失败！","提示");
+				} 
+			}
+			
+			public function btnDelete_clickHandler(event:MouseEvent):void
+			{
+				if(constDetailsDg.selectedItem == null) {
+					TAlert.show("请先选择常量明细","提示");
+					return;
+				}
+				
+				TAlert.show("删除常量明细 "+constDetailsDg.selectedItem.constDetailName+" ？", "提示", TAlert.NO|TAlert.YES, this,deleteDetail);
+			}
+			
+			private function deleteDetail(event:CloseEvent):void
+			{
+				if (event.detail == TAlert.YES)
+				{
+					toDeleteDetail();
+				}
+			}
+			
+			private function toDeleteDetail():void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteConstDetailById",[constDetailsDg.selectedItem.id.toString()]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,deleteConstDetailByIdHandler);	
+			}
+			
+			private function deleteConstDetailByIdHandler(event:ResultEvent):void
+			{
+				if(event.result.toString() == "1") {
+					constDetails.removeItemAt(constDetails.getItemIndex(constDetailsDg.selectedItem));
+					reSet();
+				} else {
+					TAlert.show("操作失败！","提示");
+				} 
+			}
+			
+			public function btnAdd_clickHandler(event:MouseEvent):void
+			{
+				if(constTypeDg.selectedItem == null) {
+					TAlert.show("请先选择常量类型","提示");
+					return;
+				}
+				if(StringUtil.trim(detailNameTxt.text) ==  "") {
+					TAlert.show("请先输入常量明细名称","提示");
+					return;
+				}
+				
+				if( !isDetailNameRepeate()) {
+					var constDetail:Object = new Object();
+					constDetail.constDetailName = StringUtil.trim(detailNameTxt.text);
+					constDetail.enabled = detailEnableCB.selected?1:0;
+					constDetail.remark = StringUtil.trim(detailRemarkTxt.text);
+					constDetail.constType = new Object();
+					constDetail.constType.id = constTypeDg.selectedItem.id;
+					constDetail.constType.constTypeName = constTypeDg.selectedItem.constTypeName;
+					constDetail.constType.constTypeCode = constTypeDg.selectedItem.constTypeCode;
+					constDetail.constType.remark = constTypeDg.selectedItem.remark;
+					
+					//合成明细表的编码字段
+					var cdStr:String = "";
+					if(constDetails == null) {
+						cdStr = "1";
+					} else {
+						cdStr = (constDetails.length+1).toString();
+					}
+					if(cdStr.length==1) {
+						constDetail.constDetailCode = constDetail.constType.constTypeCode + "0" + cdStr;
+					} else {
+						constDetail.constDetailCode =constDetail.constType.constTypeCode + cdStr;
+					}
+					
+					addConstDetail(constDetail);
+				} else {
+					TAlert.show("明细名称不能重复","提示");
+				}
+			}
+			
+			public function btnModify_clickHandler(event:MouseEvent):void
+			{
+				if(constDetailsDg.selectedItem == null) {
+					TAlert.show("请先选择常量明细","提示");
+					return;
+				}
+				
+				if(constDetailsDg.selectedItem.constDetailName != StringUtil.trim(detailNameTxt.text)) {
+					if( !isDetailNameRepeate()) {
+						modifyDetail();
+					} else {
+						TAlert.show("明细名称不能重复","提示");
+					}
+				} else {
+					modifyDetail();
+				}
+			}
+			
+			private function modifyDetail():void
+			{
+				constDetailsDg.selectedItem.constDetailName = StringUtil.trim(detailNameTxt.text);
+				constDetailsDg.selectedItem.enabled = detailEnableCB.selected?1:0;
+				constDetailsDg.selectedItem.remark = StringUtil.trim(detailRemarkTxt.text);
+				
+				var constDetail:Object  = new Object();
+				constDetail.id = constDetailsDg.selectedItem.id;
+				constDetail.constDetailCode = constDetailsDg.selectedItem.constDetailCode;
+				constDetail.constDetailName = constDetailsDg.selectedItem.constDetailName;
+				constDetail.enabled = constDetailsDg.selectedItem.enabled;
+				
+				constDetail.constType = new Object();
+				constDetail.constType.id = constTypeDg.selectedItem.id;
+				constDetail.constType.constTypeName = constTypeDg.selectedItem.constTypeName;
+				constDetail.constType.constTypeCode = constTypeDg.selectedItem.constTypeCode;
+				constDetail.constType.remark = constTypeDg.selectedItem.remark;
+				
+				constDetail.remark = constDetailsDg.selectedItem.remark;
+				
+				updateConstDetail(constDetail);
+			}
+			
+			private function addConstDetail(constDetail:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","addConstDetail",[new JSONEncoder().encode(constDetail)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveConstDetailHandler);	
+			}
+			
+			private function updateConstDetail(constDetail:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateConstDetail",[new JSONEncoder().encode(constDetail)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveConstDetailHandler);	
+			}
+			
+			protected function saveConstDetailHandler(event:ResultEvent):void 
+			{
+				if(event.result.toString() == "0")  {
+					TAlert.show("操作失败！","提示");
+				} else if(event.result.toString() != "1")  {
+					reSet();
+					constDetails.addItem(new JSONDecoder().decode(event.result.toString()));
+				}
+			}
+			
+			private function reSet(type:String = "detail"):void
+			{
+				if(type == "type") {
+					typeNameTxt.text = "";
+					typeRemarkTxt.text = "";
+				} 
+				detailNameTxt.text = "";
+				detailRemarkTxt.text = "";
+				detailEnableCB.selected = false;
+				
+				constTypeDg.invalidateList();
+				constDetailsDg.invalidateList();
+			}
+			
+			
+			
+			private function isTypeNameRepeate():Boolean
+			{
+				for each(var constType : Object in  constType) {
+					if(constType.constTypeName == typeNameTxt.text) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			private function isDetailNameRepeate():Boolean
+			{
+				for each(var constDetail : Object in  constDetails) {
+					if(constDetail.constDetailName == detailNameTxt.text) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			private function typeFilter():void 
+			{
+				if(constType ==null) return;
+				
+				if(type_ti.text == "") {
+					constType.filterFunction = null;
+				} else {
+					constType.filterFunction = filterTypeArr;
+				}
+				constType.refresh();
+			}
+			
+			private function filterTypeArr(item:Object):Boolean 
+			{
+				var searchString:String = type_ti.text.toLowerCase();
+				var itemName:String = (item.constTypeName as String).toLowerCase();
+				return itemName.indexOf(searchString) > -1;
+			}
+			
+			private function detailFilter():void 
+			{
+				if(constDetails ==null) return;
+				
+				if(detail_ti.text == "") {
+					constDetails.filterFunction = null;
+				} else {
+					constDetails.filterFunction = filterDetailArr;
+				}
+				constDetails.refresh();
+			}
+			
+			private function filterDetailArr(item:Object):Boolean 
+			{
+				var searchString:String = detail_ti.text.toLowerCase();
+				var itemName:String = (item.constDetailName as String).toLowerCase();
+				return itemName.indexOf(searchString) > -1;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:HGroup width="100%" height="100%"
+			  paddingTop="20" paddingLeft="20" paddingRight="20" paddingBottom="20">
+		
+		<s:VGroup height="100%" width="260">
+			<s:HGroup width="100%"  verticalAlign="middle">
+				<s:Label text="类型名" paddingLeft="5"/>
+				<s:TextInput id="type_ti" change="typeFilter()"  enabled="true"  focusIn="{type_ti.text = ''; typeFilter();}" 
+							 width="100%"   paddingRight="2"/>
+			</s:HGroup>
+			
+			<mx:DataGrid id="constTypeDg" height="100%" width="100%"
+						 dataProvider="{constType}" 
+						 itemClick="constTypeDg_itemClickHandler(event)">
+				<mx:columns>
+					<mx:DataGridColumn headerText="" labelFunction="rowNumFun"
+									   width="30" sortable="false" /> 
+					<mx:DataGridColumn headerText="类型ID" dataField="id"
+									   width="50"/>
+					<mx:DataGridColumn headerText="常量类型名称" dataField="constTypeName"
+									   width="180"/>
+				</mx:columns>
+			</mx:DataGrid>
+		</s:VGroup>
+		
+		<s:VGroup height="100%" width="100%">
+			<s:HGroup width="100%"  verticalAlign="middle">
+				<s:Label text="明细名" paddingLeft="5"/>
+				<s:TextInput id="detail_ti" change="detailFilter()"  enabled="true"  focusIn="{detail_ti.text = ''; detailFilter();}" 
+							 width="100%"  paddingRight="2"/>
+			</s:HGroup>
+			<mx:DataGrid id="constDetailsDg" width="100%" height="100%"
+						 dataProvider="{constDetails}" itemClick="constDetailsDg_itemClickHandler(event)">
+				<mx:columns>
+					<mx:DataGridColumn headerText="" labelFunction="rowNumFun2"
+									   width="30" sortable="false" /> 
+					<mx:DataGridColumn headerText="明细ID" dataField="id"
+									   width="50"/>
+					<mx:DataGridColumn headerText="常量明细名称" dataField="constDetailName" 
+									   />
+				</mx:columns>
+			</mx:DataGrid>
+			
+			<s:HGroup width="100%"  height="190">
+				<ns:GroupBox title="常量类型管理" cornerRadius="5" width="50%"  height="190">
+					<s:VGroup width="100%" height="100%">
+						<mx:Form id="constTypeForm" width="100%" paddingTop="5">
+							<mx:FormItem label="类型名称:" width="100%">
+								<s:TextInput id="typeNameTxt" width="100%" />
+							</mx:FormItem>
+							<mx:FormItem label="备注:" width="100%">
+								<s:TextArea id="typeRemarkTxt" width="100%" height="80"/>
+							</mx:FormItem>
+						</mx:Form>
+						
+						<s:HGroup id="type_btn_hg"  width="100%" height="100%" 
+								  horizontalAlign="left" paddingBottom="10" paddingLeft="87" paddingTop="-10"/>
+					</s:VGroup>
+				</ns:GroupBox>
+				
+				<ns:GroupBox title="常量明细管理" cornerRadius="5" width="50%" height="190">
+					<s:VGroup width="100%" height="100%">
+						<mx:Form id="constDetailsForm" width="100%"  paddingTop="5">
+							<mx:FormItem label="明细名称:" width="100%">
+								<s:TextInput id="detailNameTxt" width="100%" />
+							</mx:FormItem>
+							<mx:FormItem label="是否可用:">
+								<s:CheckBox id="detailEnableCB" />
+							</mx:FormItem>
+							<mx:FormItem label="备注:" width="100%">
+								<s:TextArea id="detailRemarkTxt" width="100%" height="60"/>
+							</mx:FormItem>
+						</mx:Form>
+						
+						<s:HGroup id="btn_hg"  width="100%" height="100%" 
+								  horizontalAlign="left" paddingBottom="10" paddingLeft="87" paddingTop="-10"/>
+					</s:VGroup>
+				</ns:GroupBox>
+			</s:HGroup>
+		</s:VGroup>
+	</s:HGroup>
+</s:Module>

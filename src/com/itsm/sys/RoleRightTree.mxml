@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%"
+		 creationComplete="group1_creationCompleteHandler(event)">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			protected function group1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			/**reSelect 根据角色 重新选择权限*/
+			public function reSelectRights(role:Object,menuButtonArr:ArrayCollection=null):void
+			{
+				if(role == null) {
+					return;
+				}
+				
+				if(menuButtonArr == null) {
+					menuButtonArr = rightTree.dataProvider as ArrayCollection;
+				}
+				
+				var rolesMenuButtonArr:ArrayCollection = role.menuButton;
+				var rolesRights:String = ",";
+				for each (var menuButton:Object in rolesMenuButtonArr) {
+					rolesRights += menuButton.id + ",";
+				}
+				
+				for each (var menuButtonTree:Object in menuButtonArr) {
+					if(rolesRights.search("," + menuButtonTree.id + ",") != -1) {
+						menuButtonTree.checked = true;
+					} else {
+						menuButtonTree.checked = false;
+					}
+					
+					if(menuButtonTree.children != null && menuButtonTree.children.length != 0) {
+						reSelectRights(role, menuButtonTree.children);
+					}
+				}
+				
+				//展开所有节点
+				rightTree.validateNow();
+				rightTree.expandChildrenOf(rightTree.dataProvider[0],true);
+			}
+			
+			public function getMenuButton(arr:ArrayCollection = null):Array
+			{
+				if(arr == null) {
+					arr = rightTree.dataProvider as ArrayCollection;
+				}
+				
+				var menuButtonArr:Array = new Array();
+				
+				for each (var menuButtonTree:Object in arr) {
+					if( menuButtonTree.checked ) {
+						menuButtonArr.push(menuButtonTree);
+						
+						if( menuButtonTree.children != null &&  menuButtonTree.children.length != 0) {
+							menuButtonArr = menuButtonArr.concat(getMenuButton(menuButtonTree.children));
+						}
+					}
+				}
+				
+				return menuButtonArr;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Tree id="rightTree" width="100%" height="100%" 
+			 borderAlpha="0" itemRenderer="com.framelib.renderer.TreeCheckBoxItemRenderer">
+	</mx:Tree>
+</s:Group>

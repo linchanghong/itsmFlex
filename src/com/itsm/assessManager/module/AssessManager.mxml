@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  width="100%" height="100%">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			private var FLOW_TYPE:String="9";   //流程业务类型
+			
+			//考核期间
+			public var periods:ArrayCollection;
+			
+			private var scheSqlWhere:String="";         //考核方案查询条件
+			private var assSqlWhere:String="";          //考核明细查询条件
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			//下拉列表创建完成事件
+			protected function dList_Period_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(periods == null){
+					appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","findAllPeriod", []);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,dList_System_BindHandle);
+				}else{
+					dList_Period.dataProvider = periods;
+				}
+			}
+			private function dList_System_BindHandle(event:ResultEvent):void{
+				var resultStr:String = event.result.toString();	
+				periods = appCore.jsonDecoder.decode(resultStr) as ArrayCollection;
+				dList_Period.dataProvider = periods;
+				bindDropDownList();
+			}
+			
+			//方案表点击事件
+			private function scheme_Grid_click():void{
+				var schemeId:String=scheme_Grid.selectedItem.id;
+				assSqlWhere=" and p.scheme_id="+schemeId;
+				assess_Grid.dataProvider=['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessPage', [assSqlWhere]];
+			}
+			//查看按钮点击事件		
+			public function btn_view_clickHandler(event:MouseEvent):void{
+				
+			}
+			//新增按钮点击事件	
+			public function btn_add_clickHandler(event:MouseEvent):void{
+				this.currentState="add";
+			}
+			//编辑按钮点击事件	
+			public function btn_edit_clickHandler(event:MouseEvent):void{
+				if(scheme_Grid.selectedIndex!=-1){
+					if(scheme_Grid.selectedItem.status!="0"){
+						TAlert.show("只能编辑未呈报的数据！","系统提示");
+						return;
+					}
+					schemeName.text=scheme_Grid.selectedItem.schemeName;
+					schemeCode.text=scheme_Grid.selectedItem.schemeCode;
+				}else{
+					TAlert.show("请选择需要编辑的数据！","系统提示");
+				}
+			}
+			//删除按钮点击事件	
+			public function btn_delete_clickHandler(event:MouseEvent):void{
+				if(scheme_Grid.selectedIndex!=-1){
+					if(scheme_Grid.selectedItem.status!="0"){
+						TAlert.show("只能删除未呈报的数据！","系统提示");
+						return;
+					}
+					TAlert.show("你确定要删除选中的数据？","系统提示", TAlert.YES | TAlert.NO, null, 
+						function(ent:CloseEvent):void{
+							if (ent.detail == TAlert.YES){
+								var schemeId:String=scheme_Grid.selectedItem.id;
+								appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","deleteAssessScheme", [schemeId]);
+								appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,
+									function(evt:ResultEvent):void{
+										if(evt.result as String=="0"){
+											TAlert.show("删除失败！", "系统提示");
+											return;
+										}
+										scheme_Grid.dataProvider=['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessSchemePage', [scheSqlWhere]];
+										assess_Grid.dataProvider=null;
+									}
+								);
+							}
+						});
+				}else{
+					TAlert.show("请选择需要删除的数据！","系统提示");
+				}
+			}
+			//呈报按钮点击事件	
+			private var workReport:Object;
+			public function btn_submit_clickHandler(event:MouseEvent):void{
+				var item:Object = scheme_Grid.selectedItem;
+				if(item==null)
+					TAlert.show("请选择要呈报的数据！", "温馨提示");
+				else{
+					if(item.status!="0"){
+						TAlert.show("已呈报过！","系统提示");
+						return;
+					}
+					if(item.id > 0){
+						workReport=scheme_Grid.selectedItem;
+						var arr:Array = new  Array();
+						var Oitem:String= "department:"+FAppCore.FCusUser.DeptId;
+						arr.push(Oitem);
+						
+						var sender:Object = new Object();
+						sender.id=FAppCore.FCusUser.UserId;
+						sender.personName=FAppCore.FCusUser.UserName;
+						FAppCore.StartFlowInstence(sender, sender.id, FLOW_TYPE, item.id, arr, false, submitResult);
+					}else{
+						TAlert.show("系统繁忙,稍后再试!","温馨提示");
+					}
+				}
+			}
+			private function  submitResult(event:ResultEvent):void{
+				var schemetId:String=(workReport.id).toString();
+				appCore.dealData("assessManagerAPI", "AssessManagerAPI", "statusAssessScheme",[schemetId,"1"], statusSchemetIdResult);	
+			}
+			private function  statusSchemetIdResult(event:ResultEvent):void{
+				scheme_Grid.dataProvider=['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessSchemePage', [scheSqlWhere]];
+				assess_Grid.dataProvider=null;
+			}
+			//查询按钮点击事件		
+			public function btn_query_clickHandler(event:MouseEvent):void{
+				
+			}
+			//保存按钮点击事件
+			public function addSureBtn_clickHandler(event:MouseEvent):void{
+				if(!verification()){
+					return;
+				}
+				var schemeObj:Object=new Object();
+				schemeObj.schemeName=schemeName.text;                            //方案名称
+				schemeObj.schemeCode=schemeCode.text;                            //方案编码
+				schemeObj.period=dList_Period.selectedItem;                      //考核期间
+				schemeObj.period.id=dList_Period.selectedItem.id;
+				schemeObj.status=0;           						 //方案状态,0:未提交,1:考核中,2:已考核
+				schemeObj.dr=0; 
+				
+				var df:DateFormatter = new DateFormatter();
+				df.formatString="YYYY-MM-DD JJ:NN:SS";
+				schemeObj.creatDate = df.format(new Date());    
+				
+				if(this.currentState == "modify"){
+					schemeObj.id = scheme_Grid.selectedItem.id;
+					appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","updateAssessScheme", [appCore.jsonEncoder.encode(schemeObj)]);
+				}else if(this.currentState == "add"){
+					var compId:String=appCore.loginUser.msPerson.id;
+					var personId:String=appCore.loginUser.companyId;
+					appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","addAssessScheme", [appCore.jsonEncoder.encode(schemeObj),compId,personId]);
+				}
+				
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveBtn_clickHandle);
+			}
+			private function saveBtn_clickHandle(event:ResultEvent):void{
+				if(this.currentState == "modify"){
+					var resultStr:String=(event.result).toString();
+					if(resultStr=="0"){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}
+				}else{
+					var json:String = event.result as String;
+					var obj:Object = JSON.parse(json) as Object;
+					if(obj.type>=1) {
+						cancelScheme();
+						this.currentState="normal";
+						scheme_Grid.dataProvider=['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessSchemePage', [scheSqlWhere]];
+						assess_Grid.dataProvider=null;
+					}
+					else if(obj.type==-2){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}
+					else if(obj.type==-1){
+						TAlert.show("后台异常！", "系统提示");
+						return;
+					}
+					else if(obj.type==0){
+						TAlert.show("请建Model！", "系统提示");
+						return;
+					}
+				}
+			}
+			//取消按钮点击事件
+			public function addCancelBtn_clickHandler(event:MouseEvent):void{
+				cancelScheme();
+				this.currentState="normal";
+			}
+			//清除表单数据
+			private function cancelScheme():void{
+				schemeName.text="";
+				schemeCode.text="";
+				dList_Period.selectedIndex=-1;
+			}
+			//反绑定下拉列表
+			private function bindDropDownList():void{
+				if((this.currentState=="modify"||this.currentState=="query")&&dList_Period.selectedIndex!=-1){
+					if(dList_Period.dataProvider==null){
+						return;
+					}
+					dList_Period.selectedIndex=setDropDownListSelectedIndex(dList_Period.dataProvider as ArrayCollection,"periodID",scheme_Grid.selectedItem.period.id);
+				}
+			}
+			//DropDownList数据绑定
+			private function setDropDownListSelectedIndex(dataArray:ArrayCollection,keyData:String,selectObj:Object):int{
+				for(var i:int=0;i<dataArray.length;i++){
+					if(dataArray.getItemAt(i)[keyData]==selectObj){
+						return i;
+					}
+				}
+				return 0;
+			}
+			//数据验证
+			private function verification():Boolean{
+				
+				if(dList_Period.selectedIndex==-1||dList_Period.selectedItem==null){
+					TAlert.show("请选择考核期间！","系统提示");
+					return false;
+				}
+				if(schemeName.text==null||schemeName.text==""){
+					TAlert.show("请填写方案标题！","系统提示");
+					return false;
+				}
+				if(schemeCode.text==null||schemeCode.text==""){
+					TAlert.show("请填写方案编码！","系统提示");
+					return false;
+				}else{
+					return true;
+				}
+			}
+			
+			//期间改变
+			protected function dList_Period_changeHandler():void
+			{
+				if(dList_Period.selectedItem!=null){
+					var pId:int=dList_Period.selectedItem.id;
+					var periodId:String=pId.toString();
+					appCore.dataDeal.dataRemote("assessManagerAPI","AssessManagerAPI","findSchemeByPeriodId", [periodId]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,findSchemeResult);
+				}
+			}
+			private function findSchemeResult(event:ResultEvent):void{
+				var schemeCount:Number=event.result as Number
+					if(schemeCount>0){
+						TAlert.show("该考核期间下已有考核方案！","系统提示");
+						this.currentState="normal";
+					}else{
+						schemeName.text=dList_Period.selectedItem.periodName+"支撑人员考核方案";
+						var dateNowStr:String=DateField.dateToString(new Date(),"YYYYMMDD");
+						schemeCode.text=dateNowStr;
+					}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="modify"/>
+		<s:State name="query"/>
+	</s:states>
+	<s:VGroup width="100%" height="100%">
+		<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" includeIn="normal" verticalAlign="middle">
+			<s:Button id="btn_view" styleName="view" label="查看" click="btn_view_clickHandler(event)"/>
+			<s:Button id="btn_edit" styleName="modify" label="修改" click="btn_edit_clickHandler(event)"/>
+			<s:Button id="btn_add" styleName="add" label="新增" click="btn_add_clickHandler(event)"/>
+			<s:Button id="btn_delete" styleName="delete" label="删除" click="btn_delete_clickHandler(event)"/>
+			<s:Button id="btn_submit" styleName="report" label="呈报" click="btn_submit_clickHandler(event)"/>
+			<s:Button id="btn_query" styleName="query" label="查询" click="btn_query_clickHandler(event)"/>
+		</s:HGroup>
+		<mx:VDividedBox includeIn="normal" width="100%" height="100%">
+			<mx:Box width="100%" height="30%">
+				<custom:CustomDataGrid id="scheme_Grid" width="100%" height="100%" dataProvider="{['assessManagerAPI', 'AssessManagerAPI', 'findAllAssessSchemePage', [scheSqlWhere]]}"
+									   textAlign="center" isPaging="true" isCheckBox="false" click="scheme_Grid_click()"
+									   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on">
+					<custom:columns>
+						<mx:DataGridColumn dataField="id" headerText="主键" width="0" visible="false"/>
+						<mx:DataGridColumn dataField="schemeName" headerText="方案名称" />
+						<mx:DataGridColumn dataField="schemeCode" headerText="方案编码" />
+						<mx:DataGridColumn dataField="period.periodName" headerText="考核期间"/>
+						<mx:DataGridColumn dataField="period.startDate" headerText="开始日期"/>
+						<mx:DataGridColumn dataField="period.endDate" headerText="截止日期"/>
+						<mx:DataGridColumn dataField="status" headerText="方案状态ID" width="0" visible="false"/>
+						<mx:DataGridColumn dataField="statusName" headerText="方案状态"/>
+						<mx:DataGridColumn dataField="creatDate" headerText="创建日期"/>
+						<mx:DataGridColumn dataField="status" headerText="删除标志" width="0" visible="false"/>
+					</custom:columns>
+				</custom:CustomDataGrid>
+			</mx:Box>
+			<mx:Box width="100%" height="70%">
+				<custom:CustomDataGrid id="assess_Grid" width="100%" height="100%" 
+									   textAlign="center" isPaging="true" isCheckBox="false"
+									   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on">
+					<custom:columns>
+						<mx:DataGridColumn dataField="id" headerText="主键" width="0" visible="false"/>
+						<mx:DataGridColumn dataField="assessObj.userName" headerText="考核对象" />
+						<mx:DataGridColumn dataField="dailyCount" headerText="日报完成"/>
+						<mx:DataGridColumn dataField="weeklyCount" headerText="周报完成"/>
+						<mx:DataGridColumn dataField="troubleCount" headerText="问题处理"/>
+						<mx:DataGridColumn dataField="bugCount" headerText="bug处理"/>
+						<mx:DataGridColumn dataField="demandCount" headerText="需求处理"/>
+						<mx:DataGridColumn dataField="score" headerText="考评得分"/>
+						<mx:DataGridColumn dataField="examiner.userName" headerText="考评人"/>
+						<mx:DataGridColumn dataField="directions" headerText="评分说明"/>
+					</custom:columns>
+				</custom:CustomDataGrid>
+			</mx:Box>
+		</mx:VDividedBox>
+		
+		<s:VGroup width="100%" height="100%" includeIn="add,modify,query">
+			<s:HGroup id="add_btn_hg"  width="100%" horizontalAlign="left" verticalAlign="middle">
+				<s:Button id="addSureBtn" label="保存" styleName="save" click="addSureBtn_clickHandler(event)" includeIn="add,modify"/>
+				<s:Button id="addCancelBtn" label="取消" styleName="cancel" click="addCancelBtn_clickHandler(event)" includeIn="add,modify,query"/>
+			</s:HGroup>
+			<s:VGroup width="100%" height="100%">
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel label="考核期间：" verticalAlign="middle" required="true" width="110"/>
+					<s:DropDownList id="dList_Period" width="100%" height="25"
+									labelField="periodName" change="dList_Period_changeHandler()"
+									textAlign="left" creationComplete="dList_Period_creationCompleteHandler(event)"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel label="方案名称：" verticalAlign="middle" width="110"/>
+					<control:TextInputFl id="schemeName" width="100%"/>	
+				</s:HGroup>
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel label="方案编码：" verticalAlign="middle" width="110"/>
+					<control:TextInputFl id="schemeCode" width="100%"/>
+				</s:HGroup>
+				
+			</s:VGroup>
+		</s:VGroup>
+	</s:VGroup>
+</s:Module>

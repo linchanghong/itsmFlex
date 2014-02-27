@@ -1,0 +1,374 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>default.css</title>
+<link rel="stylesheet" type="text/css" href="../../../SourceStyles.css"/>
+</head>
+
+<body><pre>
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">tab </span><span class="CSSString">"flexlib.controls.tabBarClasses.*"</span>;
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">s </span><span class="CSSString">"library://ns.adobe.com/flex/spark"</span>;
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">mx </span><span class="CSSString">"library://ns.adobe.com/flex/mx"</span>;
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">skin </span><span class="CSSString">"com.itsm.common.skins.*"</span>;
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">mxm </span><span class="CSSString">"com.itsm.common.mxml.*"</span>;
+<span class="CSS@namespace">@namespace</span> <span class="CSSSelector">c </span><span class="CSSString">"rich.containers.*"</span>;
+
+<span class="CSSSelector">global
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">font-family</span><span class="CSSDelimiters">:</span> <span class="CSSString">"宋体"</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|TitleWindow</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin-class</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">ClassReference(</span><span class="CSSString">"com.itsm.common.skins.BaseTitleWinodwSkin"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">mx|Alert</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">borderSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">ClassReference(</span><span class="CSSString">"com.itsm.common.skins.BaseAlertSkin"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Application
+</span><span class="CSSDelimiters">{</span>
+    
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">mxm|CustomMenuTree
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">borderSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">folderClosedIcon</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">folderOpenIcon</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">defaultLeafIcon</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(source=</span><span class="CSSString">'/assets/img/icon/bullet_blue.png'</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">disclosureOpenIcon</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(source=</span><span class="CSSString">'/assets/img/icon/disclosureOpenIcon.png'</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">disclosureClosedIcon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(source=</span><span class="CSSString">'/assets/img/icon/disclosureClosedIcon.png'</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">.ExtendedDividerBoxButtonV</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">buttonWidth</span><span class="CSSDelimiters">:</span>            <span class="CSSProperty_Value">229</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">dividerThickness</span><span class="CSSDelimiters">:</span>         <span class="CSSProperty_Value">13</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">cornerRadius</span><span class="CSSDelimiters">:</span>            <span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+    
+    <span class="CSSProperty_Name">downSkin</span><span class="CSSDelimiters">:</span>     <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">overSkin</span><span class="CSSDelimiters">:</span>    <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">upSkin</span><span class="CSSDelimiters">:</span>    <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedDownSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedOverSkin</span><span class="CSSDelimiters">:</span>    <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedUpSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">ClassReference(null)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/*��¼������ʽ*/</span>
+<span class="CSSSelector">#login_state
+</span><span class="CSSDelimiters">{</span>  
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/bg_main1.jpg"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#loginGroup
+</span><span class="CSSDelimiters">{</span>  
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/bg_login1.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">line-height</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">180px</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">width</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">555px</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">height</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">180px</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#login_corpright
+</span><span class="CSSDelimiters">{</span>  
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/bg_copyright.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#btn_login
+</span><span class="CSSDelimiters">{</span>  
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_login1.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_login2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_login1.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_login2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">#btn_rest
+</span><span class="CSSDelimiters">{</span>  
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_rest1.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_rest2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_rest1.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/button_rest2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">#line</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/login/m.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">#barbg</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/bar/barbg.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/*���˵���*/</span>
+<span class="CSSSelector">#logobg
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/bar/logobg.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#bar_menu
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/bg_header_nav.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSComment">/*���˵�*/</span>
+<span class="CSSSelector">#mainMenuBar 
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundAlpha</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">horizontal-gap</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">10</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">separator-width</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">content-background-alpha</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#firstPage_btn
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">chrome-color</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">#4c92e4</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+    
+<span class="CSSSelector">#menu_cus
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">chrome-color</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">#4c92e4</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/cus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_pro
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/pro.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/pro.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/pro_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/pro_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_ent
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/ent.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/ent.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/ent_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/ent_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_bus
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/bus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/bus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/bus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/bus_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_els
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/els.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/els.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/els_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/els_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_sha
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/sha.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/sha.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/sha_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/sha_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#menu_tal
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/tal.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">up-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/tal.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">over-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/tal_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">down-skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/tal_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/*������ı���ɫ*/</span>
+<span class="CSSSelector">#contentMain
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundColor</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">#4c9be4</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/*���˵�*/</span>
+<span class="CSSSelector">mx|Accordion
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">border-style</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">none</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">corner-radius</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">5</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">mx|AccordionHeader</span><span class="CSSDelimiters">{</span>
+<span class="CSSComment">/*    chrome-color:#ACCAE5;
+    paddingLeft:25;,
+        scaleGridTop=1,                 
+        scaleGridBottom=2, 
+        scaleGridLeft=1, 
+        scaleGridRight=2
+        */</span>
+    <span class="CSSProperty_Name">disabledSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_up.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">downSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_up_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">overSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_up_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedDisabledSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedDownSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedOverSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_selected_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedUpSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">upSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/accordion/accordion_up.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/**��������ʽ*/</span>
+<span class="CSSSelector">c|SuperTabNavigator
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">tab-height</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">31</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">tab-width</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">144</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">verticalGap</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">backgroundColor</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">#f6f6f6</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">border-color</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">#979797</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">paddingTop</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">0</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">tabStyleName</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">tabStyleName</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">.tabStyleName </span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">tabCloseButtonStyleName</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">tabCloseButtonStyleName</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">freshButtonStyleName</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">tabFreshButtonStyleName</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">downSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">upSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_up.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">overSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_up_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">disabledSkin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedDisabledSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedDownSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedOverSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected_over.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">selectedUpSkin</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/tab/tab_selected.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span> 
+<span class="CSSSelector">.tabCloseButtonStyleName</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">padding-top</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">5</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">paddingRight</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">9</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">right</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">9</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">x</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">9</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">ClassReference(</span><span class="CSSString">"spark.skins.spark.TitleWindowCloseButtonSkin"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">.tabFreshButtonStyleName</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">skin</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">ClassReference(</span><span class="CSSString">"com.itsm.common.skins.TabFreshSkin"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#bottom_left
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/foot_left.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#bottom_center
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/foot_mind.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">#bottom_right
+</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"/assets/img/mainheader/foot_right.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+
+<span class="CSSSelector">s|NavigatorContent</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">background-color</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">#f6f6f6</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|List</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">background-color</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">#f9f9f9</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">border-visible</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">false</span><span class="CSSDelimiters">;</span> 
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSComment">/*mx|LinkButton {
+    upSkin:Embed("/assets/img/tab/Tab_upSkin.png");
+    downSkin:Embed("/assets/img/tab/Tab_downSkin.png");
+    overSkin:Embed("/assets/img/tab/Tab_overSkin.png");
+}*/</span>
+
+<span class="CSSSelector">mx|ToolTip</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">fontSize</span><span class="CSSDelimiters">:</span> <span class="CSSProperty_Value">12</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">font-family</span><span class="CSSDelimiters">:</span> <span class="CSSString">"宋体"</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|Button.view</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/view.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|Button.query</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/find.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.delete</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/del.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.view</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/view.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.agree</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/button/agree.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|Button.pass</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/button/pass.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|Button.notpass</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/button/notpass.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+<span class="CSSSelector">s|Button.import</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/upload.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.export</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/download.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.template</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/geneate.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.save</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/save.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.submit</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/button/sure.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.cancel</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/cancel.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.refresh</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/refresh.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.back</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/button/back.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.add</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/add.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.modify</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/modify.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.report</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/report.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.setup</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/setup2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.flowTurn</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/cus.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.release</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/fb2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.copy</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/copy.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.steup</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/steup.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.refes</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/fb2.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.upPage</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/c3.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+<span class="CSSSelector">s|Button.downPage</span><span class="CSSDelimiters">{</span>
+    <span class="CSSProperty_Name">icon</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/c4.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+    <span class="CSSProperty_Name">backgroundImage</span><span class="CSSDelimiters">:</span><span class="CSSProperty_Value">Embed(</span><span class="CSSString">"assets/img/icon/c4.png"</span><span class="CSSProperty_Value">)</span><span class="CSSDelimiters">;</span>
+<span class="CSSDelimiters">}</span>
+
+</pre></body>
+</html>

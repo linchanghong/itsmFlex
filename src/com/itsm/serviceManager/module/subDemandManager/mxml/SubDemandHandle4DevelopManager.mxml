@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  width="100%" height="100%"
+		  creationComplete="initData(event)">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.effects.Fade;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.filters.GlowFilter;
+			
+			//流程挂载页面必需属性--用于存储业务id
+			[Bindable]
+			public var billId:String;
+			//流程模型
+			public var oprtTypeId:String;
+			//流程模型类型
+			private static const FLOW_TYPE:String="6";
+			//文档上传所对应的子需求表单ID
+			[Bindable]
+			public var subDemandID4Word:String = "";
+			//子需求单所在数据库表名
+			[Bindable]
+			public var subDemandTableName:String = "T_DEMANDS_PART";
+			//闪烁使用的filter
+			[Bindable]
+			private var filter:GlowFilter = new spark.filters.GlowFilter();
+			//主需求业务单对象
+			[Bindable]
+			public var userApply:Object;
+			//子需求单
+			[Bindable]
+			public var subDemandObj:Object;
+			//saveBtnEnable:是否显示“评分组件”的“保存”按钮
+			private var saveBtnEnable:Boolean = false;
+			//被考评人
+			private var assessorId:String = "";
+			//考评环节
+			[Bindable]
+			public var demandsLinkNum:String = "-1";
+			//打分人
+			[Bindable]
+			public var examinerId:String = "-1";
+			//考评指标种类
+			[Bindable]
+			public var jobGradeTypeNum:String = "-1";
+			//表单是否有效 
+			[Bindable] 
+			private var formIsValid:Boolean = false;
+			//表单是否为空 
+			[Bindable] 
+			public var formIsEmpty:Boolean = true; 
+			//开发人员
+			[Bindable]
+			private var developerId:uint;
+			//单元测试人员
+			[Bindable]
+			private var UTesterId:uint;
+			//默认情况下选择不同意(发布事件)
+			[Bindable]
+			private var FlowBillModi:Event;
+			//持有该目前集中控制的对象。 
+			private var focussedFormControl:DisplayObject; 
+			private var fade:Fade;
+			//当前系统id
+			[Bindable]
+			private var sysID:int = -1
+			
+			
+			
+			/**判断表单是否为空：任一为空即为空*/
+			private function judgeFormIsEmpty():void{
+				var flag1:Boolean = !developer.selectObj.hasOwnProperty("userId") && 
+					!developer.selectObj.hasOwnProperty("id");
+				flag1 = flag1 ? developer.sText == "" || developer.sText == null ? true: false : false;
+				var flag2:Boolean = !unitTester.selectObj.hasOwnProperty("userId") && 
+					!unitTester.selectObj.hasOwnProperty("id");
+				flag2 = flag2 ? unitTester.sText == "" || unitTester.sText == null ? true: false : false;
+				formIsEmpty = flag1 || flag2;
+			}
+			/**判断表单是否有效*/
+			private function judgeFormIsValid():void{
+				var obj1:Object = new Object();
+				obj1 = developer.selectObj;
+				var flag1:Boolean = false;
+				flag1 = !obj1.hasOwnProperty("userId") && !obj1.hasOwnProperty("id")
+					? developer.sText != "" && developer.sText != null : obj1.hasOwnProperty("userId")||obj1.hasOwnProperty("id");
+				var obj2:Object = new Object();
+				obj2 = unitTester.selectObj;
+				var flag2:Boolean = false;
+				flag2 = !obj2.hasOwnProperty("userId") && !obj2.hasOwnProperty("id")
+					? unitTester.sText != "" && unitTester.sText != null : obj2.hasOwnProperty("userId")||obj2.hasOwnProperty("id");
+				formIsValid = flag1 && flag2;
+			}
+			/**验证方法*/
+			private function validateForm(event:Event):void  
+			{              
+				msg.visible = false;
+				//检查验证传递和返回一个布尔值相应。 
+				//保存引用当前集中表单控件 
+				//这样isValid()辅助方法可以只通知 
+				//当前集中形式控制和不影响 
+				//任何其他的表单控件。 
+				focussedFormControl = event.target as DisplayObject;   
+				
+				// 标记表单有效的开始 
+				judgeFormIsValid();
+				
+				// 检查表单是否为空 
+				judgeFormIsEmpty();
+				
+				//闪烁提示
+				if(formIsEmpty){
+					BugUtil.showAndHideLabel(lbBeforeSave,!formIsValid,fade);
+				}
+				if(!formIsEmpty && formIsValid){
+					msg.text = "可以保存";
+					msg.visible = true;
+				}
+				
+			} 
+			
+			private function createObj():void{
+				var obj:Object = new Object();
+				obj = developer.selectObj;
+				developerId = obj.hasOwnProperty("userId") 
+					? obj.userId : obj.hasOwnProperty("id") 
+					? obj.id : developer.sText != "" 
+					? subDemandObj.developer.id : -1;
+				
+				obj = unitTester.selectObj;
+				UTesterId = obj.hasOwnProperty("userId") 
+					? obj.userId : obj.hasOwnProperty("id") 
+					? obj.id : unitTester.sText != "" 
+					? subDemandObj.unitTester.id : -1;
+			}
+			
+			/**向数据库存入子需求单数据*/
+			protected function saveBtn_click_handle(event:MouseEvent):void{
+				if(formIsValid && !formIsEmpty){
+					createObj();
+					BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI",
+						"updateDeveloperAndUnitTester",
+						[billId,developerId,UTesterId], updateDeveloperAndUnitTesterHandle);
+				}else
+					TAlert.show("输入有误,请查看页面提示信息!","温馨提示");
+				formIsValid = false;
+			}
+			
+			private function updateDeveloperAndUnitTesterHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj == "1"){
+					msg.text = "保存成功！";
+					msg.visible = true;
+					
+					FlowBillModi = new Event("FlowBillSave");
+					this.dispatchEvent(FlowBillModi);
+				}else{
+					msg.text = "系统繁忙，稍后再试！";
+					msg.visible = true;
+				}
+			}
+			
+			/**流程挂载页面=======================================================*/
+			/**将要同意*/
+			public function doWillAgreeeEventHandle(event:Event):void{}
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+				//修改数据库请求单的状态
+				//需求状态，0：未提交，1：需求分析，2：开发经理指派人员，3：开发，4：单元测试，5：功能测试，6：项目经理审核，7：完成
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","updateSubDemandStatusNoDataBack",
+					[billId, 3], updateSubDemandStatusNoDataBackHandle);
+			}
+			private function updateSubDemandStatusNoDataBackHandle(event:ResultEvent):void{
+			}
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+			/**
+			 * 同意处理前调用
+			 */
+			public function agreeBefore():void{}
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{
+				//修改数据库请求单的状态
+				//需求状态，0：未提交，1：需求分析，2：开发经理指派人员，3：开发，4：单元测试，5：功能测试，6：项目经理审核，7：完成
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","updateSubDemandStatusNoDataBack",
+					[billId, 1], disagreeHandle);	
+			}
+			private function disagreeHandle(event:ResultEvent):void{}
+			
+			/**流程挂载页面=======================================================*/
+			
+			private function initData(event:Event):void
+			{
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","showSubDemandByID",
+					[billId], showSubDemandByIDHandle);
+				
+				AppHistoryGrid.getApproveHistory(FLOW_TYPE, billId);
+				
+				BugUtil.showAndHideLabel(lbBeforeSave,!formIsEmpty,fade);
+				
+				//				flowTodoWindow = new FlowTodoWindow();
+				this.addEventListener("willAgreeEvent",doWillAgreeeEventHandle);
+			}
+			private function showSubDemandByIDHandle(event:ResultEvent):void{
+				subDemandObj = BugUtil.getResultObj(event) != "0" ? BugUtil.getResultObj(event) : null;
+				subDemandID4Word = billId;
+				fileGrid.refreshData();
+				if(subDemandObj != null){
+					sysID = (subDemandObj.hasOwnProperty("belongsSystem"))
+						?subDemandObj.belongsSystem.systemID:-1;
+					if(subDemandObj.hasOwnProperty("developer") 
+						&& subDemandObj.hasOwnProperty("unitTester")){
+						FlowBillModi = new Event("FlowBillSave");
+						this.dispatchEvent(FlowBillModi);
+					}else{
+						FlowBillModi = new Event("FlowBillModi");
+						this.dispatchEvent(FlowBillModi);
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	
+	<s:VGroup width="100%" height="100%">
+		<s:VGroup width="100%" height="25">
+			<s:Button id="saveBtn" 
+					  width="75" height="100%" 
+					  label="保存" 
+					  icon="@Embed(source='assets/img/icon/save.png')"
+					  enabled="{formIsValid}" 
+					  click="saveBtn_click_handle(event)"/>
+			<s:Label id="lbBeforeSave" visible="{formIsEmpty}" width="0"
+					 height="100%" filters="{filter}" text="↙红色字段为必填项！" verticalAlign="top"/>
+			<s:Label id="msg" visible="false" width="15%" height="100%" color="red" fontWeight="bold"
+					 text="保存成功!"/>
+		</s:VGroup>
+		<s:Scroller width="100%" height="100%">
+			<s:VGroup width="100%" height="100%">
+				<mx:VDividedBox width="100%" height="100%" minHeight="750" creationPolicy="all"
+								paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:VGroup id="top" width="100%" height="8%">
+						<s:HGroup width="100%" height="25">
+							<s:Label text="预计开发完成时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="planDevelopDate" height="100%"
+										 width="15%" 
+										 editable="false" 
+										 textAlign="left" 
+										 text="{subDemandObj!=null?subDemandObj.planDevelopDate:''}"/>
+							
+							<s:Label text="预计单元测试完成时间：" width="15%" height="100%" textAlign="right"/>
+							<s:TextInput id="planUtestDate" height="100%"
+										 width="15%" 
+										 editable="false" 
+										 textAlign="left" 
+										 text="{subDemandObj!=null?subDemandObj.planUtestDate:''}"/>
+							
+							<control:FormLabel label="开发人员选择：" height="100%"
+											   required="true"
+											   width="15%" 
+											   textAlign="right"/>
+							<bugmxml:BugFieldSelect id="developer" height="100%"
+													width="15%" 
+													armTitleWindow="com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+													isMultipleSelected="false"
+													sysID="{sysID}"
+													userStatus="203"
+													selectChange="validateForm(event)"
+													sText="{subDemandObj!=null?subDemandObj.developer.userName:''}"
+													textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<control:FormLabel label="单元测试人员选择：" 
+											   required="true"
+											   width="15%" height="100%"
+											   textAlign="right"/>
+							<bugmxml:BugFieldSelect id="unitTester" 
+													width="15%" height="100%"
+													sysID="{sysID}"
+													userStatus="205"
+													armTitleWindow="com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+													isMultipleSelected="false"
+													selectChange="validateForm(event)"
+													sText="{subDemandObj!=null?subDemandObj.unitTester.userName:''}"
+													textAlign="left"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="15%" height="100%" text="主题摘要：" textAlign="right"/>
+							<s:TextInput id="demandTitle" 
+										 width="85%" height="100%" 
+										 editable="false"
+										 textAlign="left"
+										 text="{subDemandObj!=null?subDemandObj.demandTitle:''}"/>
+						</s:HGroup>
+						
+					</s:VGroup>
+					
+					<s:VGroup id="center" width="100%" height="45%">
+						
+						<s:HGroup width="100%" height="27%">
+							<s:Label text="需求描述：" textAlign="right" width="15%" height="100%"/>
+							<s:TextArea id="directions" width="85%" height="100%" editable="false"
+										text="{subDemandObj!=null?subDemandObj.directions:''}"/>
+						</s:HGroup>
+						
+						<container:GroupBox width="100%" height="73%" title="附件">
+							<mxml:UploadDocumentsInfo id="fileGrid" 
+													  width="100%" height="100%"
+													  busDataId="{subDemandID4Word}"
+													  busTableName="{subDemandTableName}"/>
+						</container:GroupBox>
+						
+					</s:VGroup>
+					
+					<s:VGroup id="bottom" width="100%" height="32%">
+						<flow:ComApproveHistory id="AppHistoryGrid" 
+												width="100%" height="100%"/>
+					</s:VGroup>
+				</mx:VDividedBox>
+			</s:VGroup>
+		</s:Scroller>
+	</s:VGroup>
+</s:Module>

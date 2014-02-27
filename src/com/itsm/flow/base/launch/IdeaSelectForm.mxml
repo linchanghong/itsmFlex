@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:datagrid="common.components.datagrid.*"
+			   width="500" height="350" close="cancelclick(event)" initialize="initForm()"
+			   mouseEnabled="true" title="退回原因选择">
+	
+	<fx:Metadata>
+		[Event(name="FieldSelFormInit",type="flash.events.Event")]
+		[Event(name="FieldSelClick",type="mx.events.ListEvent")]
+		[Event(name="FieldSelDoubleClick",type="flash.events.Event")]
+		[Event(name="FieldFormOK",type="flash.events.Event")]
+		[Event(name="FieldFormCancel",type="flash.events.Event")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.services.IService;
+			import com.services.flow.FlowNodeInstenceService;
+			
+			import common.utils.FAppCoreUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.UIComponent;
+			import mx.events.CloseEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			
+			public var GridheaderArr:Array;
+			public var GridRemoteService:IService;
+			public var GridRemoteDest:String;
+			public var GridRemoteSource:String;
+			public var GridRemoteOperation:String;
+			public var GridCustomColumnsModuleName:String;
+			public var GridUserID:String;
+			public var GridShowUpGuide:Boolean = false;
+			public var GridShowDownGuide:Boolean = false;
+			public var GridisPage:Boolean=false;
+			public var GridRemoteGetAllCount:String;
+			public var GridisMulPage:Boolean = false;
+			public var GridPageCount:int = 20;
+			public var GridMuliSel:Boolean = false;
+			public var GridShowHeader:Boolean = false;
+			public var GridShowNumber:Boolean = false;
+			public var GridWhereStr:String;
+			public var GridSortAD:String;
+			public var GridShowWait:Boolean=false;
+			[Bindable]
+			public var OwnDisplayObject:DisplayObject;
+			public var searchUsed:Boolean = false; 
+			public var searchField:String; 
+			public var searchTitle:String;	
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			public var GridSelData:Array;
+			
+			public var text:String;
+			
+			//private var Grid:CustomdataGrid;
+			
+			private function initForm():void
+			{
+				var e:Event = new Event("FieldSelFormInit");
+				dispatchEvent(e); 
+			}		
+			
+			private function initGridForm(event:Event):void
+			{
+				Grid.HeaderArray = new Array(
+					["选择","IsSelected",40,"CheckBox",FAppCoreUtil.fcBoolean,"","",true],
+					["ID", "Id", 0, "", FAppCoreUtil.fcInteger, ""],
+					["退回原因", "dealWithidea", 260, "", FAppCoreUtil.fcString, ""]
+				);
+				Grid.RemoteService = new FlowNodeInstenceService(); 
+				Grid.RemoteDest = GridRemoteDest;
+				Grid.RemoteSource = GridRemoteSource;
+				Grid.RemoteOperation =  "GetDealSel";
+				Grid.CustomColumnsModuleName ="SelectIdeaUnit";
+				Grid.UserID = FAppCore.FCusUser.UserId.toString();  
+				Grid.ShowUpGuide = false;
+				Grid.ShowDownGuide = false;
+				Grid.isPage = false;
+				//Grid.RemoteGetAllCount = "GetAllCount";
+				Grid.isMulPage = false;
+				Grid.PageCount = 20;
+				Grid.MuliSel = false;
+				Grid.ShowHeader = true;
+				Grid.ShowNumber = true;
+				Grid.AutoDataBind = false;
+			
+			}
+			
+			
+
+			private function GridItemclick(event:ListEvent):void
+			{
+				GridSelData = Grid.SelectedItems;
+				var e:Event = new Event("FieldSelClick");
+				dispatchEvent(e);
+			}
+			
+			private function Griddoubleclick(event:Event):void
+			{
+				GridSelData = Grid.SelectedItems;
+				
+				var e:Event = new Event("FieldSelDoubleClick");
+				dispatchEvent(e);
+			}
+			
+			private function okclick(event:Event):void
+			{
+				PopUpManager.removePopUp(this);
+				
+				//GridSelData=Grid.GridData;
+				
+				
+				var SelArr:ArrayCollection = Grid.GridData;
+				var SelShowArr:ArrayCollection = new ArrayCollection();
+				
+				
+				for (var i:int = 0; i<SelArr.length; i++)
+				{
+					if(SelArr[i]["IsSelected"]){
+						var showStr:String = Object(SelArr[i]["dealWithidea"]).toString();
+						
+						SelShowArr.addItem(showStr);
+						
+					}  
+					
+				}
+			    text  = SelShowArr.toString();
+				
+				
+				var e:Event = new Event("FieldFormOK");
+				dispatchEvent(e);
+			}
+			
+			private function cancelclick(event:Event):void
+			{
+				PopUpManager.removePopUp(this);
+				var e:Event = new Event("FieldFormCancel");
+				dispatchEvent(e);
+			}
+			
+			private function GridCompleteLoad():void
+			{
+				Grid.WhereStr = GridWhereStr;
+				Grid.GridLoadData();
+			}
+			
+			
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5">
+			<s:VGroup id="selForm" width="100%" height="100%" gap="0" paddingBottom="0"
+					  paddingLeft="0" paddingRight="0" paddingTop="0">
+				
+				<datagrid:CustomdataGrid id="Grid" width="100%" height="100%" initGrid="initGridForm(event)" creationComplete="GridCompleteLoad()"/>
+		
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:Group>
+	
+	<s:controlBarContent>
+		<s:HGroup width="100%" height="25" gap="2" horizontalAlign="right">
+			<s:Button id="OKButton" width="80" height="23" label="确定" click="okclick(event)"
+					 toolTip="确定"/>
+			<s:Button id="CancelButton" width="80" height="23" label="取消" click="cancelclick(event)"
+					  toolTip="取消"/>
+		</s:HGroup>
+	</s:controlBarContent>
+	
+</s:TitleWindow>

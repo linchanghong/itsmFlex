@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  xmlns:ns="http://www.c.sccl.com" xmlns:custom="com.itsm.common.custom.*" >
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.framelib.utils.StaticMethods;
+			
+			import mx.events.FlexEvent;
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				StaticMethods.creatButtons(this, appCore.userModuleButton);
+			}
+			
+			public function btn_query_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+			public function btn_add_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+			public function btn_edit_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+			public function btn_delete_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+			public function btn_import_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+			public function btn_export_clickHandler(event:MouseEvent):void
+			{
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:VGroup paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"
+			  width="100%" height="100%">
+		
+		<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" />
+		
+		<custom:CustomDataGrid id="perManager_wfpDataGrid" width="100%" height="100%" 
+															  dataProvider="{['frameAPI', 'FrameAPI', 'findAllpersonPage', []]}" 
+															  textAlign="center" isPaging="true" isCheckBox="true"
+															  isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on"
+															  creationComplete="{perManager_wfpDataGrid.allowMultipleSelection = true;}">
+			<custom:columns>
+				<mx:DataGridColumn dataField="personName" headerText="员工姓名" />
+				<mx:DataGridColumn dataField="personCode" headerText="员工编码" />
+				<mx:DataGridColumn dataField="gender" headerText="员工性别" />
+				<mx:DataGridColumn dataField="birthDay" headerText="出生日期" />
+				<mx:DataGridColumn dataField="originalPlace" headerText="原籍" />
+				<mx:DataGridColumn dataField="education" headerText="学历" />
+				<mx:DataGridColumn dataField="cardType" headerText="证件类型" />
+				<mx:DataGridColumn dataField="cardNumber" headerText="证件号码" />
+				<mx:DataGridColumn dataField="mobileNumber" headerText="手机号码" />
+				<mx:DataGridColumn dataField="phoneNumber" headerText="固定电话" />
+				<mx:DataGridColumn dataField="eMail" headerText="电子邮件" />	
+				<mx:DataGridColumn dataField="remark" headerText="备注" />
+			</custom:columns>
+		</custom:CustomDataGrid>
+		
+	</s:VGroup>
+</s:Module>

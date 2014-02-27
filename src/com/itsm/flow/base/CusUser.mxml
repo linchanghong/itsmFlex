@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:datagrid="common.components.datagrid.*"
+					xmlns:components="common.components.*"
+					xmlns:layout="flexlib.scheduling.scheduleClasses.layout.*"
+					xmlns:ns1="com.ccspm.view.base.*"
+					xmlns:fieldselect="common.components.fieldselect.*"
+					width="100%" height="100%" label="用户设置"
+					currentState="{state}"
+					>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script source="CusUserPM.as"/>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ArgsEvent;
+			import com.services.base.CusRoleService;
+			import com.services.base.CusUsersService;
+			
+			import common.components.datagrid.CustomdataGrid;
+			import common.utils.FAppCoreUtil;
+			
+			import mx.collections.IList;
+						
+			/**
+			 * 初始化人员
+			 * */
+			private function GridInit(event:Event):void 
+			{
+				userGrid.RemoteService = new CusUsersService();
+				userGrid.RemoteOperation="GetPageData";
+				userGrid.RemoteGetAllCount="GetAllCount";
+				userGrid.isPage=true;
+				userGrid.ShowUpGuide = false;
+				userGrid.isMulPage=true;
+				userGrid.AutoLoad=true;
+				userGrid.AutoDataBind=true;
+				userGrid.WhereStr=" Type=3 and CompId=" + FAppCore.FCusUser.CompId.toString();
+
+				var headerArr:Array=new Array(["用户ID", "UserId", 0, "", FAppCoreUtil.fcInteger, ""], 
+					["EMOSS编号","CODE",100,'',FAppCoreUtil.fcString,""],
+					["用户帐号", "UserCode", 80, "", FAppCoreUtil.fcString, ""], 
+					["用户名称", "UserName", 120, "", FAppCoreUtil.fcString, ""], 
+					["密码", "Password", 0, "", FAppCoreUtil.fcString, ""],
+					["部门", "DeptName", 150, "", FAppCoreUtil.fcString, ""], 
+					["是否有效", "Effective", 80, "CheckBox", FAppCoreUtil.fcBoolean, ""], 
+					["注册时间", "CreateTime", 80, "", FAppCoreUtil.fcDate, ""], 
+					["信息级别","InforLevelName",110,"",FAppCoreUtil.fcString,""],
+					["用户属性","ConstPropertyName",110,"",FAppCoreUtil.fcString,""],
+					["登录状态", "State", 80, "CheckBox", FAppCoreUtil.fcBoolean, ""],
+					["三方成本查看", "ViewControl", 80, "CheckBox", FAppCoreUtil.fcBoolean, ""],
+					["对应人员编号","EmossCode",100,'',FAppCoreUtil.fcString,""]
+				);
+				userGrid.HeaderArray=headerArr;
+			}
+			/**
+			 * 初始化角色
+			 * */
+			private function initFRole(event:Event):void{
+				FRoleSelect.GridRemoteService = new CusRoleService(); 
+				FRoleSelect.GridRemoteOperation="GetPageData";
+				FRoleSelect.GridRemoteGetAllCount="GetAllCount";
+				FRoleSelect.GridisPage=false;
+				FRoleSelect.GridisMulPage=false;
+				FRoleSelect.GridShowUpGuide=false;
+				FRoleSelect.GridMuliSel=true;
+				FRoleSelect.GridCustomColumnsModuleName="CusRoleSelect"
+				var gridWhere:String=" RightGrade=1 and CompId = "+FAppCore.FCusUser.CompId;
+				/*var AllocationRoles:String=FAppCore.FCusUser.AllocationRoles;
+				if (AllocationRoles != null)
+					gridWhere+=" and RoleId in (" + AllocationRoles + ")";
+				else
+					gridWhere+= " and 1!=1 ";*/
+				FRoleSelect.GridWhereStr=gridWhere;
+				FRoleSelect.GridUserID=FAppCore.FCusUser.UserId.toString();
+				FRoleSelect.ShowFieldName="RoleName";
+				FRoleSelect.ValueFieldName="RoleId";
+				FRoleSelect.Formwidth=300;
+				var headerArr:Array=new Array(
+					["角色ID", "RoleId", 0, "", FAppCoreUtil.fcInteger, ""], 
+					["角色权限", "Rights", 0, "", FAppCoreUtil.fcString, ""], 
+					["角色名称", "RoleName", 80, "", FAppCoreUtil.fcString, ""]);
+				
+				FRoleSelect.GridheaderArr=headerArr;
+			}
+			/**
+			 * 初始化客户线
+			 * */
+			private function initFCust(event:Event):void{
+				FCustSelect.GridRemoteService = new CusUsersService();
+				FCustSelect.GridRemoteOperation="GetCustLinePageData";
+				FCustSelect.GridRemoteGetAllCount="GetCustLineAllCount";
+				FCustSelect.GridisPage=false;
+				FCustSelect.GridisMulPage=false;
+				FCustSelect.GridShowUpGuide=false;
+				FCustSelect.GridMuliSel=true;
+				FCustSelect.GridCustomColumnsModuleName="CustLineSelect"
+				FCustSelect.GridUserID=FAppCore.FCusUser.UserId.toString();
+				FCustSelect.ShowFieldName="ConstName";
+				FCustSelect.ValueFieldName="ConstDetailID";
+				FCustSelect.Formwidth=300;
+				var headerArr1:Array=new Array(
+					["ID", "ConstDetailID", 0, "", FAppCoreUtil.fcInteger, ""], 
+					["客户类型", "ConstName", 80, "", FAppCoreUtil.fcString, ""]);
+				FCustSelect.GridheaderArr=headerArr1;
+			}
+			/**
+			 * 初始化专业线
+			 * */
+			private function initFProf(event:Event):void{
+				FProfSelect.GridRemoteService = new CusUsersService();
+				FProfSelect.GridRemoteOperation="GetProfLinePageData";
+				FProfSelect.GridRemoteGetAllCount="GetProfLineAllCount";
+				FProfSelect.GridisPage=false;
+				FProfSelect.GridisMulPage=false;
+				FProfSelect.GridShowUpGuide=false;
+				FProfSelect.GridMuliSel=true;
+				FProfSelect.GridCustomColumnsModuleName="ProfLineSelect"
+				FProfSelect.GridUserID=FAppCore.FCusUser.UserId.toString();
+				FProfSelect.ShowFieldName="CodeName";
+				FProfSelect.ValueFieldName="Id";
+				FProfSelect.Formwidth=300;
+				var headerArr2:Array=new Array(
+					["ID", "Id", 0, "", FAppCoreUtil.fcInteger, ""], 
+					["专业名称", "CodeName", 80, "", FAppCoreUtil.fcString, ""]
+				);
+				FProfSelect.GridheaderArr=headerArr2;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:layout>
+		<s:VerticalLayout gap="1"/>
+	</s:layout>
+	
+	<s:states>
+		<s:State name="stStart"/>
+		<s:State name="stEdit"/>
+	</s:states>
+	
+	<s:HGroup includeIn="stEdit,stStart" width="100%" height="25" gap="5">
+		<components:IconButton includeIn="stStart" id="butQuery" label="查询" click="{queryClick()}" styleName="btnQry"/>
+		<components:IconButton includeIn="stStart" id="btnUserAdd" label="新增" click="{addUserClick()}"  styleName="btnAdd"/>
+		<components:IconButton includeIn="stStart" id="btnUserEdit" label="修改" click="{updateUserClick(userGrid.SelectedItem)}" styleName="btnUpdate"/>
+		<components:IconButton includeIn="stEdit" id="btnUserSave" label="保存"  click="{save()}" styleName="btnave"/>
+		<components:IconButton includeIn="stEdit" id="btnUserCancel" label="取消" click="{state=STATE_START}"  styleName="btnCancel"/>
+	</s:HGroup>
+	<s:BorderContainer id="main" includeIn="stStart" width="100%" height="100%">
+		<datagrid:CustomdataGrid id="userGrid" width="100%" height="100%" initGrid="GridInit(event)"/>
+	</s:BorderContainer>
+	<s:BorderContainer includeIn="stEdit" width="100%" height="100%">
+		<s:Scroller width="100%" height="100%">
+		<s:HGroup left="10" right="10" top="10" bottom="10" 
+				  gap="4">
+			<mx:HDividedBox id="hobxMainEdit" width="100%" height="100%">
+				<s:VGroup x="20" y="10" width="255" height="100%" gap="2">
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb3" width="94" height="23" text="是否有效:" textAlign="right"/>
+						<s:CheckBox id="chkEffective" height="23"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label width="94" height="23" text="EMOSS编号:" textAlign="right"/>
+						<s:TextInput id="txtCODE" width="100%" height="23" editable="false"
+									  maxChars="50" />
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb1" width="94" height="23" color="#FC0303" text="*用户帐号:"
+								  textAlign="right"/>
+						<s:TextInput id="txtUserCode" width="100%" height="23" maxChars="50"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb2" width="94" height="23" color="#FF0000" text="*用户名称:"
+								  textAlign="right"/>
+						<s:TextInput id="txtuserName" width="100%" height="23" 
+									  editable="{txtCODE.text==''?true:false}" maxChars="50"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb7" width="94" height="23" color="#FF0000" text="*部门:"
+								  textAlign="right"/>
+						<ns1:DeptsSelectInput id="txtDeptId" x="115" y="72" width="100%" height="23"
+											  Check="false" enabled="{txtCODE.text==''?true:false}"
+											  Formwidth="310">
+						</ns1:DeptsSelectInput>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb5" width="94" height="23" text="密码:" textAlign="right"/>
+						<s:TextInput id="txtPassword" width="100%" height="23"
+									  displayAsPassword="true" maxChars="50"/>
+
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label width="94" height="23" text="*信息级别:" color="#FF0000" textAlign="right"/>
+						<s:ComboBox id="txtInforLevel" dataProvider="{FAppCore.ProviderDataConst(85) as IList}"  width="152"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label width="94" height="23" text="*用户属性:" color="#FF0000" textAlign="right"/>
+						<s:ComboBox id="txtUserProperty" dataProvider="{FAppCore.ProviderDataConst(203) as IList}"  width="152"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb4" width="94" height="23" text="注册时间:" textAlign="right"/>
+						<components:DateField id="txtCreateTime"  width="100%" height="23" enabled="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label id="lb6" width="94" height="23" color="#FC0606" text="*角色列表:"
+								  textAlign="right"/>
+						<fieldselect:FieldSelect id="FRoleSelect" FieldSelInit="initFRole(event)"  width="100%" height="23"
+										 FieldSelGetValue="{txtRole.text=FRoleSelect.SelShowArr.toString().split(',').join('\n')}">
+						</fieldselect:FieldSelect>
+					</s:HGroup>
+					<s:HGroup width="100%" height="100%">
+						<s:Label width="94" height="23"/>
+						<s:TextArea id="txtRole" width="100%" height="100%" editable="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label width="94" height="23" text="对应Emoss人员:" textAlign="right"/>
+						<ns1:UserSelectInput id="txtApplyUser" width="100%"
+											 DataChange="{txtApplyCode.text= txtApplyUser.hasSelUsersArr[0]['CODE']}" /> 
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<s:Label width="94" height="23" text="对应人员编号:" textAlign="right"/>
+						<s:TextInput id="txtApplyCode"  width="100%" editable="false"/> 
+					</s:HGroup>
+				</s:VGroup>
+				
+				<s:VGroup id="costViewCan" visible="{FAppCore.getUserSetBySetTypeID(15).data}" y="10" width="238" height="100%"  bottom="10" top="10">
+					<s:HGroup y="27" width="100%" height="25">
+						<s:Label id="lb8" width="94" height="23" text="第三方成本查看:" textAlign="left"/>
+						<s:CheckBox id="txtViewControl" height="23"/>
+					</s:HGroup>
+					<s:Label id="lb0" y="53" width="100" height="23" text="可查看部门成本:"/>
+					<ns1:DeptsSelect id="CostViewDeptSel" height="100%"/>
+				</s:VGroup>
+				<s:VGroup id="lineCan" y="10"  bottom="10" top="10" width="222" height="100%">
+						<s:HGroup width="100%" height="25">
+							<s:Label y="27" width="60" height="23" text="客户线："/>
+							<fieldselect:FieldSelect id="FCustSelect" FieldSelInit="initFCust(event)" x="62" y="27" width="100%" height="23"
+											 FieldSelGetValue="{txtCust.text=FCustSelect.SelShowArr.toString().split(',').join('\n')}">
+							</fieldselect:FieldSelect>
+						</s:HGroup>
+						<s:TextArea id="txtCust" x="62" y="57" width="100%" height="100%"
+									 editable="false"/>
+						<s:HGroup width="100%" height="25">
+							<s:Label x="0" y="160" width="60" height="23" text="专业线："/>
+							<fieldselect:FieldSelect id="FProfSelect" FieldSelInit="initFProf(event)" x="62" y="153" width="100%" height="23"
+											FieldSelGetValue="{txtProf.text=FProfSelect.SelShowArr.toString().split(',').join('\n')}">
+							</fieldselect:FieldSelect>
+						</s:HGroup>
+						<s:TextArea id="txtProf" x="62" y="186" width="100%" height="100%"
+									 editable="false"/>
+				</s:VGroup>
+			</mx:HDividedBox>
+		</s:HGroup>
+		</s:Scroller>
+	</s:BorderContainer>
+</s:NavigatorContent>

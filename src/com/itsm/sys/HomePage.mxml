@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:launch="com.itsm.flow.base.launch.*"
+		  width="100%" height="100%" currentState="default"
+		  creationComplete="creationCompleteHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="default"/>
+		<s:State name="px" enterState="pxEnterStateHandler(event)"/> 
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.event.EventArgExtend;
+			import com.itsm.common.event.PopEvent;
+			import com.itsm.common.utils.FlowTools;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.FlowAdvancedatagridEvent;
+			import com.dougmccune.controls.BouncingFisheye;
+			import com.joshtynjala.events.BurningBitmapTileEvent;
+			
+			import common.utils.FAppCoreUtil;
+			import common.utils.TAlert;
+			
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			
+			import spark.components.Application;
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				var app:ItsmFlex = FlexGlobals.topLevelApplication as ItsmFlex;
+				app.fisheye.addEventListener(BurningBitmapTileEvent.BURNING_ICON_CLICK, menuSelecdResult);
+				app.menuSelecdResult = menuSelecdResult;
+			}
+			
+			
+			private function menuSelecdResult(event:BurningBitmapTileEvent):void{
+				var iconName:String = event.iconName;
+				var display:String = "default";
+				if(iconName!=null){
+					switch(iconName)
+					{
+						case "培训系统":
+						{
+							display="px";
+							break;
+						}
+							
+						default:
+						{
+							display="default";
+							break;
+						}
+					}
+				}
+				this.currentState=display;
+			}
+			
+			protected function initJhspFlowGrid(event:Event):void{
+				jhsp.addEventListener(FlowAdvancedatagridEvent.OPENFLOWTODOWINDOW, FlexGlobals.topLevelApplication.onOpenFlowToWindow);
+//				FlexGlobals.topLevelApplication.addEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, reloadFlowtodo);
+			}
+			
+			protected function initYsspFlowGrid(event:Event):void{
+				yssp.addEventListener(FlowAdvancedatagridEvent.OPENFLOWTODOWINDOW, FlexGlobals.topLevelApplication.onOpenFlowToWindow);
+				//				FlexGlobals.topLevelApplication.addEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, reloadFlowtodo);
+			}
+			
+			protected function initBmspFlowGrid(event:Event):void{
+				bmsp.addEventListener(FlowAdvancedatagridEvent.OPENFLOWTODOWINDOW, FlexGlobals.topLevelApplication.onOpenFlowToWindow);
+				//				FlexGlobals.topLevelApplication.addEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, reloadFlowtodo);
+			}
+			
+			/**
+			 * 培训系统调用
+			 */
+			protected function pxEnterStateHandler(event:FlexEvent):void
+			{
+				refreshJhspToDo();
+				refreshYsspToDo();
+				refreshBmspToDo();
+			}
+			
+			/**
+			 * 刷新计划审批待办
+			 */
+			protected function refreshJhspToDo():void{
+				
+				if(FAppCore.FCusUser.UserId!=null) {
+					jhsp.WhereStr = "OprtTypeID ='"+FlowTools.TRAINING_PLAN+"' and CheckState = '142' and MakeRubbish ='0'  and HandlerId = '"+FAppCore.FCusUser.UserId+"'";
+					jhsp.SortAD = "OprtTypeID asc, HandleDate desc";
+					jhsp.reloaddata();
+					btnJhspRefresh.visible=true;
+				}else{
+					
+					btnJhspRefresh.visible=false;
+				}
+			}
+			
+			/**
+			 * 刷新培训预算审批待办
+			 */
+			protected function refreshYsspToDo():void{
+				
+				if(FAppCore.FCusUser.UserId!=null) {
+					yssp.WhereStr = "OprtTypeID ='"+FlowTools.TRAINING_PLAN+"' and CheckState = '142' and MakeRubbish ='0'  and HandlerId = '"+FAppCore.FCusUser.UserId+"'";
+					yssp.SortAD = "OprtTypeID asc, HandleDate desc";
+					yssp.reloaddata();
+					btnYsspRefresh.visible=true;
+				}else{
+					
+					btnYsspRefresh.visible=false;
+				}
+			}
+			
+			/**
+			 * 刷新培训报名审批待办
+			 */
+			protected function refreshBmspToDo():void{
+				
+				if(FAppCore.FCusUser.UserId!=null) {
+					bmsp.WhereStr = "OprtTypeID ='"+FlowTools.Psn_Job_Promotion_Type+"' and CheckState = '142' and MakeRubbish ='0'  and HandlerId = '"+FAppCore.FCusUser.UserId+"'";
+					bmsp.SortAD = "OprtTypeID asc, HandleDate desc";
+					bmsp.reloaddata();
+					btnBmspRefresh.visible=true;
+				}else{
+					
+					btnBmspRefresh.visible=false;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<s:BorderContainer includeIn="px" width="100%" height="100%" backgroundAlpha="0" borderVisible="false">
+		<s:layout>
+			<s:HorizontalLayout gap="10"/>
+		</s:layout>
+		
+		<s:BorderContainer width="50%" height="100%" backgroundAlpha="0" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout gap="10"/>
+			</s:layout>
+			
+			<s:Panel width="100%" height="100%" backgroundAlpha="1" backgroundColor="#F9FDFF"
+					 borderColor="#969696" cornerRadius="8" dropShadowVisible="false"
+					 skinClass="com.itsm.common.skins.PxPanelSkin">
+				<s:Image left="0" top="-28" width="99" height="26"
+						 source="@Embed(source='assets/img/homepage/px/jqtx.png')"/>
+			</s:Panel>
+			
+			<s:Panel width="100%" height="100%" backgroundAlpha="1" backgroundColor="#FEFBF2"
+					 borderColor="#969696" cornerRadius="8" dropShadowVisible="false"
+					 skinClass="com.itsm.common.skins.PxPanelSkin">
+				<s:Image left="0" top="-28" width="99" height="26"
+						 source="@Embed(source='assets/img/homepage/px/jhsp.png')"/>
+				
+				<mx:LinkButton id="btnJhspRefresh" right="5" top="-25" label="刷新" color="#0033FF" click="{jhsp.reloaddata();}"/>
+				
+				<launch:FlowtodoAdvancedataGrid id="jhsp" width="100%" height="100%"
+												AutoDataBind="false" initGrid="initJhspFlowGrid(event)"
+												isReInit="true"/>
+			</s:Panel>
+		</s:BorderContainer>
+		
+		<s:BorderContainer width="50%" height="100%" backgroundAlpha="0" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout gap="10"/>
+			</s:layout>
+		
+			<s:Panel width="100%" height="100%" backgroundAlpha="1" backgroundColor="#FFF6F7"
+					 borderColor="#969696" cornerRadius="8" dropShadowVisible="false"
+					 skinClass="com.itsm.common.skins.PxPanelSkin">
+				<s:Image left="0" top="-28" width="99" height="26"
+						 source="@Embed(source='assets/img/homepage/px/yssp.png')"/>
+				
+				<mx:LinkButton id="btnYsspRefresh" right="5" top="-25" label="刷新" color="#0033FF" click="{yssp.reloaddata();}"/>
+				
+				<launch:FlowtodoAdvancedataGrid id="yssp" width="100%" height="100%"
+												AutoDataBind="false" initGrid="initYsspFlowGrid(event)"
+												isReInit="true"/>
+			</s:Panel>
+			
+			<s:Panel width="100%" height="100%" backgroundAlpha="1" backgroundColor="#FDFBEF"
+					 borderColor="#969696" cornerRadius="8" dropShadowVisible="false"
+					 skinClass="com.itsm.common.skins.PxPanelSkin">
+				<s:Image left="0" top="-28" width="99" height="26"
+						 source="@Embed(source='assets/img/homepage/px/xqdc.png')"/>
+				
+			</s:Panel>
+			
+			<s:Panel width="100%" height="100%" backgroundAlpha="1" backgroundColor="#F7FEEE"
+					 borderColor="#969696" cornerRadius="8" dropShadowVisible="false"
+					 skinClass="com.itsm.common.skins.PxPanelSkin">
+				<s:Image left="0" top="-28" width="99" height="26"
+						 source="@Embed(source='assets/img/homepage/px/bmsp.png')"/>
+				
+				<mx:LinkButton id="btnBmspRefresh" right="5" top="-25" label="刷新" color="#0033FF" click="{bmsp.reloaddata();}"/>
+				
+				<launch:FlowtodoAdvancedataGrid id="bmsp" width="100%" height="100%"
+												AutoDataBind="false" initGrid="initBmspFlowGrid(event)"
+												isReInit="true"/>
+				
+			</s:Panel>
+		</s:BorderContainer>
+	</s:BorderContainer>
+</s:Module>

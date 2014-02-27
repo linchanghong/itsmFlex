@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow  mouseEnabled="true" xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				xmlns:components="common.components.*"
+				xmlns:base="com.ccspm.view.base.*"
+				width="458" height="193" close="{PopUpManager.removePopUp(this)}" fontSize="12"
+				mouseUp="this.stopDrag()" title="转办" xmlns:base1="com.itsm.flow.view.base.*" xmlns:base2="com.itsm.flow.base.*">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.services.flow.FlowOprtModuleService;
+			import com.vo.CusUsers;
+			
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			public static const EVENT_OK_CLICK:String = "Event_Ok_Click";
+			
+			[Bindable]
+			public var dealWith:String="";
+			[Bindable]
+			public var dataArr:ArrayCollection;
+			public var turnUser:CusUsers=null;
+			public var ModuleCode:String="";
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			public function LoadData(dealWithtext:String,mArr:ArrayCollection):void{
+				dealWith = dealWithtext;
+				dataArr= mArr;
+			}
+	
+			private function onGetZhuanBan():void
+			{
+				
+				if(dataArr!=null&&dataArr.length>0) 
+				{		   
+					ZhuanBan.dataProvider=dataArr;	 
+					ZhuanBan.selectedIndex = 0;
+					
+				}	
+			}
+		
+			private function OK_Click():void{
+				if (txtOperUserName && txtOperUserName.hasSelUsersArr && txtOperUserName.hasSelUsersArr.length>0
+					&& int(txtOperUserName.hasSelUsersArr[0]["personId"]) !=0	){
+					/* if (int(txtOperUserName.hasSelUsersArr[0]["UserId"])== FAppCore.FCusUser.UserId ){
+						FAppCore.sendSysInfo("不能再转给自己，请重新选择转办人");
+						return;
+					} */
+					turnUser = new CusUsers();
+					turnUser.UserId = String(txtOperUserName.hasSelUsersArr[0]["personId"]);
+					turnUser.UserName = txtOperUserName.hasSelUsersArr[0]["personName"];
+					ModuleCode=ZhuanBan.selectedItem==null?"":ZhuanBan.selectedItem.FlowOprtModuleCode;
+				}else{
+					FAppCore.sendSysInfo("请选择转办人");
+					return;
+				}
+				this.dispatchEvent(new Event(EVENT_OK_CLICK));
+				this.enabled = false;
+			}
+			
+		
+			
+		]]>
+	</fx:Script>
+	
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5" cornerRadius="3" minHeight="50">
+			<s:VGroup width="100%" height="161" gap="2" paddingBottom="5" paddingLeft="5"
+					  paddingRight="5" paddingTop="5">
+				<s:HGroup width="100%" height="25" gap="2" verticalAlign="middle">
+					<s:Label width="65" height="23" text="转办人" textAlign="right"/>
+					<base2:UserSelectInput id="txtOperUserName" width="100%" height="23"/>
+				</s:HGroup>
+				<s:HGroup x="0" width="100%" height="25" gap="2" verticalAlign="middle">
+					<s:Label width="65" height="23" text="审批意见" textAlign="right"/>
+					<s:TextInput id="dealWithideaText" text="@{dealWith}" width="100%" height="23"/>
+				</s:HGroup>
+				<s:HGroup x="0" width="100%" height="25" gap="2" verticalAlign="middle">
+					<s:Label width="65" height="23" text="转办页面" textAlign="right"/>
+					<s:ComboBox id="ZhuanBan" labelField="FlowOprtModuleName" creationComplete="{onGetZhuanBan();}" width="100%" height="23"/>
+				</s:HGroup>
+			</s:VGroup>
+		</s:BorderContainer>	
+	</s:Group>
+	<s:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<components:IconButton id="butSubmit" width="80" height="23" label="转办"
+								   click="OK_Click()" styleName="btnSure" toolTip="转办"/>
+			<components:IconButton width="80" height="23" label="取消"
+								   click="PopUpManager.removePopUp(this)" styleName="btnCancel"
+								   toolTip="取消"/>
+		</s:HGroup>
+	</s:controlBarContent>
+	
+</s:TitleWindow>

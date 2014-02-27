@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+		  xmlns:validator="com.itsm.serviceManager.module.bugManager.code.*"
+		  width="100%" height="100%" 
+		  currentState="normal"
+		  creationComplete="initPopSearchUserApply()" xmlns:bugDataGrid="com.itsm.serviceManager.component.bugDataGrid.*">
+	
+	<!--<fx:Style source="assets/css/BugManger.css"/>-->
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="query"/>
+		<s:State name="mod"/>
+		<s:State name="del"/>
+		<s:State name="report"/>
+	</s:states>
+	
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		
+		<!--验证日期格式-->
+		<mx:DateValidator id="myDateV"
+						  formatError="日期格式为:yyyy-mm-dd"
+						  inputFormat="YYYY-MM-DD"
+						  required="true"
+						  requiredFieldError="请按照正确的格式填写。"/>
+		
+		<mx:DateFormatter id="myDateF"
+						  formatString="YYYY-MM-DD"/> <!--JJ:NN:SS-->
+		
+		<mx:PhoneNumberValidator id="telephoneInputV" 
+								 source="{telephoneInput}" 
+								 property="text" 
+								 required="true" requiredFieldError="请正确填写电话!"/>
+		<mx:StringValidator   
+			id="applyStartDateV"  
+			source="{applyStartDate}"   
+			property="text"
+			required="true"
+			requiredFieldError="日期格式：YYYY-MM-DD"/> 
+		<mx:StringValidator   
+			id="applyEndDateV"  
+			source="{applyEndDate}"   
+			property="text"
+			required="true"
+			requiredFieldError="日期格式：YYYY-MM-DD"/>
+		<mx:StringValidator   
+			id="applyTitleInputV"  
+			source="{applyTitleInput}"   
+			property="text"  
+			minLength="1"
+			requiredFieldError="主题摘要不少于一字！"/>
+		<mx:StringValidator   
+			id="directionsAreaV"  
+			source="{directionsArea}"   
+			property="text"  
+			minLength="2"
+			requiredFieldError="原因分析不少于两字！"/>
+		
+	</fx:Declarations>
+	
+	<fx:Script source="../code/ProblemManager.as"/>
+	
+	<fx:Script>
+		<![CDATA[
+		]]>
+	</fx:Script>
+	
+	<s:Group width="100%" height="100%">
+		<s:VGroup left="1" right="1" top="1" bottom="1" width="100%" height="100%"
+				  horizontalAlign="center" paddingBottom="1" paddingLeft="1" paddingRight="1"
+				  paddingTop="1">
+			
+			<s:VGroup width="100%" height="100%"
+					  includeIn="normal">
+				<s:HGroup includeIn="normal" width="100%" height="1%" textAlign="center">
+					
+					<s:HGroup width="100%" height="25"
+							  mouseOver="hgroup1_mouseOverHandler(event)">
+						
+						<s:Button icon="@Embed(source='assets/img/icon/view.png')"
+								  id="queryBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="查看"
+								  click="queryBtn_clickHandler(event)"/>
+						
+						<s:Button icon="@Embed(source='assets/img/icon/modify.png')"
+								  id="modfiyBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="修改"
+								  click="modfiyBtn_clickHandler(event)"/>
+						
+						<s:Button icon="@Embed(source='assets/img/icon/add.png')"
+								  id="addBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="新增"
+								  click="addBtn_clickHandler(event)"/>
+						
+						<s:Button icon="@Embed(source='assets/img/icon/del.png')"
+								  id="delBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="删除"
+								  click="delApplypopWarn(event)"/>
+						
+						<s:Button icon="@Embed(source='assets/img/icon/report.png')"
+								  id="putBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="呈报"
+								  click="putBtn_clickHandler(event)"/>
+						
+						
+						<s:Button icon="@Embed(source='assets/img/icon/search.png')"
+								  id="searchBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="查询"
+								  click="btnSearch_clickHandler(event)"/>
+						
+						<s:Button icon="@Embed(source='assets/img/icon/refresh.png')"
+								  id="refreshBtn" 
+								  cornerRadius="2" 
+								  width="75" height="100%" 
+								  label="刷新"
+								  click="refreshBtn_clickHandler(event)"/>
+						
+					</s:HGroup>
+					<control:FormLabel required="true" id="idFlag" visible="false" hideEffect="true" includeInLayout="false"
+									   text="{userApplyID}"/>
+				</s:HGroup>
+				
+				<mx:VDividedBox width="100%" height="99%" creationPolicy="all"><!--minHeight="320"-->
+				<bugDataGrid:BugDataGrid id="mainGrid" 
+								  includeIn="normal"
+								  width="100%" height="68%"
+								  allowMultipleSelection="false"
+								  dataProvider="{mainGridArray}"
+								  editable="false" 
+								  horizontalScrollPolicy="on" 
+								  isCheckBox="false"
+								  isControlColumns="true" 
+								  isPaging="true" 
+								  isRowNum="true"
+								  textAlign="center"
+								  columnName="applyStatus" columnValue="0" 
+								  rowBackGroundCorlor="0xFF6600" rowFontCorlor="0xFF6600"
+								  creationComplete="BugUtil.resetColumnWidth(mainGrid)"
+								  itemClick="mainGrid_itemClickHandler(event)">
+					<bugDataGrid:columns>
+						<mx:DataGridColumn dataField="userApplyCode" headerText="问题编号"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="belongSystem.systemName" headerText="所属系统"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="applyTitle" headerText="主题摘要"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="urgent.levelNameString" headerText="重要程度"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="range.constDetailName" headerText="影响范围"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="sponsor.userName" headerText="报告人"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="applyStartDate" headerText="问题报告时间"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="applyEndDate" headerText="期望解决时间"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="replyer.userName" headerText="责任人"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+						<mx:DataGridColumn dataField="applyStatusStr" headerText="状态"
+										   itemRenderer="com.itsm.serviceManager.itemRender.BugDataGridItemRender"/>
+					</bugDataGrid:columns>
+				</bugDataGrid:BugDataGrid>
+				<!--labelFunction="formatDateTime"-->
+				<flow:ComApproveHistory id="AppHistoryGrid" includeIn="normal" visible="false"
+										width="100%" height="32%" includeInLayout="false"/>
+				</mx:VDividedBox>
+			</s:VGroup>
+			
+			
+			<s:VGroup includeIn="add,mod,query" width="100%" height="100%">
+				<s:HGroup width="100%" height="25">
+					<s:Button id="saveBtn" 
+							  cornerRadius="2" 
+							  icon="@Embed(source='assets/img/icon/save.png')"
+							  includeIn="add,mod"
+							  width="75" height="100%"
+							  label="保存"
+							  enabled="{!enablePutBtn}"
+							  click="saveBtn_clickHandler(event)"/>
+					<s:Button id="cancelBtn" 
+							  cornerRadius="2" 
+							  icon="@Embed(source='assets/img/icon/cancel.png')"
+							  width="75" height="100%" 
+							  label="取消"
+							  click="backToHomePage(event)"/>
+					<s:Button icon="@Embed(source='assets/img/icon/report.png')"
+							  id="putBtnInQuery" 
+							  cornerRadius="2" 
+							  width="75" height="100%" 
+							  label="呈报"
+							  enabled="{enablePutBtn}"
+							  includeIn="query,mod"
+							  visible="{viewPutBtn}"
+							  click="putBtn_clickHandler(event)"/>
+					<s:Label id="lbBeforeSave" 
+							 visible="{!enablePutBtn}"
+							 includeInLayout="{!enablePutBtn}"
+							 includeIn="mod"
+							 width="15%" height="100%"
+							 color="red"
+							 fontWeight="bold"
+							 text="↙页面值有变动,请先保存！"
+							 verticalAlign="top"/>
+					
+				</s:HGroup>
+				
+				<s:VGroup id="topInfoP" width="100%" height="28%" height.query="33%">
+					<s:HGroup width="100%" height="25">
+						
+						<control:FormLabel width="20%" height="100%" label="报告人：" required="true" textAlign="right" />
+						<bugmxml:BugFieldSelect id="sponsorInput" 
+												width="25%" height="100%"
+												armTitleWindow=
+												"com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+												isMultipleSelected="false"
+												selectObj.add=""
+												sText.add=""   
+												sText.mod="{userApply != null ? userApply.sponsor.userName : ''}"
+												sText.query="{userApply != null ? userApply.sponsor.userName : ''}"
+												textAlign="left"
+												enabled.query="false"
+												selectChange="sponsorInput_selectChangeHandler(event)"/>
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="所属单位：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:TextInput id="companyInput" width="25%" height="100%"
+									 text="{company}"
+									 textAlign="left"
+									 editable="false"/>
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="所属部门：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:TextInput id="departmentInput" width="25%" height="100%"
+									 text="{dept}" 
+									 textAlign="left"
+									 editable="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<control:FormLabel required="true" width="20%" height="100%" label="联系电话：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:TextInput id="telephoneInput" width="25%" height="100%"
+									 text.add=""
+									 text="{userApply != null ? userApply.telephone : ''}" 
+									 textAlign="left"
+									 editable.query="false"
+									 change="validateForm(event);"/>
+						<control:FormLabel required="true" width="20%" height="100%" label="报告时间：" textAlign="right"
+										   verticalAlign="middle"/>
+						<control:DateFieldFl id="applyStartDate" width="25%" height="100%"
+											 text.add="{myDateF.format(reportTime)}"
+											 text="{formateDate(userApply != null ? userApply.applyStartDate : '')}"
+											 textAlign="left"
+											 formatString="YYYY-MM-DD" 
+											 visible.query="false"
+											 includeInLayout.query="false"
+											 change="validateForm(event);"/>
+						<s:TextInput text="{applyStartDate.text}"
+									 width="25%" height="100%"
+									 textAlign="left"
+									 includeIn="query"
+									 editable="false"/>
+						<control:FormLabel required="true" width="20%" height="100%" label="期望解决时间：" textAlign="right"
+										   verticalAlign="middle"/>
+						<control:DateFieldFl id="applyEndDate" width="25%" height="100%"
+											 yearNavigationEnabled="true"   
+											 disabledRanges="{[ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}" 
+											 text.add=""
+											 text="{formateDate(userApply != null ? userApply.applyEndDate : '')}" 
+											 textAlign="left"
+											 formatString="YYYY-MM-DD"
+											 visible.query="false"
+											 editable="false"
+											 includeInLayout.query="false"
+											 change="validateForm(event);"/>
+						<s:TextInput text="{applyEndDate.text}"
+									 width="25%" height="100%"
+									 textAlign="left"
+									 includeIn="query"
+									 editable="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="问题来源：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:DropDownList id="bugSource" width="25%" height="100%"
+										labelField="constDetailName"
+										textAlign="left"
+										click="bugSource_clickHandler(event)"
+										dataProvider.mod="{getArrayListFromObject(userApply.applyOrigin)}"
+										dataProvider.add="{bugSources}"
+										dataProvider.query="{getArrayListFromObject(userApply.applyOrigin)}"
+										enabled.query="false"
+										requireSelection="true"
+										selectedIndex="0"/>
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="重要程度：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:DropDownList id="bugUrgent" width="25%" height="100%"
+										labelField="levelNameString"
+										textAlign="left"
+										click="bugUrgent_clickHandler(event)"
+										dataProvider.mod="{getArrayListFromObject(userApply.urgent)}"
+										dataProvider.add="{levels}"
+										dataProvider.query="{getArrayListFromObject(userApply.urgent)}"
+										enabled.query="false"
+										requireSelection="true"
+										selectedIndex="0"/>
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="影响范围：" textAlign="right"
+										   verticalAlign="middle"/>
+						<s:DropDownList id="bugRange" width="25%" height="100%"
+										labelField="constDetailName" 
+										textAlign="left"
+										click="bugRange_clickHandler(event)"
+										dataProvider.mod="{getArrayListFromObject(userApply.range)}"
+										dataProvider.add="{bugScops}"
+										dataProvider.query="{getArrayListFromObject(userApply.range)}"
+										enabled.query="false"
+										requireSelection="true"
+										selectedIndex="0"/>
+						
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="所属系统：" textAlign="right"
+										   verticalAlign="middle"/>
+						<bugmxml:BugFieldSelect id="bugSystem" 
+												width="25%" height="100%"
+												armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectSystem"
+												isMultipleSelected="false"
+												selectChange="bugSystem_selectChangeHandler(event)"
+												textAlign="left"
+												selectObj.add="" sText.add=""
+												sText.mod="{userApply != null ? userApply.belongSystem.systemName : ''}"
+												enabled.query="false"
+												sText.query="{userApply != null ? userApply.belongSystem.systemName : ''}"/>
+						<!--<s:DropDownList id="bugSystem" width="25%" height="100%"
+										labelField="systemName" 
+										textAlign="left"
+										click="bugSystem_clickHandler(event)"
+										dataProvider.mod="{getArrayListFromObject(userApply.belongSystem)}"
+										dataProvider.add="{systems}"
+										dataProvider.query="{getArrayListFromObject(userApply.belongSystem)}"
+										enabled.query="false"
+										change="bugSystem_changeHandler(event)"
+										requireSelection="true"
+										selectedIndex="0"/>-->
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="所属业务：" textAlign="right"
+										   verticalAlign="middle"/>
+						<bugmxml:BugFieldSelect id="bugModule" 
+												width="25%" height="100%"
+												armTitleWindow="com.itsm.serviceManager.common.selectWindow.system.SelectModule"
+												isMultipleSelected="false"
+												textAlign="left"
+												parame="{systemID}"
+											    selectChange="validateForm(event)"
+												selectObj.add="" sText.add=""
+												sText.mod="{userApply != null ? userApply.sysModule.moduleName : ''}"
+												enabled.query="false"
+												sText.query="{userApply != null ? userApply.sysModule.moduleName : ''}"/>
+						<!--<s:DropDownList id="bugModule" width="25%" height="100%"
+										labelField="moduleName" textAlign="left"
+										dataProvider.mod="{getArrayListFromObject(userApply.sysModule)}"
+										dataProvider.add="{modules}"
+										dataProvider.query="{getArrayListFromObject(userApply.sysModule)}"
+										enabled.query="false"
+										requireSelection="true"
+										selectedIndex="0"
+									    click="bugModule_clickHandler(event)"/>-->
+						
+						<control:FormLabel required="true" width="20%" height="100%" label="问题受理时间：" textAlign="right"
+										   verticalAlign="middle"
+										   visible.add="false"
+										   visible.mod="false"/>
+						<control:DateFieldFl id="replyDate"
+											 width="25%" height="100%"
+											 text.add=""
+											 text="{formateDate(userApply != null ? userApply.replyTime : '')}" textAlign="left"
+											 formatString="YYYY-MM-DD" 
+											 visible.query="false"
+											 includeInLayout.query="false"
+											 visible.add="false"
+											 visible.mod="false"
+											 />
+						
+						<s:TextInput text="{replyDate.text}"
+									 width="25%" height="100%"
+									 textAlign="left"
+									 includeIn="query"
+									 editable="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25"
+							  visible.add="false"
+							  includeInLayout.add="false"
+							  includeInLayout.mod="false"
+							  visible.mod="false"
+							  includeIn="query">
+						<control:FormLabel required="true" width="20%" height="100%" label="责任人：" textAlign="right"
+										   verticalAlign="middle"
+										   visible.add="false"
+										   includeInLayout.add="false"/>
+						<bugmxml:BugFieldSelect id="replyerInput" width="25%"
+												parame="{selectUser,selectSys}"
+												armTitleWindow=
+												"com.itsm.serviceManager.common.selectWindow.user.SelectUser"
+												isMultipleSelected="false"
+												selectObj.add=""
+												sText.add="" 
+												sText.query="{userApply != null ? userApply.replyer.userName : ''}"
+												sText.mod="{userApply != null ? userApply.replyer.userName : ''}"
+												visible.add="false"
+												textAlign="left"
+												enabled.query="false"
+												includeInLayout.add="false"/>
+						<control:FormLabel required="true" width="20%" height="100%" label="计划解决时间：" textAlign="right"
+										   verticalAlign="middle"
+										   visible.add="false"
+										   includeInLayout.add="false"/>
+						<control:DateFieldFl id="planFinishDate" width="25%" height="100%"
+											 yearNavigationEnabled="true"   
+											 disabledRanges="{[ {rangeEnd: new Date(now.fullYear, now.month, now.date-1)}]}"
+											 text.add=""
+											 text="{formateDate(userApply != null ? userApply.planFinishTime : '')}" textAlign="left"
+											 editable.query="false"
+											 formatString="YYYY-MM-DD" 
+											 visible.query="false"
+											 includeInLayout.query="false"
+											 visible.add="false"
+											 includeInLayout.add="false"/>
+						<s:TextInput text="{planFinishDate.text}"
+									 width="25%" height="100%"
+									 textAlign="left"
+									 includeIn="query"
+									 editable="false"/>
+						<control:FormLabel required="true" width="20%" height="100%" label="实际解决时间：" textAlign="right"
+										   verticalAlign="middle"
+										   visible.add="false"
+										   includeInLayout.add="false"/>
+						<control:DateFieldFl id="realFinishDate" width="25%" height="100%"
+											 dataProvider="{userApply.realFinishTime}"
+											 text.add=""
+											 text="{formateDate(userApply != null ? userApply.realFinishTime : '')}" 
+											 textAlign="left"
+											 formatString="YYYY-MM-DD" 
+											 visible.query="false"
+											 includeInLayout.query="false"
+											 visible.add="false"
+											 includeInLayout.add="false"/>
+						<s:TextInput text="{realFinishDate.text}"
+									 width="25%" height="100%"
+									 textAlign="left"
+									 includeIn="query"
+									 editable="false"/>
+					</s:HGroup>
+					<s:HGroup width="100%" height="25">
+						<control:FormLabel required="true" width="14.5%" verticalAlign="middle" height="100%" label="主题摘要："/>
+						<s:TextInput id="applyTitleInput" width="85.5%" height="100%"
+									 text.add=""
+									 text="{userApply != null ? userApply.applyTitle : ''}" 
+									 textAlign="left"
+									 editable.query="false"
+									 change="validateForm(event);"/>
+					</s:HGroup>
+				</s:VGroup>
+				
+				<s:VGroup id="bottomInfoP" width="100%" height="60%">
+					
+					<mx:TabNavigator id="infoList" 
+									 width="100%" height="100%" focusColor="#58F0C0"
+									 selectedIndex="1">
+						
+						<s:NavigatorContent id="bugDirBtn" width="100%" height="100%" label="问题描述">
+							<s:TextArea id="directionsArea" left="10" right="10" top="0" bottom="10"
+										text.add=""
+										text="{userApply != null ? userApply.directions : ''}" 
+										textAlign="left"
+										editable.query="false"
+										change="validateForm(event);"/>
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="docBtn" width="100%" height="100%" label="文档附件">
+							
+							<s:VGroup left="10" right="10" bottom="10" height="100%">
+								
+								<container:GroupBox width="100%" height="100%" title="附件">
+									<mxml:UploadDocumentsInfo id="fileGrid" 
+															  height="100%" width="100%"
+															  attachMentsArr.query="{userApply.attachments}"
+															  attachMentsArr.mod="{userApply.attachments}"
+															  deleteBtnEnable.query="false"
+															  uploadBtnEnable.query="false"
+															  busDataId="{applyID4Word}"
+															  busTableName="{applyTableName}"/>
+								</container:GroupBox>
+								
+							</s:VGroup>
+							
+						</s:NavigatorContent>
+						
+						<s:NavigatorContent id="bugTypeBtn" width="100%" height="100%" label="问题类型" includeIn="query">
+							<s:VGroup left="10" right="10" bottom="10" height="100%"
+									  includeIn="query">
+								<s:HGroup width="100%" height="25" 
+										  includeIn="query">
+									
+									<control:FormLabel required="true" width="10%" height="100%" fontSize="12" label="实际影响范围："
+													   verticalAlign="middle"/>
+									<s:DropDownList id="bugRealRange" width="10%" height="100%"
+													labelField="constDetailName" 
+													textAlign="left"
+													dataProvider="{getArrayListFromObject(userApply.realRange)}"
+													enabled="false"
+													requireSelection="true"
+													selectedIndex="0"/>
+									
+									
+								</s:HGroup>
+								<s:HGroup width="100%" height="45%"
+										  includeIn="query">
+									
+									<control:FormLabel required="true" width="10%" height="25%" label="问题原因分析："
+													   verticalAlign="middle"/>
+									<s:TextArea id="reasonArea" width="90%" height="100%"
+												text="{userApply != null ? userApply.reason : ''}" 
+												textAlign="left"
+												editable="false"/>
+									
+								</s:HGroup>
+								<s:HGroup width="100%" height="45%"
+										  includeIn="query">
+									
+									<control:FormLabel required="true" width="10%" height="25%" label="问题解决方案："
+													   verticalAlign="middle"/>
+									<s:TextArea id="solutionsArea" width="90%" height="100%"
+												text="{userApply != null ? userApply.solutions : ''}" 
+												editable="false"/>
+								</s:HGroup>
+							</s:VGroup>
+						</s:NavigatorContent>
+						
+					</mx:TabNavigator>
+					
+				</s:VGroup>
+				
+			</s:VGroup>
+		</s:VGroup>
+		
+	</s:Group>
+</s:Module>

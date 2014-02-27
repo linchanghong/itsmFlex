@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009"
+						 xmlns:s="library://ns.adobe.com/flex/spark"
+						 xmlns:mx="library://ns.adobe.com/flex/mx"
+						 xmlns:container="com.framelib.container.*"
+						 xmlns:mxml="com.itsm.common.mxml.*"
+						 xmlns:bugmxml="com.itsm.serviceManager.common.mxml.*"
+						 xmlns:control="com.framelib.control.*"
+						 xmlns:custom="com.itsm.common.custom.*"
+						 width="550" height="400" 
+						 creationComplete="creationCompleteHandler(event)"
+						 title="业务模块选择">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.common.mxml.BugFieldSelect;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			private var selectComponent:BugFieldSelect;//主程序的引用
+			
+			[Bindable]
+			private var selectName:String = ""; //选中名字
+			private var selectData:ArrayCollection = new ArrayCollection();	//选中数据
+			
+			[Bindable]
+			private var gdData:Array = null;
+			
+			/**
+			 * 确定按钮事件监听 
+			 */
+			protected function sureClickHandler(event:Event):void
+			{
+				
+				if(selectData != null && selectData.length > 0){
+					if(selectComponent.isMultipleSelected){	
+						selectComponent.selectObj = selectData;
+					}else
+						selectComponent.selectObj = selectData.getItemAt(0);
+					
+					selectComponent.sText = selectComponent.selText.text = selectName;
+					
+					PopUpManager.removePopUp(this);
+				}else{
+					TAlert.show("请选择业务模块");
+				}
+				
+			}
+			
+			/**
+			 * 关闭窗口
+			 */
+			private function closeWindow(event:MouseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			/**
+			 * 查询按钮事件监听 
+			 */
+			protected function queryClikHandler(event:Event):void
+			{
+				if(selectComponent.parame != "")
+					gdData = ['bugManagerAPI', 'BugManagerAPI', 'initSystemModulesByName', [moduleName.text, selectComponent.parame]];
+				else
+					TAlert.show("请为组件(parame)设置系统ID","温馨提示");
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				selectComponent = this.owner as BugFieldSelect; //FieldSelect的引用
+				if(selectComponent.parame != "")
+					gdData = ['bugManagerAPI', 'BugManagerAPI', 'initSystemModulesByPage', [selectComponent.parame]];
+				else
+					TAlert.show("请为组件(parame)设置系统ID","温馨提示");
+			}
+			
+			protected function dg_itemClickHandler(event:ListEvent):void
+			{
+				var obj:Object = dg.selectedItem;
+				
+				if(obj != null) {
+					if(selectComponent.isMultipleSelected){
+						
+						if(selectName!=""){
+							var isHave:Boolean = true;
+							var names:Array = selectName.split(",");
+							for(var i:int=0; i<names.length; i++){
+								if(obj.moduleName==names[i]){
+									names.splice(i, 1);
+									selectData.removeItemAt(i);
+									isHave=false;
+									break;
+								}
+							}
+							
+							if(isHave) {
+								names.push(obj.moduleName);
+								selectData.addItem(obj);
+							}
+							
+							selectName=names.join(",");
+						}else{
+							
+							selectName = obj.moduleName;
+							selectData.addItem(obj);
+						}
+					}else{
+						selectName = obj.moduleName;
+						selectData.removeAll();
+						selectData.addItem(obj);
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<container:layout>
+		<s:VerticalLayout paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5"/>
+	</container:layout>
+	<mx:HDividedBox width="100%" height="100%">
+		<s:BorderContainer width="100%" height="100%">
+				<s:layout>
+					<s:VerticalLayout gap="5" paddingBottom="5" paddingLeft="5" paddingRight="5"
+									  paddingTop="5"/>
+				</s:layout>
+			<s:HGroup width="100%" height="25" verticalAlign="middle">
+				<control:FormLabel width="100" height="100%" label="请输入查询名称：" verticalAlign="middle"/>
+				<control:TextInputFl id="moduleName" width="100%" height="100%" text="{selectName}"/>
+				<s:Button id="btnQuery" label="查询" height="100%" click="queryClikHandler(event);" styleName="query"
+						  toolTip="查询"/>
+			</s:HGroup>
+			<custom:CustomDataGrid id="dg" width="100%" height="100%" dataProvider="{gdData}"
+								   DoubleClick="sureClickHandler(null);" isCheckBox="false"
+								   isControlColumns="false" isPaging="true" isRowNum="true"
+								   horizontalScrollPolicy="on" 
+								   pageCount="8"
+								   itemClick="dg_itemClickHandler(event)">
+				<custom:columns>
+					<mx:DataGridColumn dataField="moduleCode" headerText="模块编码"/>
+					<mx:DataGridColumn dataField="moduleName" headerText="模块名"/>
+					<mx:DataGridColumn dataField="remark" headerText="备注"/>
+				</custom:columns>
+			</custom:CustomDataGrid>
+		</s:BorderContainer>
+	</mx:HDividedBox>
+	<container:controlBarContent>
+		<s:HGroup width="100%" height="100%" horizontalAlign="right" gap="10">
+			<s:Button label="确定" click="sureClickHandler(event);" styleName="submit"/>
+			<s:Button label="取消" click="closeWindow(event);" styleName="cancel"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

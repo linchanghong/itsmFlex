@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  initialize="module1_initializeHandler(event)"
+		  xmlns:ns="com.framelib.container.*" 
+		  xmlns:custom="com.itsm.common.custom.*" 
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:container="com.framelib.container.*" 
+		  xmlns:mxml="com.itsm.common.mxml.*" >
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.QueryWindow;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.common.utils.DataDeal;
+			import com.framelib.utils.StaticMethods;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.CollectionEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			private var dataDeal:DataDeal = new DataDeal(); 
+			
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_initializeHandler(event:FlexEvent):void
+			{
+				//StaticMethods.creatButtons(this, appCore.userModuleButton);
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+			public function queryBtn_clickHandler(event:MouseEvent):void
+			{
+				var popwindow:QueryWindow = QueryWindow(PopUpManager.createPopUp(this, QueryWindow, true));
+				popwindow.owner = this;
+				
+				popwindow.addFieldByString("userCode,登录帐号,spark.components.TextInput,maxChars:10,text");
+				popwindow.addFieldByString("userBehave,前台行为,spark.components.TextInput,maxChars:100,text");
+				popwindow.addFieldByString("ipAddress,IP地址,spark.components.TextInput,maxChars:100,text");
+				popwindow.addFieldByString("methodName,后台方法,spark.components.TextInput,maxChars:50,text");
+				
+				PopUpManager.centerPopUp(popwindow);
+				popwindow.addEventListener("QueryConfirmEvent",queryConfirmHandler);
+			}
+			
+			protected function queryConfirmHandler(event:Event):void
+			{
+				var conditions:String = appCore.jsonEncoder.encode(windowObj);
+				
+				logQuery_wfpDataGrid.dataProvider = ['frameAPI', 'FrameAPI', 'findAllLogPageByCondition', [conditions]]; 
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:VGroup width="100%" height="100%" paddingTop="8" paddingLeft="8" paddingRight="8" paddingBottom="8">
+		
+		<s:HGroup id="btn_hg"  width="100%" horizontalAlign="left" >
+			<s:Button id="queryBtn" label="查询" styleName="query" click="queryBtn_clickHandler(event)"/>
+		</s:HGroup>
+		
+		<custom:CustomDataGrid id="logQuery_wfpDataGrid" width="100%" height="100%" 
+							   dataProvider="{['frameAPI', 'FrameAPI', 'findAllLogPage', []]}" 
+							   textAlign="center" isPaging="true" isCheckBox="true"
+							   isControlColumns="true" isRowNum="true" horizontalScrollPolicy="on"
+							   creationComplete="{logQuery_wfpDataGrid.allowMultipleSelection = true;}">
+			<custom:columns>
+				<mx:DataGridColumn dataField="userCode" headerText="登录账号" />
+				<mx:DataGridColumn dataField="userBehave" headerText="前台行为" />
+				<mx:DataGridColumn dataField="ipAddress" headerText="IP地址"/>
+				<mx:DataGridColumn dataField="className" headerText="后台类名" />
+				<mx:DataGridColumn dataField="methodName" headerText="后台方法" />
+				<mx:DataGridColumn dataField="parameters" headerText="方法参数" />
+				<mx:DataGridColumn dataField="createtime" headerText="时间" visible="false"/>
+			</custom:columns>
+		</custom:CustomDataGrid>
+	</s:VGroup>
+		
+</s:Module>

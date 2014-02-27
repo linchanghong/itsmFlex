@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Tree xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			
+			import spark.collections.Sort;
+			import spark.collections.SortField;
+			//最小的parentId，也就是找到根节点
+			private var minParentId:Number = 0;
+			private var theTreeData:ArrayCollection; //最终绑定的数据集
+			private var _idFiled:String = "id";
+			private var _parentIdFiled:String = "parentId";
+			
+			public function get parentIdFiled():String
+			{
+				return _parentIdFiled;
+			}
+
+			public function set parentIdFiled(value:String):void
+			{
+				_parentIdFiled = value;
+			}
+
+			public function get idFiled():String
+			{
+				return _idFiled;
+			}
+
+			public function set idFiled(value:String):void
+			{
+				_idFiled = value;
+			}
+
+			override public function set dataProvider(value:Object):void
+			{
+				var valueArr:ArrayCollection = value as ArrayCollection;
+				
+				if(valueArr != null && valueArr.length > 0) {
+					
+					//如果有ordernum属性，就先按此排序
+				/* 	if( valueArr.getItemAt(0).hasOwnProperty("orderNum")) {
+						valueArr.sort = new Sort().fields[new SortField("orderNum")];
+						valueArr.refresh();
+					} */
+					
+					theTreeData = new ArrayCollection();
+					minParentId = getMinParentId(valueArr);
+					
+					for each(var item:Object in valueArr) {
+						if( item[_parentIdFiled] == minParentId) { //根节点
+							var theChildren:ArrayCollection = getChildrens(valueArr, item[_idFiled]);
+							if(theChildren != null && theChildren.length > 0) {
+								item.children = theChildren;
+							}
+							
+							theTreeData.addItem(item);
+						}
+					}
+				}
+				
+				super.dataProvider = theTreeData;
+			}
+			
+			private function getChildrens(valueArr:ArrayCollection, parentId:Number):ArrayCollection {
+				var theReChildren:ArrayCollection = new ArrayCollection();
+				
+				for each(var item:Object in valueArr) {
+					if( item[_parentIdFiled] == parentId) {
+						
+						var theChildren:ArrayCollection = getChildrens(valueArr, item[_idFiled]);
+						if(theChildren != null && theChildren.length > 0) {
+							item.children = theChildren;
+						}
+						
+						theReChildren.addItem(item);
+					}
+				}
+				
+				return theReChildren;
+			}
+			
+			private function getMinParentId(valueArr:ArrayCollection):Number
+			{
+				var obj:Object = valueArr.getItemAt(0);
+				var minPId:Number = obj[_parentIdFiled];
+				for each(var item:Object in valueArr) {
+					var newMinPId:Number = item[_parentIdFiled];
+					if(newMinPId < minPId) {
+						minPId = newMinPId;
+					}
+				}
+				return minPId;
+			}
+		]]>
+	</fx:Script>
+	
+</mx:Tree>

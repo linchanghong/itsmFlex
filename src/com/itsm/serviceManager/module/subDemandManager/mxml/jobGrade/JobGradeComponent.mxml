@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 width="100%" height="25"
+		 minWidth="220" minHeight="20"
+		 maxHeight="28">
+	<s:layout>
+		<s:HorizontalLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Metadata>
+		[Event(name="dataChanged", type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.events.TextOperationEvent;
+			
+			
+			//工具类
+			private var appCore:AppCore = AppCore.getInstance();
+			//考评对象
+			[Bindable]
+			public var demandAssessObj:Object = new Object();
+			
+			/**构建对象*/
+			public function createObj4DB():Object{
+				var obj:Object = new Object();
+				
+				if(demandAssessObj.hasOwnProperty("assessID")){
+					//主键id
+					obj.assessID = demandAssessObj.assessID;
+				}
+				//需求分解表主键
+				obj.subDemandID = demandAssessObj.subDemandID;
+				//被考评人
+				var assessorObj:Object = new Object();
+				assessorObj.id = demandAssessObj.assessor.id;
+				obj.assessor = assessorObj;
+				//分析环节、开发环节、单元测试环节、功能测试环节
+				obj.demandLink = demandAssessObj.demandLink;
+				//打分人
+				var examinerObj:Object = new Object();
+				examinerObj.id = demandAssessObj.examiner.id;
+				obj.examiner = examinerObj;
+				//各个环节的打分指标
+				var indicatorObj:Object = new Object();
+				indicatorObj.id = demandAssessObj.indicator.id;
+				obj.indicator = indicatorObj;
+				//分数
+				obj.score = score.value;
+				//打分说明
+				obj.direction = evaluate.text;
+				//是否删除
+				obj.dr = 0;
+				
+				return obj;
+			}
+			
+			/**存入数据库*/
+			public function save2database():void{
+				appCore.dealData("demandManagerAPI","DemandManagerAPI","addAssess",
+					[appCore.jsonEncoder.encode(createObj4DB())],addAssessHandle,false);
+			}
+			private function addAssessHandle(event:ResultEvent):void{
+				
+			}
+			private function dataChangeHandler(event:Event):void{
+				var e:Event = new Event("dataChanged");
+				dispatchEvent(e);
+			}
+		]]>
+	</fx:Script>
+	
+	<!--<mx:HDividedBox width="100%" height="100%" creationPolicy="all">-->
+		<!--<s:HGroup width="30%" height="100%">-->
+			<s:Label id="viewer" text="{demandAssessObj.hasOwnProperty('indicator')
+					 ?demandAssessObj.indicator.constDetailName:''}打分："
+					 toolTip="{demandAssessObj.hasOwnProperty('indicator')
+					 ?demandAssessObj.indicator.constDetailName:''}"
+					 width="15%" height="100%" 
+					 verticalAlign="middle"
+					 textAlign="right"/>
+			<s:NumericStepper id="score"
+							  width="10%" height="100%"
+							  value="{demandAssessObj.hasOwnProperty('score')?demandAssessObj.score:0}" 
+							  change="dataChangeHandler(event)"
+							  snapInterval="0.1"
+							  stepSize="0.1"
+							  minimum="0"
+							  maximum="{new int(BugUtil.myTrim(demandAssessObj.hasOwnProperty('indicator')
+							  ?demandAssessObj.indicator.remark:''))}"/>
+		<!--</s:HGroup>-->
+		<!--<s:HGroup width="70%" height="100%">-->
+			<s:Label id="evaluateLbl" text="{demandAssessObj.indicator.constDetailName}评价："
+					 toolTip="{demandAssessObj.indicator.constDetailName}"
+					 width="15%" height="100%"
+					 lineBreak="explicit"
+					 maxDisplayedLines="1"
+					 verticalAlign="middle"
+					 textAlign="right"/>
+			<s:TextInput id="evaluate"
+						width="60%" height="100%"
+					    change="dataChangeHandler(event)"
+					    toolTip="{demandAssessObj.hasOwnProperty('direction')?demandAssessObj.direction:''}"
+						text="{demandAssessObj.hasOwnProperty('direction')?demandAssessObj.direction:''}"/>
+		<!--</s:HGroup>-->
+	<!--</mx:HDividedBox>-->
+</s:Group>

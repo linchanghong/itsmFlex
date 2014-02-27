@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:launch="com.itsm.flow.base.launch.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  width="100%" height="100%" 
+		  creationComplete="creationCompleteHandler(event)"
+		  currentState="other">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="admin"/>
+		<s:State name="other"/>
+	</s:states>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.event.PopEvent;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.FlowAdvancedatagridEvent;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.flow.events.ViewFlowEvent;
+			import com.itsm.sys.base.NoticeSetWindow;
+			import com.itsm.sys.base.NoticeWindow;
+			import com.itsm.sys.base.WarningSetWindow;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			import spark.events.TextOperationEvent;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			[Bindable]
+			private var dataPanel:ArrayCollection=new ArrayCollection();
+			[Bindable]
+			private var dataNotice:ArrayCollection=null;
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			private var tempSysNote:String = "";
+			private var sysNoteIsChange:Boolean = false;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void{
+				refreshNotice();
+				refreshToDo();
+				readContent();
+				if(appCore.loginUser.isAdmin==1)	this.currentState="admin";
+				else this.currentState="other";
+				list.addEventListener(PopEvent.EVENT_NAME, seeNotice);
+			}
+			
+			/**
+			 * 公告
+			 */
+			private function refreshNotice():void{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI", "findAllNotice", []);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+					dataNotice = new ArrayCollection();
+					var ac:ArrayCollection = appCore.jsonDecoder.decode(evt.result as String) as ArrayCollection;
+					if(ac is ArrayCollection) dataNotice = ac; 
+					else dataNotice.addItem(ac as Object);
+					
+					//TAlert.show((list.scroller.verticalScrollBar.pageSize/26).toString());
+				});
+			}
+			
+			/**
+			 * 刷新待办
+			 */
+			protected function refreshToDo():void{
+				
+				if(FAppCore.FCusUser.UserId!=null) {
+					flowdg.reloaddata();
+					btnRefresh.visible=true;
+				}else{
+					btnRefresh.visible=false;
+				}
+			}
+			
+			
+			/**
+			 * 读取通知
+			 */
+			private function readContent():void{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI", "readContent", []);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+					
+					var content:String = evt.result as String;
+					systemNote.text = content;
+				});
+			}
+			
+			private function seeNotice(evt:PopEvent):void{
+				var index:int = evt.data as int;
+				var item:Object = dataNotice.getItemAt(index);
+				
+				var displayObject:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var noticeSetWindow:NoticeSetWindow = NoticeSetWindow(PopUpManager.createPopUp(displayObject, NoticeSetWindow, true));
+				PopUpManager.centerPopUp(noticeSetWindow); 
+				if(item!=null) {
+					noticeSetWindow.data=ObjectUtil.clone(item) as Object;
+					noticeSetWindow.dataAll=ObjectUtil.clone(dataNotice) as ArrayCollection;
+					noticeSetWindow.index=index;
+					noticeSetWindow.currentState="see";
+				}
+			}
+			
+			protected function initFlowGrid(event:Event):void{
+				flowdg.addEventListener(FlowAdvancedatagridEvent.OPENFLOWTODOWINDOW, FlexGlobals.topLevelApplication.onOpenFlowToWindow);
+				FlexGlobals.topLevelApplication.addEventListener(ReloadFlowtodoEvent.EVENT_RELOADFLOWTODO, reloadFlowtodo);
+			}
+			
+			private function reloadFlowtodo(event:ReloadFlowtodoEvent):void{
+				
+				var isCloseWin:Boolean = event.isCloseWin;
+				if (isCloseWin){
+					var displayObj:* = event.displayObj;
+					flowdg.reloaddata();
+					FlexGlobals.topLevelApplication.closeTab(displayObj, reloadFlowtodo);
+				}
+			}
+			
+			protected function systemNote_changeHandler(event:TextOperationEvent):void{
+				sysNoteIsChange=true;
+				btnChangeNote.label="确定修改";
+			}
+			
+			/**
+			 * 系统通知
+			 */
+			protected function changeNote_clickHandler(event:MouseEvent):void{
+				if(this.currentState=="admin"){
+					if(btnChangeNote.label=="修改通知"){
+						btnChangeNote.label="取消修改";
+						tempSysNote=systemNote.text.toString();
+						systemNote.editable=true;
+						systemNote.setStyle("contentBackgroundAlpha","1");
+						systemNote.setStyle("borderVisible","true");
+						
+					}else{
+						btnChangeNote.label="修改通知";
+						systemNote.editable=false;
+						systemNote.setStyle("contentBackgroundAlpha","0");
+						systemNote.setStyle("borderVisible","false");
+						
+						if(sysNoteIsChange&&systemNote.text!=tempSysNote){
+							sysNoteIsChange=false;
+							appCore.dataDeal.dataRemote("frameAPI","FrameAPI","writerContent",[systemNote.text]);
+							appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT, function(evt:ResultEvent):void{
+								
+							});
+						}
+					}
+					
+				}else{
+					readContent();
+				}
+			}
+			
+			protected function btnMore_clickHandler(event:MouseEvent):void{
+				var displayObject:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var noticeWindow:NoticeWindow=NoticeWindow(PopUpManager.createPopUp(displayObject, NoticeWindow, true));
+				PopUpManager.centerPopUp(noticeWindow);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:BorderContainer width="100%" height="100%" backgroundAlpha="0" borderVisible="false">
+		<s:layout>
+			<s:HorizontalLayout gap="10"/>
+		</s:layout>
+		
+		<s:BorderContainer width="30%" height="100%" backgroundAlpha="0" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout gap="10"/>
+			</s:layout>
+			<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="系统公告">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/xtgg.png')"/>
+				<mx:LinkButton id="btnMore" right="5" top="-28" label="更多..." color="#0033FF" click="btnMore_clickHandler(event)"/>
+				<s:List id="list" width="100%" height="100%" borderVisible="false"
+						dataProvider="{dataNotice}" horizontalScrollPolicy="off"
+						itemRenderer="com.itsm.common.renders.SysInfoListItem" labelField="label"
+						textAlign="left"/>
+			</s:Panel>
+			<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="系统通知">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/xttz.png')"/>
+				
+				<s:BorderContainer  width="100%" height="100%" borderColor="#C8C8C8">
+					<s:layout>
+						<s:VerticalLayout paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5"/>
+					</s:layout>
+					<s:TextArea height="100%" width="100%" text="" paddingTop="10" fontSize="12" id="systemNote" 
+									editable="false" enabled="true" contentBackgroundColor="#FFFFFF" 
+									contentBackgroundAlpha="0.0" borderVisible="false" paddingLeft="10"
+									paddingRight="10" color="#850202" change="systemNote_changeHandler(event)"/>
+					<s:HGroup width="100%" horizontalAlign="right">
+						<mx:LinkButton label.admin="修改通知" 
+									   label.other="刷新通知" 
+									   fontSize="12" color="#0F91FF" 
+									   id="btnChangeNote"
+									   click="changeNote_clickHandler(event)" />
+					</s:HGroup>
+					
+				</s:BorderContainer>
+			</s:Panel>
+			<!--<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="绩效">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/jx.png')"/>
+				<s:Image right="-8" top="-40" width="37" height="35"
+						 source="@Embed(source='assets/img/homepage/xxsm.png')"/>
+				<s:Label right="-10" top="-33" width="37" height="35" color="#FFFFFF" fontSize="14" fontWeight="bold"
+						 text="{dataPanel.length}" textAlign="center"/>
+				<s:List width="100%" height="100%" borderVisible="false" dataProvider="{dataPanel}"
+						horizontalScrollPolicy="off"
+						itemRenderer="com.itsm.common.renders.SysInfoListItem" labelField="label"
+						textAlign="left"/>
+			</s:Panel>-->
+		</s:BorderContainer>
+		
+		<s:Panel width="70%" height="100%" borderColor="#969696" cornerRadius="8"
+				 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+				 title="待办事项">
+			<s:Image left="12" top="-23" width="19" height="17"
+					 source="@Embed(source='assets/img/homepage/dbsx.png')"/>
+			
+			<mx:LinkButton id="btnRefresh" right="5" top="-28" label="刷新待办" color="#0033FF" click="{flowdg.reloaddata();}"/>
+			<launch:FlowtodoAdvancedataGrid id="flowdg" width="100%" height="100%"
+											AutoDataBind="false" initGrid="initFlowGrid(event)"
+											isReInit="true"/>
+		</s:Panel>
+		
+		<!--<s:BorderContainer width="25%" height="100%" backgroundAlpha="0" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout gap="10"/>
+			</s:layout>
+			<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="预警通知">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/yjtz.png')"/>
+			</s:Panel>
+			<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="培训">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/px.png')"/>
+				<s:Image right="-8" top="-40" width="37" height="35"
+						 source="@Embed(source='assets/img/homepage/xxsm.png')"/>
+				<s:Label right="-10" top="-33" width="37" height="35" color="#FFFFFF" fontSize="14" fontWeight="bold"
+						 text="{dataPanel.length}" textAlign="center"/>
+				<s:List width="100%" height="100%" borderVisible="false" dataProvider="{dataPanel}"
+						horizontalScrollPolicy="off"
+						itemRenderer="com.itsm.common.renders.SysInfoListItem" labelField="label"
+						textAlign="left"/>
+			</s:Panel>
+			<s:Panel width="100%" height="100%" borderColor="#969696" cornerRadius="8"
+					 dropShadowVisible="false" skinClass="com.itsm.common.skins.BasePanelSkin"
+					 title="个人自助">
+				<s:Image left="12" top="-23" width="16" height="16"
+						 source="@Embed(source='assets/img/homepage/px.png')"/>
+				
+				<s:Scroller width="100%" height="100%">
+					<s:VGroup width="100%" height="100%" gap="0" horizontalAlign="center"
+							  verticalAlign="middle">
+						<s:HGroup width="100%" height="100%" gap="20" horizontalAlign="center"
+								  verticalAlign="middle">
+							<s:Image width="55" height="60"
+									 source="@Embed(source='assets/img/homepage/grxx.png')"/>
+							<s:Image width="55" height="60"
+									 source="@Embed(source='assets/img/homepage/ksxx.png')"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="100%" gap="20" horizontalAlign="center"
+								  verticalAlign="middle">
+							<s:Image width="55" height="60"
+									 source="@Embed(source='assets/img/homepage/xzxx.png')"/>
+							<s:Image width="55" height="60"
+									 source="@Embed(source='assets/img/homepage/wjdc.png')"/>
+						</s:HGroup>
+					</s:VGroup>
+				</s:Scroller>
+			</s:Panel>
+		</s:BorderContainer>-->
+	</s:BorderContainer>
+</s:Module>

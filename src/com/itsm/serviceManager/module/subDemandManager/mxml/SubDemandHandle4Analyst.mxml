@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:flow="com.itsm.flow.base.*"
+		  xmlns:control="com.framelib.control.*"
+		  width="100%" height="100%"
+		  creationComplete="initDate(event)" 
+		  xmlns:jobGrade="com.itsm.serviceManager.module.subDemandManager.mxml.jobGrade.*" xmlns:backup="com.itsm.serviceManager.module.subDemandManager.mxml.jobGrade.backup.*">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.serviceManager.module.bugManager.code.BugUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			//流程挂载页面必需属性--用于存储业务id
+			[Bindable]
+			public var billId:String;
+			//流程模型
+			public var oprtTypeId:String;
+			//流程模型类型
+			private static const FLOW_TYPE:String="6";
+			//文档上传所对应的子需求表单ID
+			[Bindable]
+			public var subDemandID4Word:String = "";
+			//子需求单所在数据库表名
+			[Bindable]
+			public var subDemandTableName:String = "T_DEMANDS_PART";
+			//主需求业务单对象
+			[Bindable]
+			public var userApply:Object;
+			//子需求单
+			[Bindable]
+			public var subDemandObj:Object;
+			//公共类
+			private var appCore:AppCore = AppCore.getInstance();
+			//0：实际需求完成时间；1：实际开发完成时间；2：实际单元测试完成时间；3：实际功能测试完成时间
+			public var flag:int;
+			//saveBtnEnable:是否显示“评分组件”的“保存”按钮
+			[Bindable]
+			private var saveBtnEnable:Boolean = false;
+			//被考评人
+			[Bindable]
+			private var assessorId:String = "";
+			//考评环节
+			[Bindable]
+			public var demandsLinkNum:String = "-1";
+			//打分人
+			[Bindable]
+			public var examinerId:String = "-1";
+			//考评指标种类
+			[Bindable]
+			public var jobGradeTypeNum:String = "-1";
+			
+			/**处理数据后*/
+			private function updateRealFinishDateHandle(event:ResultEvent):void{
+				var obj:Object = BugUtil.getResultObj(event);
+				if(obj == "1"){
+					TAlert.show("实际完成时间设置成功！","温馨提示");
+				}else
+					TAlert.show("实际完成时间设置失败！","温馨提示");
+			}
+			/**设置当前时间调用*/
+			private function updateDateShare(flag:uint):void{
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","updateRealFinishDate",
+					[billId,flag], updateRealFinishDateHandle);
+			}
+			/**需求人员同意后调用*/
+			private function demandHandlerDo():void{
+				flag = 0;
+				updateDateShare(flag);
+			}
+			
+			/**流程挂载页面=======================================================*/
+			/**将要同意*/
+			public function doWillAgreeeEventHandle(event:Event):void{}
+			/**
+			 * 同意后处理结果
+			 */
+			public function flowResult():void{
+				demandHandlerDo();
+			}
+			private function flowHanelResult(event:ResultEvent):void {
+				TAlert.show("数据生效");
+			}
+			/**
+			 * 同意处理前调用
+			 */
+			public function agreeBefore():void{}
+			/**
+			 * 不同意后处理结果
+			 */
+			public function disagree():void{
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","updateSubDemandStatusNoDataBack",
+					[billId,0], disagreeHandle);
+			}
+			private function disagreeHandle(event:ResultEvent):void{}
+			/**流程挂载页面=======================================================*/
+			
+			/**单元测试人员考评组件参数设置*/
+			private function setData4Tester():void{
+				//打分人
+				examinerId = subDemandObj.unitTester.id+"";
+				//被评价人
+				assessorId = subDemandObj.developer.id+"";
+				//评价环节
+				demandsLinkNum = "3";
+				//考评指标种类
+				jobGradeTypeNum = "102";
+			}
+			/**开发人员考评组件参数设置*/
+			private function setData4Developer():void{
+				//打分人
+				examinerId = subDemandObj.developer.id+"";
+				//被评价人
+				assessorId = subDemandObj.analyst.id+"";
+				//评价环节
+				demandsLinkNum = "1";
+				//考评指标种类
+				jobGradeTypeNum = "101";
+			}
+			
+			protected function initDate(event:Event):void
+			{
+				BugUtil.handle_server_method("demandManagerAPI","DemandManagerAPI","showSubDemandByID",
+					[billId], showSubDemandByIDHandle);
+				AppHistoryGrid.getApproveHistory(FLOW_TYPE, billId);
+			}
+			
+			private function showSubDemandByIDHandle(event:ResultEvent):void{
+				subDemandObj = BugUtil.getResultObj(event) != "0" ? BugUtil.getResultObj(event) : null;
+				subDemandID4Word = billId;
+				fileGrid.refreshData();
+				//需求状态，0：未提交，1：需求分析，2：开发经理指派人员，3：开发，4：单元测试，5：功能测试，6：项目经理审核，7：完成
+				if(subDemandObj.demandStatus == 4){
+					this.currentState == "testerState";
+					setData4Tester();
+				}else if(subDemandObj.demandStatus == 3){
+					this.currentState == "developerState";
+					setData4Developer();
+				}else
+					this.currentState == "demandHandlerFstState";
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="demandHandlerFstState"/>
+		<s:State name="developerState"/>
+		<s:State name="testerState"/>
+	</s:states>
+	
+	<s:VGroup width="100%" height="100%" paddingBottom="0" paddingTop="0">
+		<s:VGroup width="100%" height="22"
+				  includeIn="developerState, testerState">
+			<s:Button id="saveBtn" 
+					  enabled.developerState="true"
+					  enabled.testerState="true"
+					  width="75" height="100%" 
+					  label="保存" 
+					  icon="@Embed(source='assets/img/icon/save.png')" />
+		</s:VGroup>
+		<s:Scroller width="100%" height="100%">
+			<s:VGroup width="100%" height="100%">
+				<mx:VDividedBox width="100%" height="100%" minHeight="750" creationPolicy="all"
+								paddingBottom="5" paddingLeft="5" paddingRight="5">
+					<s:VGroup id="top" width="100%" height="8%">
+						<s:HGroup width="100%" height="25">
+							<s:Label includeIn="demandHandlerFstState" width="15%" height="100%"
+									 text="预计需求分析完成时间：" textAlign="right"/>
+							<s:TextInput id="planAnalysisDate" includeIn="demandHandlerFstState" width="15%" height="100%"
+										 editable="false"
+										 text="{subDemandObj!=null?subDemandObj.planAnalysisDate:''}"
+										 textAlign="left"/>
+							
+							<s:Label includeIn="developerState" width="15%" height="100%" textAlign="right"
+									 text.developerState="预计开发完成时间："/>
+							<s:TextInput id="planDevelopDate" includeIn="developerState" width="15%" height="100%"
+										 editable="false"
+										 text="{subDemandObj!=null?subDemandObj.planDevelopDate:''}"
+										 textAlign="left"/>
+							
+							<s:Label includeIn="testerState" width="15%" height="100%" text="计划完成时间："
+									 textAlign="right"
+									 text.testerState="预计单元测试完成时间："/>
+							<s:TextInput id="planUtestDate" includeIn="testerState" width="15%" height="100%" editable="false"
+										 text="{subDemandObj!=null?subDemandObj.planUtestDate:''}"
+										 textAlign="left"/>
+						</s:HGroup>				
+						
+						<s:HGroup width="100%" height="25">
+							<s:Label width="15%" height="100%" text="主题摘要：" textAlign="right"/>
+							<s:TextInput id="demandTitle" 
+										 width="85%" height="100%" 
+										 textAlign="left"
+										 editable="false"
+										 text="{subDemandObj!=null?subDemandObj.demandTitle:''}"/>
+						</s:HGroup>
+						
+					</s:VGroup>
+					
+					<s:VGroup id="center" width="100%" height="55%">
+						<mx:TabNavigator id="infoList" width="100%" height="100%" focusColor="#58F0C0"
+										 selectedIndex="0">
+							
+							<s:NavigatorContent width="100%" height="100%" label="参考资料">
+								<s:VGroup width="100%" height="100%">
+									<container:GroupBox width="100%" height="35%" title="需求描述">
+										<s:TextArea id="directions" width="100%" height="100%"
+													editable="false"
+													text="{subDemandObj!=null?subDemandObj.directions:''}"/>
+									</container:GroupBox>
+									<container:GroupBox width="100%" height="65%" title="附件">
+										<mxml:UploadDocumentsInfo id="fileGrid" width="100%" height="100%"
+																  busDataId="{subDemandID4Word}"
+																  busTableName="{subDemandTableName}"/>
+									</container:GroupBox>
+									
+								</s:VGroup>
+							</s:NavigatorContent>
+							
+						</mx:TabNavigator>
+					</s:VGroup>
+					
+					<s:VGroup id="bottom" width="100%" height="37%">
+						<flow:ComApproveHistory id="AppHistoryGrid" 
+												width="100%" height="100%"/>
+					</s:VGroup>
+				</mx:VDividedBox>
+			</s:VGroup>
+		</s:Scroller>		
+	</s:VGroup>
+	
+</s:Module>

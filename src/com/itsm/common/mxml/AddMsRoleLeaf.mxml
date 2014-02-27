@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="100%" height="100%"
+					   close="closeHandler(event)" 
+					   title="角色管理" 
+					   xmlns:container="com.framelib.container.*" 
+					   creationComplete="richwindow1_creationCompleteHandler(event)" 
+					   xmlns:control="com.framelib.control.*">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="AddConfirmEvent",type="flash.events.MouseEvent")]
+		[Event(name="UpdateConfirmEvent",type="flash.events.MouseEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			public var parentRole:Object; //上级
+			public var meRole:Object;//如果是修改的话，会有本
+			
+			protected function richwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setFields();
+			}
+			
+			private function setFields():void
+			{
+				if(parentRole != null) {
+					parent_label.text = parentRole.roleName;
+				}
+				
+				if(meRole != null) {
+					label_ti.text = meRole.roleName;
+				}
+			}
+			
+			protected function btnSure_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(label_ti.text) == "" ) {
+					TAlert.show("标记为*号的为必填项", "提示");
+					return;
+				}
+				
+				if(isNameRepeate()) {
+					TAlert.show("同级节点名称不能重复！", "提示");
+					return;
+				}
+				
+				// 组织新角色
+				var newRole:Object = new Object();
+				newRole.roleName = label_ti.text;
+				newRole.parentId = parentRole.id;
+				newRole.parentPath = parentRole.parentPath + parentRole.id +","
+				
+				if(meRole != null) {//修改菜单
+					newRole.id = meRole.id;
+					
+					(this.owner as IModules).setWindowObj(newRole);
+					this.dispatchEvent(new MouseEvent("UpdateConfirmEvent"));
+				} else {
+					(this.owner as IModules).setWindowObj(newRole);
+					this.dispatchEvent(new MouseEvent("AddConfirmEvent"));
+				}
+				
+				closeHandler(event);
+			}
+			
+			private function isNameRepeate():Boolean
+			{
+				if(parentRole != null) {
+					for each (var role:Object in parentRole.children) {
+						if(StringUtil.trim(label_ti.text) == role.roleName) {
+							return true;
+						}
+					}
+				} 
+				return false;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"
+			  width="100%" height="100%">
+		<s:VGroup width="100%" gap="2">
+			
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="角色名称" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="label_ti" width="180" maxChars="50" />
+				
+				<control:FormLabel label="上级角色" verticalAlign="middle" />
+				<control:TextInputFl id="parent_label" width="180" maxChars="50" 
+							 editable="false" enabled="false" contentBackgroundColor="#d0d0d0"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:VGroup>
+	
+	<container:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<s:Button id="btnSure" label="确定" click="btnSure_clickHandler(event)"/>
+			<s:Button id="btnCancel" label="取消" click="closeHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

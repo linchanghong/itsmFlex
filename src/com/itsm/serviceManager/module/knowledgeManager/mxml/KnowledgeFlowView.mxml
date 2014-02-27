@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:container="com.framelib.container.*"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  xmlns:comp="com.itsm.serviceManager.component.*"
+		  xmlns:ns="http://www.c.sccl.com" 
+		  xmlns:flow="com.itsm.flow.base.*"
+		  width="100%" height="100%" 
+		  creationComplete="knowledgeModule_creationCompleteHandler(event)">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:RadioButtonGroup id="examineGroup"/>
+	</fx:Declarations>
+	
+	<fx:Script source="../code/KnowledgeFlowView.as"/>
+	<s:Scroller width="100%" height="100%">	
+		<s:VGroup width="100%" height="100%">
+			<mx:VDividedBox width="100%" height="100%" minHeight="550" creationPolicy="all">
+				<s:Scroller width="100%" height="40%">
+					<s:VGroup width="100%" height="100%">
+						
+						<s:HGroup width="100%" height="25" verticalAlign="middle">
+							<control:FormLabel label="所属系统：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+							<control:TextInputFl id="text_systemName" width="16%" height="100%" />
+							<control:FormLabel label="关联业务：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+							<control:TextInputFl id="text_moduleName" width="16%" height="100%"/>
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25" verticalAlign="middle">
+							<control:FormLabel label="知识标题：" width="16%" height="100%" verticalAlign="middle" required="true"/>
+							<control:TextInputFl id="konwledgeTitle" width="84%" height="100%" />
+						</s:HGroup>
+						
+						<s:HGroup width="100%" height="25" verticalAlign="middle">
+							<control:FormLabel label="审核状态：" verticalAlign="middle"/>
+							<s:RadioButton groupName="examineGroup" id="rbtn_isExa" label="已审核" selected="{IsExamine}" enabled="false"/>
+							<s:RadioButton groupName="examineGroup" id="rbtn_enExa" label="未审核" selected="{!IsExamine}" enabled="false"/>
+						</s:HGroup>
+						<s:HGroup width="100%" height="100%" verticalAlign="middle">
+							<mx:TabNavigator id="tab_info" width="100%" height="100%">
+								<s:NavigatorContent id="nav_content" width="100%" height="100%" label="知识内容">
+									<s:TextArea id="text_content" width="100%" height="100%"/>
+								</s:NavigatorContent>
+								<s:NavigatorContent id="nav_att" width="100%" height="100%" label="文档附件">
+									<container:GroupBox width="100%" height="100%" title="附件">
+										<mxml:UploadDocumentsInfo id="fileGrid" height="100%" width="100%" 
+																  deleteBtnEnable="false"
+																  uploadBtnEnable="false"
+																  attachMentsArr="{attachMentsArray}"/>
+									</container:GroupBox>
+								</s:NavigatorContent>
+							</mx:TabNavigator>
+						</s:HGroup>
+					</s:VGroup>
+				</s:Scroller>
+				<flow:ComApproveHistory id="AppHistoryGrid" width="100%" height="60%"/>
+			</mx:VDividedBox>
+		</s:VGroup>
+	</s:Scroller>
+</s:Module>

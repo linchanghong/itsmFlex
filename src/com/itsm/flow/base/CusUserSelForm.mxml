@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow  mouseEnabled="true" xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:components="common.components.*"
+			   width="600" height="400"  creationComplete="initForm()"
+			   fontSize="12" mouseUp="this.stopDrag()" title="人员选择" close="{PopUpManager.removePopUp(this)}"
+			   xmlns:base="com.itsm.flow.base.*">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.events.view.EventUserSelClose;
+			
+			import common.utils.TAlert;
+			
+			import mx.managers.PopUpManager;
+			
+			public var MuliSel:Boolean = false;									//是否多选
+			public var hasSelUsersArr:Array = new Array();						//选中人员数据集
+			public var UserIDArr:Array = new Array();							//选择人员ID集
+			public var UserNameArr:Array = new Array();							//选择人员名称集
+			public var includeEffective:Boolean = false;								//是否包含禁用人员
+//			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			public var FAppCore:AppCore = AppCore.getInstance();
+			public var _WhereStr:String="";
+			
+			//初始化Form
+			private function initForm():void
+			{
+				customUserSel.MuliSel = MuliSel;
+				customUserSel.includeEffective = includeEffective;				
+				this.addEventListener(MouseEvent.MOUSE_DOWN,OnMouseDown);
+			}
+			
+			private  function OnMouseDown(event:MouseEvent):void
+			{
+				if ((this.mouseY>=12) && (this.mouseY<=50)) this.startDrag();
+			} 
+			
+			//确定按钮
+			private function OK_Click(event:Event):void
+			{
+				hasSelUsersArr = customUserSel.hasSelUsersArr;
+				UserIDArr = customUserSel.UserIDArr;
+				UserNameArr = customUserSel.UserNameArr;
+				if (UserIDArr.length == 0)
+				{
+					//TAlert.show("没有进行人员的选择。", "提示" ); 
+					FAppCore.sendSysInfo("没有进行人员的选择");
+					return;
+				}
+				
+				var e:EventUserSelClose = new EventUserSelClose();
+				dispatchEvent(e);
+				PopUpManager.removePopUp(this);
+			}
+			
+			//关闭按钮
+			private function Cancel_Click(event:Event):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	<!--<s:Label id="labTitle" left="10" top="10" width="153" text="人员选择"/>
+	<s:Image id="ImgClose" right="10" top="10" width="16" height="16" buttonMode="true"
+	click="{PopUpManager.removePopUp(this)}"
+	source="@Embed(source='assets/img/Close.png')"/>-->
+	<s:controlBarContent>
+		<s:HGroup width="100%" height="25" gap="2" horizontalAlign="right" verticalAlign="middle">
+			<s:Button id="OKClick" height="23" label="确定" click="OK_Click(event);" styleName="submit"/>
+			<s:Button id="CancelClick" height="23" label="取消" click="Cancel_Click(event);" styleName="cancel"/>
+		</s:HGroup>
+	</s:controlBarContent>	
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5" backgroundColor="#FFFFFF"
+						   borderStyle="solid" cornerRadius="3">
+			<base:CusUserSel  width="100%" height="100%" id="customUserSel">
+				</base:CusUserSel>
+		</s:BorderContainer>
+	</s:Group>
+</s:TitleWindow>

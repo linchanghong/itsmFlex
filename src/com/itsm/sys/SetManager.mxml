@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  width="100%" height="100%"
+		  implements="com.itsm.common.as3.IModules"
+		  creationComplete="module1_creationCompleteHandler(event)" 
+		  xmlns:ns="http://www.c.sccl.com" >
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.events.ModuleEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			public var appCore:AppCore = AppCore.getInstance();
+			[Bindable]
+			private var setTypeArr:ArrayCollection;
+			private var windowObj:Object = new Object();
+			
+			public function setWindowObj(obj:Object):void
+			{
+				this.windowObj = obj;
+			}
+			
+			protected function module1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setTypeArr = appCore.setTreeArr;
+//				pageLoader.unloadModule();
+			}
+			
+			protected function setTypeDg_itemClickHandler(event:ListEvent):void
+			{
+//				if(setTypeDg.selectedItem != null) {
+//					if(pageLoader.url != setTypeDg.selectedItem.setPage + ".swf") {
+//						pageLoader.url =  setTypeDg.selectedItem.setPage + ".swf";
+//						pageLoader.loadModule();
+//						pageLoader.addEventListener(ModuleEvent.READY, loaderReady);
+//					} else {
+//						if(pageLoader.child as IModules != null)
+//							(pageLoader.child as IModules).setWindowObj(setTypeDg.selectedItem);
+//					}
+//				}
+			}
+			
+			private function loaderReady(event:ModuleEvent):void
+			{
+//				(pageLoader.child as IModules).setWindowObj(setTypeDg.selectedItem);
+			}
+			
+			//datagrid显示行号
+			private function rowNumFun(item:Object, column:DataGridColumn):String
+			{
+				var iIndex:int = setTypeArr.getItemIndex(item) + 1;
+				return String(iIndex);
+			}
+			
+			protected function add_btn_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(typeNameTxt.text) ==  "" || StringUtil.trim(setPageTxt.text) ==  "") {
+					TAlert.show("请先输入参数类型名称","提示");
+					return;
+				}
+				
+				if(!isTypeNameRepeate()) {
+					var typeObj:Object = new Object();
+					typeObj.setTypeName = typeNameTxt.text ;
+					typeObj.setPage = setPageTxt.text ;
+					typeObj.remark = typeRemarkTxt.text;
+					
+					addSetType(typeObj);
+				} else {
+					TAlert.show("类型名称不能重复","提示");
+				}
+			}
+			
+			private function addSetType(setType:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","addSetType",[appCore.jsonEncoder.encode(setType)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,addSetTypeHandler);	
+			}
+			
+			private function addSetTypeHandler(event:ResultEvent):void
+			{
+				
+				var re:String = "";
+				if(event.result != null) {
+					re = event.result.toString();
+					
+					if(re != "0") {
+						var typeObj:Object = appCore.jsonDecoder.decode(re);
+						setTypeArr.addItem(typeObj);
+					} else {
+						TAlert.show("参数类型没有添加成功","提示");
+					}
+				} else {
+					TAlert.show("参数类型没有添加成功","提示");
+				}
+			}
+			
+			protected function edit_btn_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(typeNameTxt.text) ==  "" || StringUtil.trim(setPageTxt.text) ==  "") {
+					TAlert.show("请先输入参数类型名称","提示");
+					return;
+				}
+				
+				if(!isTypeNameRepeate() || setTypeDg.selectedItem.setPage != setPageTxt.text 
+					&& setTypeDg.selectedItem.remark != typeRemarkTxt.text) {
+					setTypeDg.selectedItem.setTypeName = typeNameTxt.text;
+					setTypeDg.selectedItem.setPage = setPageTxt.text;
+					setTypeDg.selectedItem.remark = typeRemarkTxt.text;
+					
+					var typeObj:Object = new Object();
+					typeObj.id = setTypeDg.selectedItem.id;
+					typeObj.setTypeName = typeNameTxt.text ;
+					typeObj.setPage = setPageTxt.text ;
+					typeObj.remark = typeRemarkTxt.text;
+					
+					updateSetType(typeObj);
+				} else {
+					TAlert.show("类型名称不能重复","提示");
+				}
+			}
+			
+			private function updateSetType(setType:Object):void
+			{
+				appCore.dataDeal.dataRemote("frameAPI","FrameAPI","updateSetType",[appCore.jsonEncoder.encode(setType)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,updateSetTypeHandler);	
+			}
+			
+			private function updateSetTypeHandler(event:ResultEvent):void
+			{
+				if(event.result.toString() != "1") {
+					TAlert.show("操作失败！","提示");
+				} 
+			}
+			
+			protected function delete_btn_clickHandler(event:MouseEvent):void
+			{
+				if(setTypeDg.selectedItem == null) {
+					TAlert.show("请先选择参数类型","提示");
+					return;
+				}
+				TAlert.show("删除参数类型 "+setTypeDg.selectedItem.setTypeName+" ？", "提示", TAlert.NO|TAlert.YES, this,deleteType);
+			}
+			
+			private function deleteType(event:CloseEvent):void 
+			{
+				if (event.detail == TAlert.YES) {
+					appCore.dataDeal.dataRemote("frameAPI","FrameAPI","deleteSetTypeById",[setTypeDg.selectedItem.id.toString()]);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,deleteSetTypeByIdHandler);	
+				}
+			}
+			
+			private function deleteSetTypeByIdHandler(event:ResultEvent):void
+			{
+				if(event.result.toString() == "1") {
+					setTypeArr.removeItemAt(setTypeArr.getItemIndex(setTypeDg.selectedItem));
+					reSet();
+				} else {
+					TAlert.show("操作失败！","提示");
+				} 
+			}
+			
+			private function isTypeNameRepeate():Boolean
+			{
+				for each(var setType : Object in  setTypeArr) {
+					if(setType.setTypeName == typeNameTxt.text) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			private function reSet():void
+			{
+				typeNameTxt.text = "";
+				setPageTxt.text = ""; 
+				typeRemarkTxt.text = "";
+			}
+		]]>
+	</fx:Script>
+	
+		<s:VGroup width="100%" height="100%">
+			<s:HGroup id="type_btn_hg"  width="100%" horizontalAlign="left">
+				<s:Button id="add_btn" label="添加" click="add_btn_clickHandler(event)" styleName="add"/>
+				<s:Button id="edit_btn" label="修改" click="edit_btn_clickHandler(event)" styleName="modify"/>
+				<s:Button id="delete_btn" label="删除" click="delete_btn_clickHandler(event)" styleName="delete"/>
+			</s:HGroup>
+			<ns:GroupBox title="参数设置" width="100%">
+				<mx:Form id="constTypeForm" width="100%">
+					<mx:FormItem label="类型名称:" width="100%">
+						<s:TextInput id="typeNameTxt" width="100%" text="{setTypeDg.selectedItem.setTypeName}"/>
+					</mx:FormItem>
+					<mx:FormItem label="页面路径:" width="100%">
+						<s:TextInput id="setPageTxt" width="100%" text="{setTypeDg.selectedItem.setPage}"/>
+					</mx:FormItem>
+					<mx:FormItem label="备注:" width="100%">
+						<s:TextArea id="typeRemarkTxt" width="100%" height="80" text="{setTypeDg.selectedItem.remark}"/>
+					</mx:FormItem>
+				</mx:Form>
+			</ns:GroupBox>
+			<mx:DataGrid id="setTypeDg" width="100%" height="100%" left="0" top="30"
+						dataProvider="{setTypeArr}"
+						itemClick="setTypeDg_itemClickHandler(event)">
+				<mx:columns>
+					<mx:DataGridColumn headerText="" labelFunction="rowNumFun"
+										   width="30" sortable="false" /> 
+					<mx:DataGridColumn dataField="id" headerText="类型ID"/>
+					<mx:DataGridColumn dataField="setTypeName" headerText="参数类型名称"/>
+					<mx:DataGridColumn dataField="remark" headerText="备注" visible="false"/>
+				</mx:columns>
+			</mx:DataGrid>
+		</s:VGroup>
+		<!--<s:ModuleLoader id="pageLoader" width="100%" height="100%" />-->
+</s:Module>

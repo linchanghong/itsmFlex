@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="100%" height="100%"
+					   close="closeHandler(event)" 
+					   title="菜单按钮管理" 
+					   xmlns:container="com.framelib.container.*" 
+					   creationComplete="richwindow1_creationCompleteHandler(event)" 
+					   xmlns:control="com.framelib.control.*">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:RadioButtonGroup id="menu_bt_rbg" change="menu_bt_rbg_changeHandler(event)"/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="AddConfirmEvent",type="flash.events.MouseEvent")]
+		[Event(name="UpdateConfirmEvent",type="flash.events.MouseEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			public var parentMenu:Object; //上级菜单
+			public var meMenu:Object;//如果是修改的话，会有本菜单
+			
+			protected function richwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setFields();
+			}
+			
+			private function setFields():void
+			{
+				if(parentMenu != null) {
+					parent_label.text = parentMenu.label;
+				}
+				
+				if(meMenu != null) {
+					label_ti.text = meMenu.label;
+					btnid_ti.text = meMenu.btnId;
+					classid_ti.text = meMenu.classId;
+					clazz_ti.text = meMenu.clazz;
+					groupid_ti.text = meMenu.groupId;
+					order_ti.text = meMenu.orderNum.toString();
+					if( meMenu.state != null &&  meMenu.state != "unchecked" && meMenu.state != "checked") {
+						state_ti.text = meMenu.state;
+					}
+					menu_bt_rbg.selectedValue = meMenu.type.toString();
+					
+					//不能修改菜单的类型，
+					menu_bt_rbg.enabled = false;
+					
+					setVisibleHg();
+				}
+			}
+			
+			protected function btnSure_clickHandler(event:MouseEvent):void
+			{
+				if(menu_bt_rbg.selectedValue == "1") {
+					if(StringUtil.trim(label_ti.text) == "" || StringUtil.trim(order_ti.text) == "" ) {
+						TAlert.show("标记为*号的为必填项", "提示");
+						return;
+					}
+				} else {
+					if(StringUtil.trim(btnid_ti.text) == "" || StringUtil.trim(groupid_ti.text) == "" || StringUtil.trim(classid_ti.text) == "" ||  
+						StringUtil.trim(order_ti.text) == "" || StringUtil.trim(label_ti.text) == ""  ) {
+						TAlert.show("标记为*号的为必填项", "提示");
+						return;
+					}   
+				}
+				
+				/* if(isNameRepeate()) {
+					Alert.show("同级节点名称不能重复！", "提示");
+					return;
+				} */
+				
+				// 组织新菜单
+				var newMenu:Object = new Object();
+				newMenu.type = menu_bt_rbg.selectedValue as Number;
+				newMenu.label = label_ti.text;
+				newMenu.clazz = clazz_ti.text;
+				newMenu.btnId = btnid_ti.text;
+				newMenu.groupId = groupid_ti.text;
+				newMenu.state = state_ti.text;
+				newMenu.parentId = parentMenu.id;
+				newMenu.parentPath = parentMenu.parentPath + parentMenu.id +","
+				newMenu.orderNum = Number(order_ti.text);
+				newMenu.classId = classid_ti.text;
+				
+				if(meMenu != null) {//修改菜单
+					newMenu.id = meMenu.id;
+					
+					(this.owner as IModules).setWindowObj(newMenu);
+					this.dispatchEvent(new MouseEvent("UpdateConfirmEvent"));
+				} else {
+					(this.owner as IModules).setWindowObj(newMenu);
+					this.dispatchEvent(new MouseEvent("AddConfirmEvent"));
+				}
+				
+				closeHandler(event);
+			}
+			
+			private function isNameRepeate():Boolean
+			{
+				if(parentMenu != null) {
+					for each (var role:Object in parentMenu.children) {
+						if(StringUtil.trim(label_ti.text) == role.label) {
+							return true;
+						}
+					}
+				} 
+				return false;
+			}
+			
+			protected function menu_bt_rbg_changeHandler(event:Event):void
+			{
+				setVisibleHg()
+			}
+			
+			private function setVisibleHg():void 
+			{
+				if(menu_bt_rbg.selectedValue == "1" || menu_bt_rbg.selectedValue == "3") {
+					menu_hg.visible = true;
+					menu_hg.includeInLayout = true;
+					
+					btn_hg_1.visible = false;
+					btn_hg_1.includeInLayout = false;
+					btn_hg_2.visible = false;
+					btn_hg_2.includeInLayout = false;
+				} else {
+					menu_hg.visible = false;
+					menu_hg.includeInLayout = false;
+					
+					btn_hg_1.visible = true;
+					btn_hg_1.includeInLayout = true;
+					btn_hg_2.visible = true;
+					btn_hg_2.includeInLayout = true;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"
+			  width="100%" height="100%">
+		<s:VGroup width="100%" gap="2">
+			
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="类型" verticalAlign="middle"/>
+				<s:HGroup width="180">
+					<s:RadioButton id="menu_cb" label="菜单" value="1" groupName="menu_bt_rbg" selected="true"/>
+					<s:RadioButton id="bt_cb" label="模块按钮" value="2" groupName="menu_bt_rbg" selected="false"/>
+					<s:RadioButton id="menubt_cb" label="菜单按钮" value="3" groupName="menu_bt_rbg" selected="false"/>
+				</s:HGroup>
+				
+				<control:FormLabel label="上级菜单" verticalAlign="middle" />
+				<control:TextInputFl id="parent_label" width="180" maxChars="50" 
+							 editable="false" enabled="false" contentBackgroundColor="#d0d0d0"/>
+			</s:HGroup>
+			
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="名称" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="label_ti" width="180" maxChars="50" />
+				
+				<control:FormLabel label="序号" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="order_ti" width="180" maxChars="30" restrict="0-9"/>
+				<!--<control:FormLabel label="有权限的角色" verticalAlign="middle" required="true"/>
+				<control:ComboCheck id="role_cb" type="combobox" 
+								width="180" rowCount="10" 
+								labelField="roleName" prompt="选择有权限的角色..." />-->
+			</s:HGroup>
+			
+			<s:HGroup width="100%" verticalAlign="middle" id="btn_hg_1" 
+					  visible="false" includeInLayout="false">
+				<control:FormLabel label="按钮id" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="btnid_ti" width="180" maxChars="30"/>
+				
+				<control:FormLabel label="按钮容器id" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="groupid_ti" width="180" maxChars="30" />
+			</s:HGroup>
+			
+			<s:HGroup width="100%" verticalAlign="middle" id="btn_hg_2" 
+					  visible="false" includeInLayout="false">
+				<control:FormLabel label="显示的state" verticalAlign="middle"/>
+				<control:TextInputFl id="state_ti" width="180" maxChars="30"/>
+				
+				<control:FormLabel label="样式class" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="classid_ti" width="180" maxChars="30"/>
+			</s:HGroup>
+			
+			<s:HGroup width="100%" verticalAlign="middle" id="menu_hg">
+				<control:FormLabel label="模块/图片" verticalAlign="middle"/>
+				<control:TextInputFl id="clazz_ti" width="100%" maxChars="100" toolTip="大菜单需要图片，模块菜单需要模块路径"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:VGroup>
+	
+	<container:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<s:Button id="btnSure" label="确定" click="btnSure_clickHandler(event)"/>
+			<s:Button id="btnCancel" label="取消" click="closeHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

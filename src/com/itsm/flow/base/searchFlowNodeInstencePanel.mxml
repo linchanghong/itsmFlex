@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					 xmlns:s="library://ns.adobe.com/flex/spark"
+					 xmlns:mx="library://ns.adobe.com/flex/mx"
+					 xmlns:launch="com.itsm.flow.view.view.launch.*"
+					 width="100%" height="100%" initialize="init();" currentState="start">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.services.flow.FlowNodeInstenceService;
+			import com.vo.FlowNodeInstence;
+			
+			import common.utils.FAppCoreUtil;
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			import mx.events.CloseEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			private var now:Date = new Date();
+			private var flowNodeInstenceArr:Array;
+			
+			[Bindable]
+			private var resultSql:String ;
+			[Bindable]
+			private var flowtodoheaderArr:Array = new Array( 
+				["业务类型","FlowModelId",120,"",FAppCoreUtil.fcFlowTypeName,""],     //字段，数组1：字段名，数组2：显示字段
+				["业务部门","FlowDeptName",85,"",FAppCoreUtil.fcString,""], 
+				["呈报者","SenderName",70,"",FAppCoreUtil.fcString,""],     //数组3：显示宽度，为0表示不显示，数组4：显示为CheckBox
+				["业务ID","BillId",70,"",FAppCoreUtil.fcString,""],
+				["呈报标题","FlowTitle",300,"",FAppCoreUtil.fcString,""],   //数组5:字段类型,数组6：常量ID
+				["业务客商","CustomerName",150,"",FAppCoreUtil.fcString,""],
+				["业务项目/合同名称","SubOrBgnName",150,"",FAppCoreUtil.fcString,""],
+				["接收时间","HandleDate",100,"",FAppCoreUtil.fcDateTime,""],
+				["流程状态","CheckState",70,"",FAppCoreUtil.fcFlowCheckState,""],
+				["提醒","WarnTag",0,"",FAppCoreUtil.fcInteger,""]
+			);
+			
+			
+			private function init():void{
+				//权限检查
+				var models:int= FAppCore.FRightsArr.length;
+				for (var i:int=0;i < models;i++) 
+				{
+					if(FAppCore.FRightsArr[i]["ControlName"]==batchAgree.name)
+					{
+						this.batchAgree.visible=true;
+						break;
+					}else
+					{
+						this.batchAgree.visible=false;
+					}
+				}
+				
+				HistoryListDG.grid.setStyle("borderStyle","solid");
+				HistoryListDG.grid.setStyle("borderThickness",1);
+				var str:String = "";
+				if (FAppCore.PrjCon)   //合同
+					str = " (Type = 'contract' or type ='project/contract') ";
+				else
+					str = " (Type = 'project' or type ='project/contract') ";
+				
+				resultSql = str + " and  CheckState =142  and MakeRubbish ='false'  and  HandlerId =  '" + FAppCore.FCusUser.UserId + "' ";
+				
+			}
+			
+			private function checkstateLabelFunction(item:Object, column:DataGridColumn):String {
+				var resultStr:String;
+				switch (item.CheckState)
+				{
+					case 141:
+						resultStr="未到";
+						break;
+					case 142:
+						resultStr="未处理";
+						break;
+					case 145:
+						resultStr="同意";
+						break;
+					case 146:
+						resultStr="不同意";
+						break;
+					case 147:
+						resultStr="等待";
+						break;
+				}
+				return resultStr;
+			}
+			
+			//批量处理 opre true 同意 false 不同意
+			private function batchDeal(opre:Boolean):void
+			{
+				
+				TAlert.show((opre?"同意":"不同意") + "所有选中的流程,请确认!","系统提示",TAlert.YES|TAlert.NO,this,function alert(event:CloseEvent):void{
+					if (event.detail==TAlert.YES)
+					{
+						if (checkSeled(opre))
+						{
+							var service:FlowNodeInstenceService = new FlowNodeInstenceService();
+							service.batchSendFlowTodo(flowNodeInstenceArr,opre).addResultListener(sendFlowTodoOk).addFaultListener(sendFlowTodoError);
+							/* flowDataDeal.DataDeal_QueryToData("GenericDestination", "Ccspm.FlowNodeInstenceBLL", "batchSendFlowTodo", [flowNodeInstenceArr,opre]);
+							flowDataDeal.RemoteMethods.addEventListener(ResultEvent.RESULT, sendFlowTodoOk);
+							flowDataDeal.RemoteMethods.addEventListener(FaultEvent.FAULT, sendFlowTodoError); */
+						}
+					}
+				}
+				);
+			}
+			
+			private function sendFlowTodoOk(event:ResultEvent):void
+			{
+				FAppCore.showInfotoLeftLowerCorner("复合审批成功");
+				HistoryListDG.reloaddata();
+				//刷新待办
+				//	Application.application.reloadFlowtodoData("MessageCanvas","",false);
+				var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this,false);
+				FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+			}
+			private function sendFlowTodoError(event:FaultEvent):void
+			{
+				TAlert.show("复合审批失败,请检查","系统警告",TAlert.OK,null, 
+					function OKrefreash(event:CloseEvent):void
+					{
+						HistoryListDG.reloaddata();
+						var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this,false);
+						FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+					}); 
+			}
+			//判断类型
+			private function checkSeled(opre:Boolean):Boolean
+			{
+				flowNodeInstenceArr = new Array(); 
+				if (HistoryListDG==null || HistoryListDG.grid==null) return false;
+				var selArr:Array = HistoryListDG.grid.selectedItems;
+				if (selArr.length==0) return false;
+				var flowModelType:int=0;
+				for (var i:int=0;i<selArr.length;i++)
+				{
+					if (selArr[i].FlowID==null) continue;
+					//如果是待呈报，则去掉
+					if (selArr[i].NodeAttr==-3) continue;
+					if (selArr[i].CheckState!=142)
+					{
+						TAlert.show("所选中含有有已审批过业务,请重新选择","系统提示");
+						return false;
+					}
+					if (flowModelType!=0)
+					{
+						if (flowModelType!= selArr[i].FlowModelId)
+						{
+							TAlert.show("只能复合审批同一业务类型,请重新选择","系统提示");
+							return false;
+						}
+					}
+					if (!opre && selArr[i].NodeAttr == -2)
+					{
+						TAlert.show("通过通知,不能执行不同意操作","系统提示");
+						return false;
+					}
+					flowModelType=selArr[i].FlowModelId;
+					
+					flowNodeInstenceArr.push(selArr[i]);
+				}
+				if (flowNodeInstenceArr.length==0)
+				{
+					TAlert.show("请选择数据","系统提示");
+					return false;
+				}
+				return true;	
+			}
+			
+			public function reloaddata():void{
+				HistoryListDG.reloaddata();
+			}
+			public function ExcelClick():void{
+				HistoryListDG.toDoExcelFlow();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="start"/>
+		<s:State name="searchState"/>
+	</s:states>
+	<!--<mx:states>
+	<mx:State enterState="clearData()" name="searchState">
+	<mx:AddChild position="lastChild">
+	<launch:SearchWindow id="searchWindow" horizontalCenter="0" verticalCenter="0">
+	</launch:SearchWindow>
+	</mx:AddChild>
+	</mx:State>
+	</mx:states>-->
+	<s:BorderContainer left="5" right="5" top="1" bottom="5" cornerRadius="3">
+		<s:VGroup width="100%" height="100%" gap="1">
+			<s:HGroup id="hbox1" width="100%" height="25" gap="2"
+					  verticalAlign="middle" paddingLeft="1" paddingRight="25">
+				<s:Button width="85" height="23" label="查询"
+						  click="{this.currentState ='searchState';HistoryListDG.enabled = false;}"
+						  icon="@Embed(source='assets/img/find.png')"/>
+				<s:Button id="batchAgree" visible="false" width="95" height="23" label="复合审批"
+						  click="batchDeal(true);" icon="@Embed(source='assets/img/Choose.png')"
+						  name="batchDeal" toolTip="同意所有选中的流程"/>
+				<s:Button id="batchDisAgree" visible="false" label="批量不同意" click="batchDeal(false);"/>
+				<s:Label width="100%"/>
+				<s:Image id="ImgRefresh"  width="18" height="18" buttonMode="true"
+						 click="reloaddata();" smooth="true" 
+						 source="@Embed(source='assets/img/reload.png')" toolTip="刷新"/>
+				<!--<mx:LinkButton id="butExcel" right="0" top="0" width="83" height="18" label="导出EXCEL"
+							   click="ExcelClick();" textDecoration="none" toolTip="导出待办消息" />-->
+				<s:Label width="8"/>
+				<s:Image id="butExcel" width="16" height="16" top="13"
+						 buttonMode="true" click="ExcelClick();" smooth="true"
+						 source="@Embed(source='assets/img/upexcel.png')" toolTip="导出EXCEL"/>	
+			</s:HGroup>
+			<launch:FlowtodoAdvancedataGrid flowtodoheaderArr="{flowtodoheaderArr}" id="HistoryListDG" width="100%" height="100%"
+											WhereStr="{resultSql }"/>
+		</s:VGroup>
+	</s:BorderContainer>
+	<launch:SearchWindow includeIn="searchState" id="searchWindow" horizontalCenter="0" verticalCenter="0">
+	</launch:SearchWindow>
+</s:NavigatorContent>

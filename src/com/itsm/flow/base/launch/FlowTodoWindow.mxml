@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Module xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:components="common.components.*"
+					implements="com.itsm.common.as3.IModules"
+					width="100%" height="100%" creationComplete="init();">
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ArgsEvent;
+			import com.itsm.flow.events.ReloadFlowtodoEvent;
+			import com.itsm.serviceManager.module.bugManager.mxml.BugManagerView;
+			import com.services.flow.FlowNodeInstenceService;
+			import com.services.flow.FlowOprtModuleService;
+			import com.vo.CusUsers;
+			import com.vo.FlowNodeInstence;
+			
+			import common.events.ModuleLoaderEvent;
+			import common.managers.ModuleManger;
+			import common.utils.FAppCoreUtil;
+			import common.utils.TAlert;
+			
+			import flash.utils.flash_proxy;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.core.Application;
+			import mx.core.Container;
+			import mx.core.FlexGlobals;
+			import mx.core.UIComponent;
+			import mx.core.mx_internal;
+			import mx.effects.Fade;
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			import mx.modules.ModuleManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.filters.GlowFilter;
+			
+			[Bindable]
+			public var dealWithIdea:String="批准";
+			[Bindable]
+			public var mArr:ArrayCollection;
+			public var dealSelArr:ArrayCollection;
+			public var FlowingFlag:int=-1;
+			public var flowNodeInstence:Object;
+			public var FISAfterFlowCommit:Boolean=false;
+			private var displayobj:*;
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			private var myIdeaSelect:IdeaSelectForm;
+			private var BusinessTime:Date;
+			[Bindable]
+			private var willAgreeEvent:Event;
+			//判断是否在dealWithideaText获取焦点是清空其中内容
+			[Bindable]
+			private var eventFlag:Boolean = false;
+			
+			public function setWindowObj(obj:Object):void{
+				this.flowNodeInstence = obj;
+			}
+			
+			private function init():void
+			{
+				displayobj = null;
+				var billid:Number=flowNodeInstence.billId;
+				if (billid==0){
+					FAppCore.sendSysInfo("未找到数据，请检查");
+					return;
+				}
+				//displayobj = FlowLoadPage.createFlowTodoPage(flowNodeInstence.ModuleCode.toString(), flowNodeInstence.BillId, FISAfterFlowCommit);
+				loadReturnHandler();
+				
+			}
+			
+			private function loadReturnHandler():void{
+				var defineClass:Class= ModuleManger.getClass(flowNodeInstence.flowOprtModuleUrl);
+				if(defineClass!=null){
+					displayobj=new defineClass;
+					
+					if(displayobj!=null){
+						if (flowNodeInstence){
+							if (flowNodeInstence.checkState!=142) checkedEnable = false;
+							if (displayobj.hasOwnProperty("FISAfterFlowCommit")) displayobj["FISAfterFlowCommit"]=true;
+							if (displayobj.hasOwnProperty("billId")) displayobj["billId"]=flowNodeInstence.billId;
+							if (displayobj.hasOwnProperty("FlowingFlag")) displayobj["FlowingFlag"]=flowNodeInstence.cpsFlowOprtModuleId;
+							if (displayobj.hasOwnProperty("oprtTypeId")) displayobj["oprtTypeId"]=flowNodeInstence.oprtTypeId;
+							if (displayobj.hasOwnProperty("FlowingParameter")) displayobj["FlowingParameter"]=flowNodeInstence.other1;
+							if (displayobj.hasOwnProperty("IsSave")) displayobj["IsSave"]= (flowNodeInstence.checkState==142?true:false);
+							//JMS
+							if (flowNodeInstence.systemId==2){
+								displayobj.initilize(flowNodeInstence.billId.toString());
+							}
+							
+							new FlowOprtModuleService("flowModel", "FlowModel").GetZhuanBan(flowNodeInstence.oprtTypeId,flowNodeInstence.zhuanBan).addResultListener(onGetZhuanBan);
+					
+							//退回意见选项
+							if (flowNodeInstence.isReason==1){
+							
+								HdealWithideaSel.visible=true;
+								HdealWithideaSel.height=24;
+							//	GetDealSel(flowNodeInstence.CompId,flowNodeInstence.OprtTypeID);
+							
+							}  
+							//没有转办按钮
+							if(flowNodeInstence.btnTag==1){
+								
+								trunThisFlowNodeInsteceBt.visible=false;
+								trunThisFlowNodeInsteceBt.height=0;
+								
+							}
+							//没有确定按钮
+							if(flowNodeInstence.btnTag==2){
+							
+								doThisFlowNodeInsteceBt.visible=false;
+								doThisFlowNodeInsteceBt.height=0;
+							
+							}
+						
+						}
+						/** FlowBillModi 默认不同意，同意不能选 
+						 *  FlowBillSave 可以审批，改选同意
+						 *  FlowBillDoubleForbit “同意”与“不同意”都不能操作
+						 *  FlowBillDisagreeForbit “不同意”不能操作
+						 *  FlowBillAgreeForbit “同意”不能操作
+						 *  FlowBillFinished 结束
+						 * */
+						displayobj.addEventListener("FlowBillModi",ModiBillEvent);  //执行某操作后方能审批
+						displayobj.addEventListener("FlowBillSave",SaveBillEvent);	//允许审批
+						displayobj.addEventListener("FlowBillDoubleForbit",DoubleForbitBillEvent);//“同意”与“不同意”都不能操作
+						displayobj.addEventListener("FlowBillDisagreeForbit",DisagreeForbitBillEvent);//“不同意”不能操作
+						displayobj.addEventListener("FlowBillAgreeForbit",AgreeForbitBillEvent);//“同意”不能操作
+						displayobj.addEventListener("FlowBillFinished",FinishedBillEvent);
+						//监听时间事件
+						displayobj.addEventListener("FlowBusinessTime",onBusinessTime);
+						/** 
+						 * FlowBillEnable,FlowNotBillSave,FlowAllBillSave
+						 * 后三个事件废用 ，前两个已经能够处理所有情况 
+						 * **/
+						/* 	displayobj.addEventListener("FlowBillEnable",EnableBillEvent); //只能同意
+						displayobj.addEventListener("FlowNotBillSave",NotBillSaveEvent); //可能审批，只能不同意
+						displayobj.addEventListener("FlowAllBillSave",AllBillSaveEvent);     //同意/不同意 都可审批
+						*/
+						
+						BillContainer.addElement(displayobj);
+					}else{
+						var errorlabe:Label = new Label();
+						errorlabe.percentWidth = 100;
+						errorlabe.text = "没有挂载的页面";
+						errorlabe.setStyle("textAlign","center");
+						
+						BillContainer.addElement(errorlabe);
+					}
+					
+				}
+				
+			}
+			private function onGetZhuanBan(aEvent:ResultEvent):void{
+				var json:String = aEvent.result as String;
+				
+				mArr= AppCore.getInstance().jsonDecoder.decode(json) as ArrayCollection;
+				if(mArr.length==0) isFlowTurn=false;
+			}
+/* 			private function GetDealSel(CompId:int,OprtTypeID:int):void{
+			 
+				new FlowNodeInstenceService().GetDealSel(CompId,OprtTypeID).addResultListener(onGetDealSel);	
+			} */
+			
+			
+
+/* 			private function onGetDealSel(aEvent:ResultEvent):void{
+				dealSelArr= new ArrayCollection(aEvent.result as Array);
+				dealWithideaSel.dataProvider=dealSelArr;
+				dealWithideaSel.textInput.text="";
+				
+			} */
+			private function OpenDataWind():void{
+			
+				var aParent:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				myIdeaSelect=IdeaSelectForm(PopUpManager.createPopUp(aParent, IdeaSelectForm, true));
+				myIdeaSelect.GridWhereStr=" CompId= "+flowNodeInstence.compId+" and FlowOprtID="+flowNodeInstence.oprtTypeID+""; 
+				myIdeaSelect.addEventListener("FieldFormOK",onDealSelChange);
+				PopUpManager.centerPopUp(myIdeaSelect);
+
+			}
+ 			private function onDealSelChange(event:Event):void{
+			
+		    	var IdeaText:String = myIdeaSelect.text;	
+				SelValueInput.text = IdeaText;
+				dealWithIdea=SelValueInput.text; 
+			} 
+			
+			private function onBusinessTime(event:ArgsEvent):void{
+				BusinessTime = event.args as Date;
+			}
+			
+			/**为消息提醒框赋值*/
+			private function eventShareMethod():void{
+				if("opinion" in displayobj && "fadeMsg" in displayobj){
+					dealWithIdea = displayobj.opinion;
+					lbBeforeSave.text = displayobj.fadeMsg;
+				}else{
+					dealWithIdea = "";
+					lbBeforeSave.text = "";
+				}
+			}
+			
+			private function AgreeForbitBillEvent(event:Event):void{
+				eventFlag = true;
+				agreeNode.selected = false;
+				agreeNode.enabled = false;
+				checkedEnable = true;
+				refuse.selected = true;
+				refuse.enabled = true;
+				eventShareMethod();
+				showAndHideLabel(true);
+			}
+			
+			private function DisagreeForbitBillEvent(event:Event):void{
+				eventFlag = true;
+				agreeNode.selected = true;
+				agreeNode.enabled = true;
+				refuse.selected = false;
+				refuse.enabled = false;
+				checkedEnable = true;
+//				dealWithIdea="子流程已创建";
+//				lbBeforeSave.text = "子流程已创建↘";
+				eventShareMethod();
+				showAndHideLabel(true);
+			}
+			
+			private function DoubleForbitBillEvent(event:Event):void{
+				eventFlag = true;
+				checkedEnable = false;
+				agreeNode.selected = false;
+				agreeNode.enabled = false;
+				refuse.selected = false;
+				refuse.enabled = false;
+				eventShareMethod();
+				showAndHideLabel(true);
+			}
+			
+			private function FinishedBillEvent(event:Event):void
+			{
+				eventFlag = false;
+				checkedEnable = true;
+				agreeNode.enabled=true;
+				agreeNode.selected=true;
+				refuse.selected = false;
+				refuse.enabled = false;
+				dealWithIdea="批准";
+				SelValueInput.text = "";
+				showAndHideLabel(true);
+			}
+			
+			private function ModiBillEvent(event:Event):void
+			{
+				dealWithIdea="不批准";
+				agreeNode.selected=false;
+				agreeNode.enabled=false;
+				refuse.selected=true;
+				refuse.enabled=true;
+				checkedEnable = true;
+				showAndHideLabel(true);
+			}
+			
+			private function SaveBillEvent(event:Event):void
+			{
+				agreeNode.enabled=true;
+				agreeNode.selected=true;
+				checkedEnable = true;
+				dealWithIdea="批准";
+				SelValueInput.text = "";
+				showAndHideLabel(false);
+			}
+			
+			private var fade:Fade;
+			private function showAndHideLabel(isshow:Boolean):void{
+				if (isshow){
+					lbBeforeSave.width=62;
+					lbBeforeSave.visible = true;
+					if (!fade){
+						fade = new Fade();
+						fade.target = lbBeforeSave;
+						fade.repeatCount=0;
+						fade.repeatDelay=100;
+						fade.alphaTo=0;
+					}
+					fade.play();
+				}else{
+					lbBeforeSave.width=0;
+					lbBeforeSave.visible = false;
+					if (fade){
+						fade.end();
+						fade.stop();
+					}
+				}
+			}
+			
+			/* 	private function EnableBillEvent(event:Event):void{
+			refuse.selected = false;
+			agreeNode.selected = true;
+			refuse.enabled = false;
+			dealWithideaText.text = "批准";
+			}
+			
+			private function NotBillSaveEvent(event:Event):void
+			{
+			agreeNode.enabled=false;
+			refuse.selected=true;
+			}
+			
+			private function AllBillSaveEvent(event:Event):void
+			{
+			agreeNode.enabled=true;
+			refuse.enabled = true;
+			}
+			*/
+			/**
+			 * 确定
+			 * */
+			private function doThisFlowNodeInstece():void
+			{
+				//判断业务时间与当前时间是否与当前日期是否在同一帐期
+				if (agreeNode.selected && flowNodeInstence.isNeedCheckDate && BusinessTime){
+					var bYear:int = BusinessTime.getFullYear();
+					var bMonth:int = BusinessTime.getMonth();
+					var nowDate:Date = new Date();
+					var nYear:int = nowDate.getFullYear();
+					var nMonth:int = nowDate.getMonth();
+					if (bYear != nYear || bMonth != nMonth){
+						TAlert.show("业务时间与当前时间不在同一个月,是否继续","系统提示",TAlert.YES|TAlert.NO,null,
+								function onAler(event:CloseEvent):void{
+									if (event.detail == TAlert.YES)
+										onArgee();
+								}
+							);
+					}else
+						onArgee();
+				}else
+					onArgee();
+				
+				function onArgee():void{
+					var FlowingOprtTypeId:int=flowNodeInstence.oprtTypeID;
+					var FlowingBillId:int=flowNodeInstence.billId;
+					
+					
+					flowNodeInstence.dealWithIdea=dealWithideaText.text;
+					
+					if (agreeNode.selected)
+					{
+						willAgreeEvent = new Event("willAgreeEvent");
+						displayobj.dispatchEvent(willAgreeEvent);
+						if("agreeBefore" in displayobj){
+							var flag:Boolean = true;
+							 displayobj.agreeBefore();
+						}
+						flowNodeInstence.checkState=145;
+						displayobj.flowResult();
+					}
+					
+					else if (refuse.selected)
+					{
+						flowNodeInstence.checkState=146;
+						displayobj.disagree();
+					}
+					var service:FlowNodeInstenceService = new FlowNodeInstenceService("flowGlobal", "FlowGlobal");
+					service.sendFlowTodo(flowNodeInstence,null,null).addResultListener(sendFlowTodoOk).addFaultListener(sendFlowTodoError);
+					//资料制作，完工图纸审批--添加资料录入
+					if(FlowingFlag==3&&FlowingOprtTypeId==189){
+					
+//						var  DIservice:DataInfoInputService=new DataInfoInputService();
+//						var  userId:int=FAppCore.FCusUser.UserId;
+//						var  compId:int=FAppCore.FCusUser.CompId;
+//						var  deptId:int=FAppCore.FCusUser.DeptId;
+//						DIservice.AddDataInfoInputByDataInfoMakingId(FlowingBillId,userId,compId,deptId).addResultListener(AddDataInfoInputOk);
+					}
+				}
+				
+			}
+			
+			private function AddDataInfoInputOk(event:ResultEvent):void
+			{
+				var addResult:String=event.result.toString();	
+				if(addResult==null||addResult=="0") return;	
+				
+				
+				//完工资料+保存项目Id
+				//var FlowBillId:int=int(addResult);
+				var arr:Array=new Array()
+				var Oitem:String="department:" + FAppCore.FCusUser.DeptId;
+				arr.push(Oitem);
+				
+				
+	/* 			FAppCore.StartFlowInstence(FAppCore.FCusUser, 195, FlowBillId, arr, FISAfterFlowCommit, startFlowInstenceOk); */
+				var flow:FlowNodeInstenceService = new FlowNodeInstenceService();
+				//LoadingProgressBar.addPopUp(DisplayObject(FlexGlobals.topLevelApplication),false);
+				
+				//sendId未添加
+				flow.StartFlowInstence(FAppCore.FCusUser, "","195",addResult,arr,FISAfterFlowCommit)
+				
+			}
+			private function startFlowInstenceOk(event:Event):void
+			{
+				//呈报成功刷新待办并是否关闭页面，如果是待办中再次呈报就要关闭当前页，模块中则不需关闭
+
+			}
+			/**
+			 * 转办
+			 * */
+			private function turnThisFlowNodeInstece():void{
+				if (refuse.selected){
+					FAppCore.sendSysInfo("转办不能选不同意");
+					return;
+				}
+				var aParent:DisplayObject=DisplayObject(FlexGlobals.topLevelApplication);
+				var FlowTurn:FlowTurnWindow=FlowTurnWindow(PopUpManager.createPopUp(aParent, FlowTurnWindow, true));
+				FlowTurn.LoadData(dealWithideaText.text,mArr);
+				FlowTurn.addEventListener(FlowTurnWindow.EVENT_OK_CLICK, turn);
+				PopUpManager.centerPopUp(FlowTurn);
+			}
+			private function turn(event:Event):void {
+				var flowturn:FlowTurnWindow = event.currentTarget as FlowTurnWindow;
+				
+				var user:CusUsers = flowturn.turnUser;
+				
+				var userObjce:Object = new Object();
+				userObjce.id=user.UserId;
+				userObjce.personName=user.UserName;
+					
+				var flowModuleCode:String=flowturn.ModuleCode;
+				if (user==null){
+					FAppCore.sendSysInfo("转办人为空");
+					return;
+				}
+				var dealWithText:String  = flowturn.dealWith;
+				flowNodeInstence.checkState=145;
+				flowNodeInstence.dealWithIdea = (dealWithText=="")?dealWithideaText.text:dealWithText;
+				new FlowNodeInstenceService("flowGlobal", "FlowGlobal").sendFlowTodo(flowNodeInstence,userObjce,flowModuleCode).addResultListener(sendFlowTodoOk).addFaultListener(sendFlowTodoError);
+				PopUpManager.removePopUp(flowturn);
+			}
+			
+			private function getBackNodeInstencesOk(event:ResultEvent):void
+			{
+				var frontFlowNodeinstences:Array=event.result as Array
+				//	frontFlowNodeInstenceRepeater.dataProvider=frontFlowNodeinstences;
+				//	flowHistoryDG.dataProvider=frontFlowNodeinstences;
+			}
+			
+			private function sendFlowTodoError(event:FaultEvent):void
+			{
+				var errMess:String = event.fault.faultString;
+				if (errMess == "146-Error")
+				{
+					FAppCore.sendSysInfo("该待办已经流转到下一步，不能处理“不同意”操作。");
+				}
+				else
+				{
+					FAppCore.sendSysInfo(event.fault.faultString);
+					refreshMyFlowtodo();
+				}
+			}
+			
+			private function sendFlowTodoOk(event:ResultEvent):void
+			{
+				var json:String = event.result as String;
+				var obj:Object = JSON.parse(json);
+				if(obj.result as Boolean){
+					var msg:String = obj.msg as String;
+					
+					var nextFNIs:Array=JSON.parse(msg) as Array;
+					var nextCheckerName:String=":";
+					for each (var flowNodeInstence:Object in nextFNIs)
+					{
+						if (flowNodeInstence.nodeAttr == -2)
+						{
+							refreshMyFlowtodo();
+							//TAlert.show("该流程已经结束，申请已获得通过 ", "系统提示");
+							return;
+						}
+						if (flowNodeInstence.handlerName != null || flowNodeInstence.handlerName != "null" || flowNodeInstence.handlerName != "")
+						{
+							nextCheckerName+=flowNodeInstence.handlerName + "   ";
+						}
+					}
+					doThisFlowNodeInsteceBt.enabled=false;
+					trunThisFlowNodeInsteceBt.enabled=false;
+					refreshMyFlowtodo();
+					FAppCore.showInfotoLeftLowerCorner("处理成功, 待办已经发送到" + nextCheckerName );
+				}else{
+					TAlert.show(obj.msg, "系统提示");
+				}
+				
+			}
+			
+			private function refreshMyFlowtodo():void
+			{
+				/* fj2011			 	var messageCanvas:MessageCanvas =Application.application.messageCanvas
+				if(messageCanvas == null){
+				messageCanvas = Application.application.navMain.getChildByName(new MessageCanvas().className);
+				}
+				if(messageCanvas != null){
+				//Application.application.reloadFlowtodoData(flowNodeInstence.ModuleCode+"",FlowLaunchEnginer.launchFlow);
+				if(Application.application.FAppCore.FUrlParams.FlowInsId!=null) return;
+				Application.application.reloadFlowtodoData(this.name,FlowLaunchEnginer.launchFlow,true);
+				}
+				*/ 
+				
+				var closeevent:ReloadFlowtodoEvent = new ReloadFlowtodoEvent(this);
+				FlexGlobals.topLevelApplication.dispatchEvent(closeevent);
+			}
+			
+			private function checkstateLabelFunction(item:Object, column:DataGridColumn):String
+			{
+				var resultStr:String;
+				switch (item.CheckState)
+				{
+					case 141:
+						resultStr="未到";
+						break;
+					case 142:
+						resultStr="未处理";
+						break;
+					case 145:
+						resultStr="同意";
+						break;
+					case 146:
+						resultStr="不同意";
+						break;
+					case 147:
+						resultStr="等待";
+						break;
+				}
+				return resultStr;
+			}
+			
+			private function handleTimeLabelFunction(item:FlowNodeInstence, column:DataGridColumn):String
+			{
+				var resultStr:String=item.handleDate.getFullYear() + "年" + (item.handleDate.getMonth() + 1) + "月" + item.handleDate.getDate() + "日  " + item.handleDate.getHours() + ":" + item.handleDate.getMinutes();
+				return resultStr;
+			}
+ 			private function changeIdea(event:Event):void{
+				if(event.currentTarget is RadioButtonGroup){
+					if(RadioButtonGroup(event.currentTarget).selectedValue ==1){
+						
+						dealWithIdea = "批准";
+						SelValueInput.text="";
+						SelButton.enabled=false;
+					}else{
+						
+						dealWithIdea = "不批准";
+						SelButton.enabled=true;
+						SelValueInput.text="";
+					}
+				}
+			} 
+			[Bindable]
+			public var checkedEnable:Boolean = true;
+			[Bindable]
+			public var agreeed:Boolean = true;
+			[Bindable]
+			public var checkedHeight:int = 100;
+			[Bindable]
+			private var isFlowTurn:Boolean = true;
+//			private var isFlowTurn:Boolean = FAppCore.getUserSetBySetTypeID(24).data;
+			
+			protected function dealWithideaText_clickHandler(event:MouseEvent):void
+			{
+				if(eventFlag){
+					if(radiogroup1.selectedValue ==1){
+						
+						dealWithIdea = "批准";
+						SelValueInput.text="";
+						SelButton.enabled=false;
+					}else{
+						
+						dealWithIdea = "不批准";
+						SelButton.enabled=true;
+						SelValueInput.text="";
+					}
+				}
+				eventFlag = false;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroup1" change="changeIdea(event);"/>
+	</fx:Declarations>
+	<mx:VDividedBox width="100%" height="100%" creationPolicy="all" paddingTop="5" paddingLeft="5" paddingRight="5" paddingBottom="5">
+		<s:BorderContainer visible="{checkedHeight>0}" right="0" width="100%"
+				 height="{checkedHeight}" minHeight="50" maxHeight="100">
+			<s:layout>
+				<s:HorizontalLayout/>
+			</s:layout>
+			<s:HGroup width="100%" height="100%" gap="0" horizontalAlign="center"
+					  verticalAlign="middle" paddingTop="2" paddingBottom="2">
+				<s:VGroup width="100%" height="100%" gap="2" horizontalCenter="0"
+						  verticalAlign="middle" verticalCenter="0">
+					<s:HGroup y="28" width="100%" height="98%" gap="0" verticalAlign="middle">
+						<s:Label text=" 审批意见"/>
+						<s:TextArea id="dealWithideaText"  height="98%" width="100%"
+									fontSize="12" text="{dealWithIdea}"
+								    click="dealWithideaText_clickHandler(event)"/>
+					</s:HGroup>
+					<s:HGroup y="103" width="100%" id="HdealWithideaSel" height="0" visible="false" gap="0" verticalAlign="middle">
+						<s:Label text=" 意见选项"/>
+						
+						<s:TextInput width="100%" height="100%" id="SelValueInput" fontSize="12" editable="false" />
+						<s:Button id="SelButton" width="30" height="24" click="OpenDataWind()"
+								  enabled="false" styleName="btnQry" toolTip="选择"/>
+						
+			<!--			<fieldselect:FieldSelect id="IdeaGrid"   width="100%" height="23"
+												 FieldSelInit="initFieldClient(event)" isInput="true"/>		
+						-->
+				<!--		<s:ComboBox id="dealWithideaSel" labelField="dealWithidea" change="{onDealSelChange();}" enabled="false"  width="100%" height="23"/>
+				-->	</s:HGroup>
+				</s:VGroup>
+				
+				<s:HGroup id="checkBar" x="556" width="166" height="100%" horizontalAlign="center"
+						  paddingRight="5" verticalAlign="middle" verticalCenter="0" gap="2">
+					<s:RadioButton id="agreeNode" value="1" label="同意" enabled="{checkedEnable}"
+								   groupName="radiogroup1" selected="{agreeed}"/>
+					<s:Label id="lbBeforeSave" visible="false"  width="0" height="30"
+							 filters="{new spark.filters.GlowFilter()}" text="↙请先保存"
+							 verticalAlign="top"/>
+					<s:RadioButton id="refuse" value="0" label="不同意" enabled="{checkedEnable}"
+								   groupName="radiogroup1" selected="{!agreeed}"/>
+				</s:HGroup>
+				<s:VGroup width="100" height="100%" gap="2" horizontalCenter="0"
+						  verticalAlign="middle" verticalCenter="0">
+					<components:IconButton id="doThisFlowNodeInsteceBt" width="80"
+										   height="23" label="确定"
+										   click="doThisFlowNodeInstece();"
+										   enabled="{checkedEnable}" styleName="submit"/>
+					<components:IconButton width="80" height="23" label="返回"
+										   click="refreshMyFlowtodo();"
+										   styleName="back"/>
+					<components:IconButton id="trunThisFlowNodeInsteceBt" width="80"
+										   height="{isFlowTurn?23:0}" label="转办" visible="{isFlowTurn}"
+										   click="turnThisFlowNodeInstece();"
+										   enabled="{checkedEnable}" styleName="flowTurn"/>
+				</s:VGroup>
+			</s:HGroup>
+		</s:BorderContainer>
+		<s:BorderContainer id="BillContainer" width="100%" height="100%" cornerRadius="3" borderVisible="false">
+			<s:layout>
+				<s:HorizontalLayout paddingLeft="5" paddingTop="5" paddingRight="5" paddingBottom="5"/>
+			</s:layout>
+		</s:BorderContainer>	
+	</mx:VDividedBox>
+	
+</s:Module>

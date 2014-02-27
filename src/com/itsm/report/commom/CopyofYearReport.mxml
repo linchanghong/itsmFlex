@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:control="com.framelib.control.*"
+		  xmlns:custom="com.itsm.common.custom.*"
+		  xmlns:mxml="com.itsm.common.mxml.*"
+		  width="100%" height="100%" creationComplete="creationCompleteHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.common.mxml.FieldSelect;
+			import com.itsm.common.utils.AppCore;
+			import com.itsm.flow.app.GlobalUtil;
+			
+			import common.utils.TAlert;
+			
+			import mx.events.ListEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.DateField;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			[Bindable]
+			public var appCore:AppCore = AppCore.getInstance();
+			
+			private var FAppCore:GlobalUtil = GlobalUtil.getInstence();
+			
+			[Bindable]
+			private var FLOW_TYPE:String="";   //流程业务类型
+			
+			//所属系统
+			[Bindable]
+			public var systems:ArrayCollection;
+			
+			private var sqlWhere:String="";      //查询条件
+			
+			[Bindable]
+			private var gdData:Array = null;//页面表格数据集
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				reportInfo_Grid.dataProvider=['yearReportManagerAPI', 'YearReportManagerAPI', 'findAllYearReportPage', [sqlWhere]];
+			}
+			private function resetReportInfo():void{
+				var dateNowStr:String=DateField.dateToString(new Date(),"YYYY年MM月DD日");
+				reporter.text=appCore.loginUser.userName;
+				
+			}
+		
+			
+			private function dList_System_BindHandle(event:ResultEvent):void{
+				var resultStr:String = event.result.toString();	
+				systems = appCore.jsonDecoder.decode(resultStr) as ArrayCollection;
+				dList_System.dataProvider = systems;
+				bindDropDownList();
+			}
+			
+			//查询按钮点击事件		
+			public function btn_query_clickHandler(event:MouseEvent):void{
+				
+			}
+			//呈报按钮点击事件		
+			public function btn_submit_clickHandler(event:MouseEvent):void{
+				
+			}
+			//删除按钮点击事件		
+			public function btn_delete_clickHandler(event:MouseEvent):void{
+				if(reportInfo_Grid.selectedIndex!=-1){
+					if(reportInfo_Grid.selectedItem.status!="0"){
+						TAlert.show("只能删除未呈报的数据！","系统提示");
+						return;
+					}
+					TAlert.show("你确定要删除选中的数据？","系统提示", TAlert.YES | TAlert.NO, null, 
+						function(ent:CloseEvent):void{
+							if (ent.detail == TAlert.YES){
+								var reportId:String=reportInfo_Grid.selectedItem.id;
+								appCore.dataDeal.dataRemote("yearReportManagerAPI","YearReportManagerAPI","deleteYearReport", [reportId]);
+								appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,
+									function(evt:ResultEvent):void{
+										if(evt.result as String=="0"){
+											TAlert.show("删除失败！", "系统提示");
+											return;
+										}
+										reportInfo_Grid.dataProvider=['yearReportManagerAPI', 'YearReportManagerAPI', 'findAllYearReportPage', [sqlWhere]];
+									}
+								);
+							}
+						});
+				}else{
+					TAlert.show("请选择需要删除的数据！","系统提示");
+				}
+				
+			}
+			//编辑按钮点击事件		
+			public function btn_edit_clickHandler(event:MouseEvent):void{
+				if(reportInfo_Grid.selectedIndex!=-1){
+					if(reportInfo_Grid.selectedItem.status!="0"){
+						TAlert.show("只能编辑未呈报的数据！","系统提示");
+						return;
+					}
+					if(reportInfo_Grid.selectedItem.opid.id==appCore.loginUser.id){
+						this.currentState="modify";
+						bindDropDownList();
+						year.text=reportInfo_Grid.selectedItem.year;
+						text_content.text=reportInfo_Grid.selectedItem.content;
+						startDate.text=reportInfo_Grid.selectedItem.beginDate;
+						endDate.text=reportInfo_Grid.selectedItem.endDate;
+						resetReportInfo();
+					}else{
+						TAlert.show("不能编辑他人的数据！","系统提示");
+					}
+				}else{
+					TAlert.show("请选择需要编辑的数据！","系统提示");
+				}
+			}
+			
+			//查看按钮点击事件		
+			public function btn_view_clickHandler(event:MouseEvent):void{
+				
+			}
+			//新增按钮点击事件	
+			public function btn_add_clickHandler(event:MouseEvent):void{
+				this.currentState="add";
+				resetReportInfo();
+			}
+			
+			private function  statusWorkReportResult(event:ResultEvent):void{
+				reportInfo_Grid.dataProvider=['yearReportManagerAPI', 'YearReportManagerAPI', 'findAllYearReportPage', [sqlWhere]];
+			}
+		
+			//保存按钮点击事件
+			public function addSureBtn_clickHandler(event:MouseEvent):void{
+				if(!verification()){
+					return;
+				}
+				var yearReportInof:Object=new Object();
+				yearReportInof.year=year.text;                  //年份
+				yearReportInof.content=text_content.text;                            //报告内容
+				yearReportInof.systemId=dList_System.selectedItem;              //所属支撑团队
+				yearReportInof.systemId.systemID=dList_System.selectedItem.systemID;
+				
+				var user:Object = new Object();
+				user.id = appCore.loginUser.id;
+				user.personId = appCore.loginUser.msPerson.id;
+				user.companyID = appCore.loginUser.companyId;
+				yearReportInof.opid=user;                   //填报人
+				yearReportInof.status=0;                        //报告状态,0:未呈报,1:流程中,2:已审批
+				yearReportInof.moduleId=1;
+				
+				yearReportInof.beginDate=startDate.text;        //开始日期
+				yearReportInof.endDate=endDate.text;            //截止日期
+				
+									
+				var method:String = "addYearReport";
+				if(this.currentState == "modify"){
+					method = "updateYearReport";
+					yearReportInof.id = reportInfo_Grid.selectedItem.id;
+				}else if(this.currentState == "add"){
+					method = "addYearReport";
+				}
+				appCore.dataDeal.dataRemote("yearReportManagerAPI","YearReportManagerAPI",method, [appCore.jsonEncoder.encode(yearReportInof)]);
+				appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,saveBtn_clickHandle);
+			}
+			private function saveBtn_clickHandle(event:ResultEvent):void{
+				if(this.currentState == "modify"){
+					var resultStr:String=(event.result).toString();
+					if(resultStr=="0"){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}else{
+						cancelKnowledge();
+					   this.currentState="normal";
+					   reportInfo_Grid.dataProvider=['yearReportManagerAPI', 'YearReportManagerAPI', 'findAllYearReportPage', [sqlWhere]];
+					}
+				}else{
+					var json:String = event.result as String;
+					var obj:Object = JSON.parse(json) as Object;
+					if(obj.type>=1) {
+						cancelKnowledge();
+						this.currentState="normal";
+						reportInfo_Grid.dataProvider=['yearReportManagerAPI', 'YearReportManagerAPI', 'findAllYearReportPage', [sqlWhere]];
+					}
+					else if(obj.type==-2){
+						TAlert.show("保存失败！", "系统提示");
+						return;
+					}
+					else if(obj.type==-1){
+						TAlert.show("后台异常！", "系统提示");
+						return;
+					}
+					else if(obj.type==0){
+						TAlert.show("请建Model！", "系统提示");
+						return;
+					}
+				}
+			}
+			
+			//下拉列表创建完成事件
+			protected function dList_System_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(systems == null){
+					appCore.dataDeal.dataRemote("bugManagerAPI","BugManagerAPI","initSupportSystems", []);
+					appCore.dataDeal.remoteMethods.addEventListener(ResultEvent.RESULT,dList_System_BindHandle);
+				}else{
+					dList_System.dataProvider = systems;
+				}
+			}
+			//取消按钮点击事件
+			public function addCancelBtn_clickHandler(event:MouseEvent):void{
+				cancelKnowledge();
+				this.currentState="normal";
+			}
+			//清除表单数据
+			private function cancelKnowledge():void{
+				year.text="";
+				reporter.text="";
+				startDate.text="";
+				endDate.text="";
+				dList_System.selectedIndex=-1;
+				text_content.text="";
+			}
+			//反绑定下拉列表
+			private function bindDropDownList():void{
+				if((this.currentState=="modify"||this.currentState=="query")&&reportInfo_Grid.selectedIndex!=-1){
+					if(dList_System.dataProvider==null){
+						return;
+					}
+					dList_System.selectedIndex=setDropDownListSelectedIndex(dList_System.dataProvider as ArrayCollection,"systemID",reportInfo_Grid.selectedItem.systemId.systemID);
+				}
+			}
+			//DropDownList数据绑定
+			private function setDropDownListSelectedIndex(dataArray:ArrayCollection,keyData:String,selectObj:Object):int{
+				for(var i:int=0;i<dataArray.length;i++){
+					if(dataArray.getItemAt(i)[keyData]==selectObj){
+						return i;
+					}
+				}
+				return 0;
+			}
+			//数据验证
+			private function verification():Boolean{
+				if(dList_System.selectedIndex==-1||dList_System.selectedItem==null){
+					TAlert.show("请选择所属项目！","系统提示");
+					return false;
+				}
+				if(text_content.text==null||text_content.text==""){
+					TAlert.show("请填写报告内容！","系统提示");
+					return false;
+				}
+				if(year.text==null||year.text==""){
+					TAlert.show("请填写年份！","系统提示");
+					return false;
+				}else{
+					return true;
+				}
+			}
+			
+			/**
+			 * 绑定树数据
+			 */
+			protected function tree_itemClickHandler(event:ListEvent):void
+			{
+				var item:XML = tree.selectedItem as XML;
+				var userID:int = -1;
+				var sysID:int = -1;
+				var userStatus:int = -1;
+				if(sysID > 0 || userStatus > 0){
+					gdData = 
+						["selectUserAPI", "SelectUserAPI", 
+							"findUsersWithoutID4SysOrUserStatus", 
+							[String(item.@id),userID, sysID, userStatus]];
+				}else
+					gdData = ["selectUserAPI", "SelectUserAPI", "findUsersWithoutID", [String(item.@id),userID]];
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="add"/>
+		<s:State name="modify"/>
+		<s:State name="query"/>
+	</s:states>
+	<mx:HDividedBox width="100%" height="100%">
+		<mxml:TreeAKSL id="tree" height="100%" minWidth="200" maxWidth="300" idFiled="id"
+					   isLoadDept="true" itemClick="tree_itemClickHandler(event)"
+					   labelField="@orgName" parentIdFiled="parentId"/>
+	<s:BorderContainer width="100%" height="100%">
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingBottom="5" paddingLeft="5" paddingRight="5"
+							  paddingTop="5"/>
+		</s:layout>
+	
+	<s:HGroup id="btn_hg" includeIn="normal" width="100%" horizontalAlign="left"
+			  verticalAlign="middle">
+		<s:Button id="btn_view" label="查看" click="btn_view_clickHandler(event)" styleName="view"/>
+		
+		<s:Button id="btn_edit" label="修改" click="btn_edit_clickHandler(event)" styleName="modify"/>
+		
+		<s:Button id="btn_add" label="新增" click="btn_add_clickHandler(event)" styleName="add"/>
+		
+		<s:Button id="btn_delete" label="删除" click="btn_delete_clickHandler(event)"
+				  styleName="delete"/>
+		
+		<s:Button id="btn_submit" label="呈报" click="btn_submit_clickHandler(event)"
+				  styleName="YearReport"/>
+		
+		<s:Button id="btn_query" label="查询" click="btn_query_clickHandler(event)" styleName="query"/>
+	</s:HGroup>
+	<s:VGroup includeIn="normal" width="100%" height="100%">
+		<custom:CustomDataGrid id="reportInfo_Grid" width="100%" height="100%"
+							   dataProvider="{gdData}" horizontalScrollPolicy="on"
+							   isCheckBox="false" isControlColumns="true" isPaging="true"
+							   isRowNum="true" textAlign="center">
+			<custom:columns>
+				<mx:DataGridColumn visible="false" width="0" dataField="id" headerText="主键"/>
+				<mx:DataGridColumn dataField="year" headerText="年份"/>
+				<mx:DataGridColumn dataField="opid.userName" headerText="填报人"/>
+				<mx:DataGridColumn dataField="systemId.systemName" headerText="所属项目"/>
+				<mx:DataGridColumn dataField="beginDate" headerText="报告开始时间"/>
+				<mx:DataGridColumn dataField="endDate" headerText="报告截止时间"/>
+				<mx:DataGridColumn visible="false" width="0" dataField="status" headerText="状态"/>
+				<mx:DataGridColumn dataField="statusName" headerText="状态"/>
+				<mx:DataGridColumn visible="false" width="0" dataField="content" headerText="报告内容"/>
+			</custom:columns>
+		</custom:CustomDataGrid>
+	</s:VGroup>
+	<s:VGroup includeIn="add,modify,query" width="100%" height="100%">
+			<s:HGroup id="add_btn_hg" width="100%" horizontalAlign="left" verticalAlign="middle">
+				<s:Button id="addSureBtn" includeIn="add,modify" label="保存"
+						  click="addSureBtn_clickHandler(event)" styleName="save"/>
+				<s:Button id="addCancelBtn" includeIn="add,modify,query" label="取消"
+						  click="addCancelBtn_clickHandler(event)" styleName="cancel"/>
+			</s:HGroup>
+			<s:VGroup width="100%" height="100%">
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel width="110" label="年份：" required="true" verticalAlign="middle"/>
+					<control:TextInputFl id="year" width="50%"/>
+					<control:FormLabel width="110" label="所属项目：" required="true" verticalAlign="middle"/>
+					<s:DropDownList id="dList_System" width="50%" height="25"
+									creationComplete="dList_System_creationCompleteHandler(event)"
+									labelField="systemName" textAlign="left"/>
+					<control:FormLabel width="110" label="填报人：" verticalAlign="middle"/>
+					<control:TextInputFl id="reporter" width="50%" enabled="false"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="28" verticalAlign="middle">
+					<control:FormLabel width="110" label="报告开始时间：" required="true" verticalAlign="middle"/>
+					<control:DateFieldFl id="startDate" width="50%" formatString="YYYY-MM-DD"
+										 textAlign="left"/>
+					<control:FormLabel width="110" label="报告截止时间：" required="true" verticalAlign="middle"/>
+					<control:DateFieldFl id="endDate" width="50%" formatString="YYYY-MM-DD"
+										 textAlign="left"/>
+				</s:HGroup>
+				<s:HGroup id="content_group" width="100%" height="100%" verticalAlign="middle">
+					<control:FormLabel width="110" label="报告内容：" required="true" verticalAlign="middle"/>
+					<s:TextArea id="text_content" width="100%" height="100%"/>
+				</s:HGroup>
+			</s:VGroup>
+		</s:VGroup>
+	</s:BorderContainer>
+		
+	</mx:HDividedBox>
+	
+</s:VGroup>

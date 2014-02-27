@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup width="100%" height="20" horizontalAlign="right"
+		  verticalAlign="middle"
+		  xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  creationComplete="OncreationComplete()">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.framelib.events.TdcPageChangeClickEvent;
+			
+			import mx.events.ResizeEvent;
+			public var fPagelimit:int=20;//每页显示多少数据
+			public var fPageIndex:int=1;//第几页
+			
+			private var fResizePageNum:int=1;
+			private var fRecordPagelimit:int=fPagelimit;
+			private var fPageCount:int;
+			private var fRecordCount:int;
+			private var fAutoResize:Boolean=false;
+			
+			public function SetShowModule(aIsSmall:Boolean):void
+			{
+				labPage.visible=(aIsSmall)?false:true;	
+			}	
+			
+			public function SetAutoResizeModule(aIsAuto:Boolean):void
+			{
+				fAutoResize=aIsAuto;
+			}	
+			
+			public function Init():void{
+				fPageIndex=1;
+				fPageCount=1;
+				txtSelectIndex.text="1";	
+			}	
+			
+			public function Build(aRecordCount:int):void
+			{	
+				fPageIndex=1;
+				fRecordCount=aRecordCount;
+				fPageCount=Math.ceil(fRecordCount/fPagelimit);
+				if (fPageCount==0) fPageCount=1;
+				txtSelectIndex.text = fPageIndex.toString();
+				labPage.text = "/" + fPageCount.toString() + "页";
+				totalRecord.text = "记录数:"+fRecordCount.toString()+"条";
+			}
+			
+			private function OncreationComplete():void
+			{
+				if (fAutoResize==true) this.parent.addEventListener(ResizeEvent.RESIZE,OnParentResizeChange);
+				//labPage.text="记录数：0条，当前页：0/总页数：0";
+			}
+			
+			private function OnParentResizeChange(aEvent:ResizeEvent):void
+			{
+				if (this.parent.height>580){fRecordPagelimit=fPagelimit; fPagelimit=this.parent.height/28;fResizePageNum=2;} else fPagelimit=fRecordPagelimit;
+				if (fResizePageNum==2)
+				{
+					var mPageChangeClickEvent: TdcPageChangeClickEvent = new TdcPageChangeClickEvent(fPagelimit,fPageIndex);
+					this.dispatchEvent(mPageChangeClickEvent);	
+				}
+			}
+			
+			private function OnClick(event:Event):void{
+				var mPageIndex:int = fPageIndex;
+				switch(event.currentTarget.name)
+				{
+					case "PriorClick":{
+						if (fPageIndex>1){
+							fPageIndex--;
+						}
+						break;
+					}
+					case "ComboxClick":{
+						fPageIndex=parseInt(txtSelectIndex.text);
+						if (fPageIndex>fPageCount) {
+							fPageIndex=fPageCount;
+							txtSelectIndex.text=fPageCount.toString();
+						}
+						break; 	
+					}
+					case "NextClick":{
+						if (fPageIndex<fPageCount){fPageIndex++;}	
+						break;
+					}
+				}	
+				if (mPageIndex!=fPageIndex){
+					var mPageChangeClickEvent: TdcPageChangeClickEvent = new TdcPageChangeClickEvent(fPagelimit,fPageIndex);
+					this.dispatchEvent(mPageChangeClickEvent);
+					txtSelectIndex.text = fPageIndex.toString();
+					labPage.text = "/" + fPageCount.toString() + "页";
+					totalRecord.text = "记录数:"+fRecordCount.toString()+"条";
+				}  
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Button icon="@Embed(source='assets/img/icon/c3.png')" width="18" height="18" id="butPrior" name="PriorClick" click="OnClick(event)" cornerRadius="2" toolTip="上一页" />
+	<s:TextInput width="36" height="18" verticalCenter="0" text="0"
+				 restrict="0-9" id="txtSelectIndex" maxChars="6" toolTip="请输入指定页" />
+	<s:Label id="labPage" height="18" verticalAlign="middle" text="/0页"/>
+	<s:Button icon="@Embed(source='assets/img/icon/c6.png')" click="OnClick(event)" cornerRadius="3" width="18" height="18" name="ComboxClick" toolTip="跳转到指定页"/>
+	<s:Button icon="@Embed(source='assets/img/icon/c4.png')" width="18" height="18" id="butNext" name="NextClick" click="OnClick(event)" cornerRadius="2"  toolTip="下一页" />
+	<s:Label id="totalRecord" height="18" verticalAlign="middle" text="记录数:0条"/>
+</s:HGroup>

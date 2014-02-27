@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container:TitleWindowFl xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="100%" height="100%"
+					   close="closeHandler(event)" 
+					   title="机构管理" 
+					   xmlns:container="com.framelib.container.*" 
+					   creationComplete="richwindow1_creationCompleteHandler(event)" 
+					   xmlns:control="com.framelib.control.*">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:RadioButtonGroup id="org_type_rbg"/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="AddConfirmEvent",type="flash.events.MouseEvent")]
+		[Event(name="UpdateConfirmEvent",type="flash.events.MouseEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.json.JSONEncoder;
+			import com.itsm.common.as3.IModules;
+			import com.itsm.common.utils.AppCore;
+			
+			import common.utils.TAlert;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			private var appCore:AppCore = AppCore.getInstance();
+			
+			public var parentOrg:Object; //上级
+			public var meOrg:Object;//如果是修改的话，会有本
+			
+			protected function richwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setFields();
+			}
+			
+			private function setFields():void
+			{
+				if(parentOrg != null) {
+					parent_label.text = parentOrg.orgName;
+				}
+				
+				if(meOrg != null) {
+					label_ti.text = meOrg.orgName;
+					code_ti.text = meOrg.orgCode;
+					org_type_rbg.selectedValue = meOrg.orgType.toString();
+				}
+			}
+			
+			protected function btnSure_clickHandler(event:MouseEvent):void
+			{
+				if(StringUtil.trim(label_ti.text) == "" || StringUtil.trim(code_ti.text) == "" ) {
+					TAlert.show("标记为*号的为必填项", "提示");
+					return;
+				}
+				
+				if(isNameRepeate() && StringUtil.trim(code_ti.text) == meOrg.orgCode && org_type_rbg.selectedValue ==  meOrg.orgType.toString()) {
+					TAlert.show("同级节点名称不能重复！", "提示");
+					return;
+				}
+				
+				// 组织新角色
+				var newOrg:Object = new Object();
+				newOrg.orgName = label_ti.text;
+				newOrg.orgCode = code_ti.text;
+				newOrg.parentId = parentOrg.id;
+				newOrg.parentPath = parentOrg.parentPath + parentOrg.id +","
+				newOrg.orgType = org_type_rbg.selectedValue as Number;
+				newOrg.remark = new Date().toString();
+				
+				if(parentOrg != null ) { 
+					if( parentOrg.orgType == 1) {
+						newOrg.companyId = parentOrg.id;
+					} else {
+						newOrg.companyId = parentOrg.companyId;
+					}
+				}
+				
+				if(meOrg != null) {//修改菜单
+					newOrg.id = meOrg.id;
+					
+					(this.owner as IModules).setWindowObj(newOrg);
+					this.dispatchEvent(new MouseEvent("UpdateConfirmEvent"));
+				} else {
+					(this.owner as IModules).setWindowObj(newOrg);
+					this.dispatchEvent(new MouseEvent("AddConfirmEvent"));
+				}
+				
+				closeHandler(event);
+			}
+			
+			private function isNameRepeate():Boolean
+			{
+				if(parentOrg != null) {
+					for each (var orgItem:Object in parentOrg.children) {
+						if(StringUtil.trim(label_ti.text) == orgItem.orgName) {
+							return true;
+						}
+					}
+				} 
+				return false;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"
+			  width="100%" height="100%">
+		<s:VGroup width="100%" gap="2">
+			
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="机构类型" verticalAlign="middle" />
+				<s:HGroup width="120">
+					<s:RadioButton id="com_cb" label="公司" value="1" groupName="org_type_rbg" selected="true"/>
+					<s:RadioButton id="dep_cb" label="部门" value="0" groupName="org_type_rbg" selected="false"/>
+				</s:HGroup>
+				
+				<control:FormLabel label="机构名称" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="label_ti" width="240" maxChars="50" />
+			</s:HGroup>
+			
+			<s:HGroup width="100%" verticalAlign="middle">
+				<control:FormLabel label="机构编码" verticalAlign="middle" required="true"/>
+				<control:TextInputFl id="code_ti" width="120" maxChars="50" />
+				
+				<control:FormLabel label="上级机构" verticalAlign="middle" />
+				<control:TextInputFl id="parent_label" width="240" maxChars="50" 
+									 editable="false" enabled="false" contentBackgroundColor="#d0d0d0"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:VGroup>
+	
+	<container:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<s:Button id="btnSure" label="确定" click="btnSure_clickHandler(event)"/>
+			<s:Button id="btnCancel" label="取消" click="closeHandler(event)"/>
+		</s:HGroup>
+	</container:controlBarContent>
+</container:TitleWindowFl>

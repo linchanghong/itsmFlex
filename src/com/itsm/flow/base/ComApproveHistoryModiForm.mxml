@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:launch="common.flow.view.launch.*"
+			   xmlns:datagrid="common.components.datagrid.*"
+			   xmlns:components="common.components.*"
+			   width="500" height="448" title="节点设置" close="{PopUpManager.removePopUp(this)}" xmlns:base="com.ccspm.view.base.*" xmlns:base1="com.itsm.flow.view.base.*" xmlns:base2="com.itsm.flow.base.*">
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radioOpert"/>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.itsm.flow.app.GlobalUtil;
+			import com.itsm.flow.events.ArgsEvent;
+			import com.services.flow.FlowInstenceService;
+			import com.vo.CusUsers;
+			import com.vo.FlowNodeInstence;
+			import com.vo.FlowNodeModel;
+			import com.vo.FlowOprtModule;
+			
+			import common.flow.model.BeginNode;
+			import common.flow.model.EndNode;
+			import common.flow.model.Node;
+			import common.flow.model.SingleLine;
+			import common.flow.model.SpecialTaskNode;
+			import common.flow.model.TaskNode;
+			import common.flow.view.design.FlowOptyModelRadioEvent;
+			import common.utils.FAppCoreUtil;
+			import common.utils.TCopyUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.effects.Glow;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			public static const OK_CLICK:String = "add_or_update_click";
+			
+			private var FAppCore:GlobalUtil= GlobalUtil.getInstence();	
+			
+			public var preNode:FlowNodeInstence=null;
+			
+			public var addNode:FlowNodeInstence=null;
+			
+			public var isAdd:Boolean = true;
+			
+			public var allOptyModelList:ArrayCollection = null;
+			
+			public var selectOptyModelCode:String="";
+			
+			private function init():void{
+				
+			}
+			
+			private function setselectedOPtymodel():void
+			{
+				var allOptyModels:Array=new Array();
+				if(!isAdd)
+					selectOptyModelCode=preNode.ModuleCode;
+				var optyid:String=preNode.OprtTypeID.toString();
+				for each (var optyModelitem:Object in allOptyModelList)
+				{
+					if (optyModelitem.FlowOprtID == optyid)
+					{
+						var location:String = optyModelitem.Location;
+						if (location.indexOf("1")==-1) continue;
+						if (optyModelitem.FlowOprtModuleCode == selectOptyModelCode)
+						{
+							optyModelitem.selected=true;
+						}
+						else
+						{
+							optyModelitem.selected=false;
+						}
+						allOptyModels.push(optyModelitem);
+					}
+				} 
+				allOptyModel.dataProvider= new ArrayCollection(allOptyModels);
+				
+			}
+			
+			
+			
+			private function onModeCodeChange(event:Event):void
+			{
+				var selectFlowOptyModel:Object=(event.currentTarget as List).selectedItem;
+				selectOptyModelCode = selectFlowOptyModel?selectFlowOptyModel.FlowOprtModuleCode:"";
+			}
+			
+			
+			public function loadData(node:FlowNodeInstence,isadd:Boolean,oprtmodelist:ArrayCollection):void{
+				preNode = node;
+				addNode = TCopyUtil.clone(preNode) as FlowNodeInstence;
+				isAdd = isadd;
+				txtPreRole.text = preNode.FlowRoleName;
+				allOptyModelList = oprtmodelist;
+				if (!isAdd){
+					radionode.enabled = false;
+					radioAnd.enabled = false;
+					chkOnePass.enabled = false;
+					chkCmpt.enabled = false;
+					txtRoleName.text  = preNode.FlowRoleName;
+					var handuser:CusUsers = new CusUsers();
+					handuser.UserId = String(preNode.HandlerId);
+					handuser.UserName = preNode.HandlerName;
+					txtHanderUser.SetDefaultID(handuser,false);
+					var andNodeMark:String = preNode.Other1;
+					if (andNodeMark!=null && andNodeMark!="" && andNodeMark.indexOf("&")!=-1 && andNodeMark.indexOf("|")!=-1){
+						chkOnePass.enabled = true;
+						chkCmpt.enabled = true;
+						var nodeMark:Array = andNodeMark.split('$');
+						if (nodeMark.length >=1 ){
+							radioAnd.selected = true;
+							//判断是否竞争审批
+							if (nodeMark.length>1 && nodeMark[1]=="true") 
+								chkCmpt.selected = true;
+							//判断是否一个通过 则通过
+							var nodes:String = nodeMark[0];
+							var nodeArr:Array = nodes.split("&");
+							if (nodeArr.length>0){
+								var nodeStr:String = nodeArr[0];
+								var nodef:Array = nodeStr.split("|");
+								if (nodeStr.length==2 && nodeStr[1]=="true")
+									chkOnePass.selected = true;
+								
+							}
+						}
+						
+					}
+				}
+				setselectedOPtymodel();
+				
+			}
+			
+			private function save():void{
+				if (txtRoleName.text==""){
+					FAppCore.sendSysInfo("请输入角色名称");
+					return;
+				}
+				if (txtHanderUser.hasSelUsersArr==null || txtHanderUser.hasSelUsersArr.length==0 || txtHanderUser.hasSelUsersArr[0]["UserId"]==null || txtHanderUser.hasSelUsersArr[0]["UserId"]==0){
+					FAppCore.sendSysInfo("请选择审批人员");
+					return;
+				}
+				if (selectOptyModelCode==null || selectOptyModelCode==""){
+					FAppCore.sendSysInfo("请选择流程挂载页面");
+					return;
+				}
+				if (isAdd){
+					addNode.FlowRoleName=txtRoleName.text;
+					addNode.HandlerId = txtHanderUser.hasSelUsersArr[0]["UserId"];
+					addNode.HandlerName = txtHanderUser.hasSelUsersArr[0]["UserName"];
+					addNode.ModuleCode = selectOptyModelCode;
+				}else{
+					preNode.FlowRoleName=txtRoleName.text;
+					preNode.HandlerId = txtHanderUser.hasSelUsersArr[0]["UserId"];
+					preNode.HandlerName = txtHanderUser.hasSelUsersArr[0]["UserName"];
+					preNode.ModuleCode = selectOptyModelCode;
+				}
+				var arr:Array=[isAdd,preNode,addNode,radionode.selected,chkOnePass.selected,chkCmpt.selected];
+				this.dispatchEvent(new ArgsEvent(arr,OK_CLICK));
+				PopUpManager.removePopUp(this);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+		<s:BorderContainer left="5" right="5" top="5" bottom="5" cornerRadius="3">
+			<s:VGroup width="100%" height="25" gap="10">
+				<s:HGroup width="100%" height="100%" gap="5" verticalAlign="middle">
+					<s:Label text="选中节点"  width="65" textAlign="right"/>
+					<s:TextInput id="txtPreRole" width="100%" editable="false"/>
+				</s:HGroup>
+				<s:HGroup width="150" height="100%" gap="5" verticalAlign="middle">
+					<s:RadioButton label="在选中节点后添加" selected="true"  id="radionode"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="100%" gap="5" verticalAlign="middle">
+					<s:RadioButton width="150" label="并节点" id="radioAnd"/>
+					<s:CheckBox label="一人同意则能过" id="chkOnePass"/>
+					<s:CheckBox label="并联竞争审批" id="chkCmpt"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" gap="2" verticalAlign="middle">
+					<s:Label width="65" height="23" text="*角色名称" color="#FF0000" textAlign="right"/>
+					<s:TextInput id="txtRoleName" width="100%"/>
+				</s:HGroup>
+				<s:HGroup width="100%" height="25" gap="2" verticalAlign="middle">
+					<s:Label width="65" height="23" text="*审批人员" color="#FF0000" textAlign="right"/>
+					<base2:UserSelectInput id="txtHanderUser" width="100%" height="23">
+					</base2:UserSelectInput> 
+				</s:HGroup>
+				<s:VGroup width="100%" height="100%" gap="2" verticalAlign="middle">
+					<s:Label text="*选择处理该流程节点的业务表单：" color="#FF0000"/>
+					
+					<s:List id="allOptyModel"  width="100%" height="200" change="onModeCodeChange(event)"  labelField="FlowOprtModuleName" textAlign="left">
+						<s:itemRenderer>
+							<fx:Component>
+								<s:ItemRenderer>
+									<fx:Script>
+										<![CDATA[
+											import mx.controls.Text;
+											override public function set data(value:Object):void {
+												sn.text = String(itemIndex+1);
+												rdaio.label = value.FlowOprtModuleName;
+												rdaio.selected = value.selected;
+											}
+											
+											protected function rdaio_clickHandler(event:MouseEvent):void
+											{
+												outerDocument.allOptyModel.selectedIndex = int(sn.text)-1;
+											}
+										]]>
+									</fx:Script>
+									<s:layout>
+										<s:HorizontalLayout gap="1"/>
+									</s:layout>
+									<s:Label id="sn" x="0" />
+									<s:RadioButton x="30" id="rdaio" click="rdaio_clickHandler(event)" group="{outerDocument.radioOpert}"/>
+								</s:ItemRenderer>
+							</fx:Component>
+						</s:itemRenderer>
+					</s:List>
+				</s:VGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:Group>
+	<s:controlBarContent>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<components:IconButton id="butSubmit" width="80" height="23" label="确定"
+								   click="save()" styleName="btnSure" toolTip="确定"/>
+			<components:IconButton width="80" height="23" label="取消"
+								   click="PopUpManager.removePopUp(this)" styleName="btnCancel"
+								   toolTip="取消"/>
+		</s:HGroup>
+	</s:controlBarContent>
+</s:TitleWindow>
